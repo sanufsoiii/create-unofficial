@@ -29,7 +29,7 @@ public class DyedBlockList<T extends Block> implements Iterable<BlockEntry<T>> {
 
 	public boolean contains(Block block) {
 		for (BlockEntry<?> entry : values) {
-			if (entry.is(block)) {
+			if (entry.get() == block) {
 				return true;
 			}
 		}
