@@ -10,9 +10,12 @@ dependencies {
     // Architectury API
     modImplementation "dev.architectury:architectury:$rootProject.architectury_api_version"
 
-    // Registrate (Common/CompileOnly)
+    // Registrate (Common)
     compileOnly "com.tterrag.registrate:Registrate:$rootProject.registrate_version"
 
-    // Flywheel API (CompileOnly)
+    // Flywheel API (Common)
     compileOnly "dev.engine-room.flywheel:flywheel-common-mojmap-api-$rootProject.minecraft_version:$rootProject.flywheel_version"
+
+    // Ponder (Common)
+    compileOnly "net.createmod.ponder:ponder-common:$rootProject.ponder_version+mc$rootProject.minecraft_version"
 }

@@ -38,6 +38,7 @@ subprojects {
         maven { url = "https://jm.gserv.me/repository/maven-public" }
         maven { url = "https://chocolateminecraft.com/maven" }
         maven { url = "https://www.cursemaven.com" }
+        maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" } // ForgeConfigAPIPort for Ponder
     }
 
     dependencies {

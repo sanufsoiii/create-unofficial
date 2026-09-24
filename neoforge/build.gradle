@@ -59,10 +59,22 @@ dependencies {
 }
 
 processResources {
-    inputs.property "version", project.version
+    def replaceProperties = [
+        minecraft_version: rootProject.minecraft_version,
+        mod_id: rootProject.mod_id,
+        mod_name: rootProject.mod_name,
+        mod_version: rootProject.mod_version,
+        mod_author: "simibubi",
+        mod_description: "Technology that empowers the player.",
+        mod_license: "MIT",
+        neo_version: rootProject.neo_version,
+        flywheel_version_range: "[1.0.0,2.0)",
+        ponder_version: rootProject.ponder_version
+    ]
+    inputs.properties replaceProperties
 
     filesMatching("META-INF/neoforge.mods.toml") {
-        expand "version": project.version
+        expand replaceProperties
     }
 }
 

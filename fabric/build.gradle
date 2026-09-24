@@ -35,6 +35,9 @@ dependencies {
     // Flywheel Fabric
     compileOnly "dev.engine-room.flywheel:flywheel-fabric-api-$rootProject.minecraft_version:$rootProject.flywheel_version"
     runtimeOnly "dev.engine-room.flywheel:flywheel-fabric-$rootProject.minecraft_version:$rootProject.flywheel_version"
+
+    // Ponder Fabric
+    implementation "net.createmod.ponder:ponder-fabric:$rootProject.ponder_version+mc$rootProject.minecraft_version"
 }
 
 processResources {
