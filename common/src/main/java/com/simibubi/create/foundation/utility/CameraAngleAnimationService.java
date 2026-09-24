@@ -2,9 +2,12 @@ package com.simibubi.create.foundation.utility;
 
 import net.createmod.catnip.animation.LerpedFloat;
 import net.createmod.catnip.math.AngleHelper;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 
+@Environment(EnvType.CLIENT)
 public class CameraAngleAnimationService {
 
 	private static final LerpedFloat yRotation = LerpedFloat.angular().startWithValue(0);

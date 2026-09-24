@@ -4,13 +4,12 @@ import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
+import dev.architectury.utils.GameInstance;
 import net.createmod.catnip.platform.CatnipServices;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.MinecraftServer;
-
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 public final class GlobalRegistryAccess {
 	private static Supplier<@Nullable RegistryAccess> supplier;
@@ -26,7 +25,7 @@ public final class GlobalRegistryAccess {
 
 		if (supplier == null) {
 			supplier = () -> {
-				MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+				MinecraftServer server = GameInstance.getServer();
 				if (server == null) {
 					return null;
 				}
