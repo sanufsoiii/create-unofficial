@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "create",
+  "version": "${version}",
+  "name": "Create",
+  "description": "Welcome to Create, a mod offering a variety of tools and blocks for Building, Decoration and Aesthetic Automation.",
+  "authors": [
+    "simibubi"
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/create",
+    "sources": "https://github.com/Creators-of-Create/Create",
+    "issues": "https://github.com/Creators-of-Create/Create/issues"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.simibubi.create.fabric.CreateFabric"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.9",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "architectury": "*"
+  }
+}
