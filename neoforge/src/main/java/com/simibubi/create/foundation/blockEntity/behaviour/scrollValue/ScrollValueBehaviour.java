@@ -142,11 +142,7 @@ public class ScrollValueBehaviour extends BlockEntityBehaviour implements ValueS
 		this.label = label;
 	}
 
-	public static class StepContext {
-		public int currentValue;
-		public boolean forward;
-		public boolean shift;
-		public boolean control;
+	public static class StepContext extends com.simibubi.create.foundation.gui.widget.ScrollInput.StepContext {
 	}
 
 	@Override

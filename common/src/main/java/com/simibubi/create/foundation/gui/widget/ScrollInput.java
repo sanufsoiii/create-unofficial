@@ -5,7 +5,6 @@ import java.util.function.Function;
 
 import com.simibubi.create.AllKeys;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour.StepContext;
 import com.simibubi.create.foundation.utility.CreateLang;
 
 import net.createmod.catnip.gui.widget.AbstractSimiWidget;
@@ -189,6 +188,13 @@ public class ScrollInput extends AbstractSimiWidget {
 			.withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY));
 		toolTip.add(shiftScrollsFaster.plainCopy()
 			.withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY));
+	}
+
+	public static class StepContext {
+		public int currentValue;
+		public boolean forward;
+		public boolean shift;
+		public boolean control;
 	}
 
 }
