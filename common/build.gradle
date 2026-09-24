@@ -1,0 +1,18 @@
+architectury {
+    common("neoforge", "fabric")
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/create.accesswidener")
+}
+
+dependencies {
+    // Architectury API
+    modImplementation "dev.architectury:architectury:$rootProject.architectury_api_version"
+
+    // Registrate (Common/CompileOnly)
+    compileOnly "com.tterrag.registrate:Registrate:$rootProject.registrate_version"
+
+    // Flywheel API (CompileOnly)
+    compileOnly "dev.engine-room.flywheel:flywheel-common-mojmap-api-$rootProject.minecraft_version:$rootProject.flywheel_version"
+}
