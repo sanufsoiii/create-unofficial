@@ -21,7 +21,6 @@ import net.minecraft.world.phys.Vec3;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 /**
  * MovementBehaviors, also known as Actors, provide behavior to blocks mounted on contraptions.
@@ -81,7 +80,7 @@ public interface MovementBehaviour {
 	default void collectOrDropItem(MovementContext context, ItemStack stack) {
 		ItemStack remainder;
 		if (AllConfigs.server().kinetics.moveItemsToStorage.get())
-			remainder = ItemHandlerHelper.insertItem(context.contraption.getStorage().getAllItems(), stack, false);
+			remainder = com.simibubi.create.foundation.item.ItemTransferUtil.insertItem(context.contraption.getStorage().getAllItems(), stack, false);
 		else
 			remainder = stack;
 		if (remainder.isEmpty())

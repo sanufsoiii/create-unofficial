@@ -119,7 +119,7 @@ public class ContraptionEntityRenderer<C extends AbstractContraptionEntity> exte
 		ContraptionMatrices matrices = clientContraption.getMatrices();
 		matrices.setup(poseStack, entity);
 
-		if (!VisualizationManager.supportsVisualization(level)) {
+		if (!com.simibubi.create.api.contraption.render.ContraptionRenderDispatcher.getRenderer().isAvailable(level)) {
 			for (RenderType renderType : RenderType.chunkBufferLayers()) {
 				SuperByteBuffer sbb = getBuffer(contraption, renderWorld, renderType);
 				if (!sbb.isEmpty()) {

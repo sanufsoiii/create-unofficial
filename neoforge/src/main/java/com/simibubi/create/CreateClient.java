@@ -78,6 +78,7 @@ public class CreateClient {
 		modEventBus.addListener(AllParticleTypes::registerFactories);
 
 		AllInstanceTypes.init();
+		com.simibubi.create.api.contraption.render.ContraptionRenderDispatcher.registerRenderer(new com.simibubi.create.content.contraptions.render.FlywheelContraptionRenderer());
 
 		MODEL_SWAPPER.registerListeners(modEventBus);
 
