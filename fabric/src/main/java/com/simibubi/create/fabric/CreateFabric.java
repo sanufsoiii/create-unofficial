@@ -16,6 +16,8 @@ public class CreateFabric implements ModInitializer {
 	public void onInitialize() {
 		Create.LOGGER.info("{} {} initializing on Fabric/Quilt! Commit: {}", Create.NAME, CreateBuildInfo.VERSION, CreateBuildInfo.GIT_COMMIT);
 
+		Create.init();
+
 		// Register default passive boiler heater for Fabric
 		TagKey<net.minecraft.world.level.block.Block> passiveBoilerHeatersTag =
 			TagKey.create(BuiltInRegistries.BLOCK.key(), Create.asResource("passive_boiler_heaters"));

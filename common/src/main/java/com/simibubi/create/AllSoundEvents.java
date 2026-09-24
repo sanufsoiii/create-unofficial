@@ -27,11 +27,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.RegisterEvent;
+import dev.architectury.registry.registries.DeferredRegister;
+import dev.architectury.registry.registries.RegistrySupplier;
 
 public class AllSoundEvents {
 
+	public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Create.ID, Registries.SOUND_EVENT);
 	public static final Map<ResourceLocation, SoundEntry> ALL = new HashMap<>();
 
 	public static final SoundEntry
@@ -383,16 +384,19 @@ public class AllSoundEvents {
 		return new SoundEntryBuilder(id);
 	}
 
-	public static void prepare() {
+	private static boolean prepared = false;
+
+	public static synchronized void prepare() {
+		if (prepared)
+			return;
+		prepared = true;
 		for (SoundEntry entry : ALL.values())
 			entry.prepare();
 	}
 
-	public static void register(RegisterEvent event) {
-		event.register(Registries.SOUND_EVENT, helper -> {
-			for (SoundEntry entry : ALL.values())
-				entry.register(helper);
-		});
+	public static void register() {
+		prepare();
+		SOUND_EVENTS.register();
 	}
 
 	public static void provideLang(BiConsumer<String, String> consumer) {
@@ -401,8 +405,8 @@ public class AllSoundEvents {
 				consumer.accept(entry.getSubtitleKey(), entry.getSubtitle());
 	}
 
-	public static SoundEntryProvider provider(DataGenerator generator) {
-		return new SoundEntryProvider(generator);
+	public static SoundEntryProvider provider(PackOutput output) {
+		return new SoundEntryProvider(output);
 	}
 
 	public static void playItemPickup(Player player) {
@@ -425,8 +429,8 @@ public class AllSoundEvents {
 
 		private PackOutput output;
 
-		public SoundEntryProvider(DataGenerator generator) {
-			output = generator.getPackOutput();
+		public SoundEntryProvider(PackOutput output) {
+			this.output = output;
 		}
 
 		@Override
@@ -543,8 +547,6 @@ public class AllSoundEvents {
 
 		public abstract void prepare();
 
-		public abstract void register(RegisterEvent.RegisterHelper<SoundEvent> registry);
-
 		public abstract void write(JsonObject json);
 
 		public abstract Holder<SoundEvent> getMainEventHolder();
@@ -627,16 +629,8 @@ public class AllSoundEvents {
 			for (int i = 0; i < wrappedEvents.size(); i++) {
 				ConfiguredSoundEvent wrapped = wrappedEvents.get(i);
 				ResourceLocation location = getIdOf(i);
-				DeferredHolder<SoundEvent, SoundEvent> event = DeferredHolder.create(Registries.SOUND_EVENT, location);
+				RegistrySupplier<SoundEvent> event = SOUND_EVENTS.register(location, () -> SoundEvent.createVariableRangeEvent(location));
 				compiledEvents.add(new CompiledSoundEvent(event, wrapped.volume(), wrapped.pitch()));
-			}
-		}
-
-		@Override
-		public void register(RegisterEvent.RegisterHelper<SoundEvent> helper) {
-			for (CompiledSoundEvent compiledEvent : compiledEvents) {
-				ResourceLocation location = compiledEvent.event().getId();
-				helper.register(location, SoundEvent.createVariableRangeEvent(location));
 			}
 		}
 
@@ -692,7 +686,7 @@ public class AllSoundEvents {
 			}
 		}
 
-		private record CompiledSoundEvent(DeferredHolder<SoundEvent, SoundEvent> event, float volume, float pitch) {
+		private record CompiledSoundEvent(RegistrySupplier<SoundEvent> event, float volume, float pitch) {
 		}
 
 	}
@@ -700,7 +694,7 @@ public class AllSoundEvents {
 	private static class CustomSoundEntry extends SoundEntry {
 
 		protected List<ResourceLocation> variants;
-		protected DeferredHolder<SoundEvent, SoundEvent> event;
+		protected RegistrySupplier<SoundEvent> event;
 
 		public CustomSoundEntry(ResourceLocation id, List<ResourceLocation> variants, String subtitle,
 			SoundSource category, int attenuationDistance) {
@@ -710,13 +704,7 @@ public class AllSoundEvents {
 
 		@Override
 		public void prepare() {
-			event = DeferredHolder.create(Registries.SOUND_EVENT, id);
-		}
-
-		@Override
-		public void register(RegisterEvent.RegisterHelper<SoundEvent> helper) {
-			ResourceLocation location = event.getId();
-			helper.register(location, SoundEvent.createVariableRangeEvent(location));
+			event = SOUND_EVENTS.register(id, () -> SoundEvent.createVariableRangeEvent(id));
 		}
 
 		@Override

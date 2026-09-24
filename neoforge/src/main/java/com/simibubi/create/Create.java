@@ -112,7 +112,7 @@ public class Create {
 
 		REGISTRATE.registerEventListeners(modEventBus);
 
-		AllSoundEvents.prepare();
+		AllSoundEvents.register();
 		AllCreativeModeTabs.register(modEventBus);
 		AllArmorMaterials.register(modEventBus);
 		AllDisplaySources.register();
@@ -158,7 +158,6 @@ public class Create {
 		modEventBus.addListener(AllEntityTypes::registerEntityAttributes);
 		modEventBus.addListener(EventPriority.HIGHEST, CreateDatagen::gatherDataHighPriority);
 		modEventBus.addListener(EventPriority.LOWEST, CreateDatagen::gatherData);
-		modEventBus.addListener(AllSoundEvents::register);
 
 		// FIXME: this is not thread-safe
 		Mods.CURIOS.executeIfInstalled(() -> () -> Curios.init(modEventBus));

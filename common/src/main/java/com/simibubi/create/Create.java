@@ -34,4 +34,8 @@ public class Create {
 	public static ResourceLocation asResource(String path) {
 		return ResourceLocation.fromNamespaceAndPath(ID, path);
 	}
+
+	public static void init() {
+		AllSoundEvents.register();
+	}
 }

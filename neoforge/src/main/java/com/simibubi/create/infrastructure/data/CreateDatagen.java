@@ -44,7 +44,7 @@ public class CreateDatagen {
 		CompletableFuture<HolderLookup.Provider> lookupProvider = event.getLookupProvider();
 		ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
 
-		generator.addProvider(event.includeClient(), AllSoundEvents.provider(generator));
+		generator.addProvider(event.includeClient(), AllSoundEvents.provider(output));
 
 		GeneratedEntriesProvider generatedEntriesProvider = new GeneratedEntriesProvider(output, lookupProvider);
 		lookupProvider = generatedEntriesProvider.getRegistryProvider();
