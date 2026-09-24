@@ -14,6 +14,9 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class BoilerHeaters {
 	public static void registerDefaults() {
+		com.simibubi.create.api.boiler.BoilerHeaterDefaults.passiveHeater = BoilerHeaters::passive;
+		com.simibubi.create.api.boiler.BoilerHeaterDefaults.blazeBurnerHeater = BoilerHeaters::blazeBurner;
+
 		BoilerHeater.REGISTRY.register(AllBlocks.BLAZE_BURNER.get(), BoilerHeater.BLAZE_BURNER);
 		BoilerHeater.REGISTRY.registerProvider(SimpleRegistry.Provider.forBlockTag(AllBlockTags.PASSIVE_BOILER_HEATERS.tag, BoilerHeater.PASSIVE));
 	}

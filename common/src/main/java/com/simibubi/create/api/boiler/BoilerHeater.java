@@ -1,7 +1,6 @@
 package com.simibubi.create.api.boiler;
 
 import com.simibubi.create.api.registry.SimpleRegistry;
-import com.simibubi.create.content.fluids.tank.BoilerHeaters;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -26,11 +25,11 @@ public interface BoilerHeater {
 	 * The heater used by common passively-heating blocks. Automatically provides
 	 * heat for any block in the {@code create:passive_boiler_heaters} block tag.
 	 */
-	BoilerHeater PASSIVE = BoilerHeaters::passive;
+	BoilerHeater PASSIVE = BoilerHeaterDefaults::passive;
 	/**
 	 * The heater used by Blaze Burners. Addons can register this to their own blocks if they use the same functionality.
 	 */
-	BoilerHeater BLAZE_BURNER = BoilerHeaters::blazeBurner;
+	BoilerHeater BLAZE_BURNER = BoilerHeaterDefaults::blazeBurner;
 
 	SimpleRegistry<Block, BoilerHeater> REGISTRY = SimpleRegistry.create();
 

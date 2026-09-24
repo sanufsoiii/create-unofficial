@@ -40,7 +40,7 @@ public class DynamicPack implements PackResources {
 		this.packId = packId;
 		this.packType = packType;
 
-		metadata = new PackMetadataSection(Component.empty(), SharedConstants.getCurrentVersion().getPackVersion(packType));
+		metadata = new PackMetadataSection(Component.empty(), SharedConstants.getCurrentVersion().getPackVersion(packType), Optional.empty());
 		packLocationInfo = new PackLocationInfo(packId, Component.literal(packId), PackSource.BUILT_IN, Optional.empty());
 	}
 
@@ -61,66 +61,71 @@ public class DynamicPack implements PackResources {
 		return put(location, string.getBytes(StandardCharsets.UTF_8));
 	}
 
-	// Automatically suffixes the ResourceLocation with .json
 	public DynamicPack put(ResourceLocation location, JsonElement json) {
-		return put(location.withSuffix(".json"), Create.GSON.toJson(json));
+		return put(location, Create.GSON.toJson(json));
 	}
 
 	@Override
-	public @Nullable IoSupplier<InputStream> getRootResource(String @NotNull ... elements) {
-		return files.getOrDefault(String.join("/", elements), null);
+	public @Nullable IoSupplier<InputStream> getRootResource(String... segments) {
+		return null;
 	}
 
 	@Override
-	public @Nullable IoSupplier<InputStream> getResource(@NotNull PackType packType, @NotNull ResourceLocation resourceLocation) {
-		return files.getOrDefault(getPath(packType, resourceLocation), null);
-	}
-
-	@Override
-	public void listResources(@NotNull PackType packType, @NotNull String namespace, @NotNull String path, @NotNull ResourceOutput resourceOutput) {
-		ResourceLocation resourceLocation = ResourceLocation.fromNamespaceAndPath(namespace, path);
-		String directoryAndNamespace = packType.getDirectory() + "/" + namespace + "/";
-		String prefix = directoryAndNamespace + path + "/";
-		files.forEach((filePath, streamSupplier) -> {
-			if (filePath.startsWith(prefix))
-				resourceOutput.accept(resourceLocation.withPath(filePath.substring(directoryAndNamespace.length())), streamSupplier);
-		});
-	}
-
-	@Override
-	public @NotNull Set<String> getNamespaces(PackType packType) {
-		Set<String> namespaces = new HashSet<>();
-		String dir = packType.getDirectory() + "/";
-
-		for (String path : files.keySet()) {
-			if (path.startsWith(dir)) {
-				String relative = path.substring(dir.length());
-				if (relative.contains("/")) {
-					namespaces.add(relative.substring(0, relative.indexOf("/")));
-				}
-			}
+	public @Nullable IoSupplier<InputStream> getResource(PackType type, ResourceLocation location) {
+		if (this.packType != type) {
+			return null;
 		}
 
+		return files.get(getPath(type, location));
+	}
+
+	@Override
+	public void listResources(PackType type, String namespace, String path, ResourceOutput resourceOutput) {
+		if (this.packType != type) {
+			return;
+		}
+
+		String prefix = type.getDirectory() + "/" + namespace + "/" + path;
+		for (Map.Entry<String, IoSupplier<InputStream>> entry : files.entrySet()) {
+			String key = entry.getKey();
+			if (key.startsWith(prefix)) {
+				resourceOutput.accept(ResourceLocation.fromNamespaceAndPath(namespace, key.substring(type.getDirectory().length() + 1 + namespace.length() + 1)), entry.getValue());
+			}
+		}
+	}
+
+	@Override
+	public Set<String> getNamespaces(PackType type) {
+		if (this.packType != type) {
+			return Set.of();
+		}
+
+		Set<String> namespaces = new HashSet<>();
+		for (String path : files.keySet()) {
+			String[] split = path.split("/");
+			if (split.length > 1) {
+				namespaces.add(split[1]);
+			}
+		}
 		return namespaces;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public @Nullable <T> T getMetadataSection(@NotNull MetadataSectionSerializer<T> deserializer) throws IOException {
-		return deserializer == PackMetadataSection.TYPE ? (T) metadata : null;
+	public <T> @Nullable T getMetadataSection(MetadataSectionSerializer<T> deserializer) throws IOException {
+		if (deserializer.getMetadataSectionName().equals("pack")) {
+			return (T) metadata;
+		}
+
+		return null;
 	}
 
 	@Override
-	public @NotNull PackLocationInfo location() {
+	public PackLocationInfo location() {
 		return packLocationInfo;
 	}
 
 	@Override
-	public @NotNull String packId() {
-		return packId;
-	}
-
-	@Override
 	public void close() {
-	} // NO-OP
+		files.clear();
+	}
 }

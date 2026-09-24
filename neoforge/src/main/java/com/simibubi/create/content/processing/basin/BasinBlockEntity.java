@@ -776,7 +776,7 @@ public class BasinBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 			if (fluidStack.isEmpty())
 				continue;
 			CreateLang.text("")
-				.add(CreateLang.fluidName(fluidStack)
+				.add(CreateLang.fluidName(dev.architectury.hooks.fluid.forge.FluidStackHooksForge.fromForge(fluidStack))
 					.add(CreateLang.text(" "))
 					.style(ChatFormatting.GRAY)
 					.add(CreateLang.number(fluidStack.getAmount())

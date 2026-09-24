@@ -45,7 +45,7 @@ public non-sealed interface IHaveGoggleInformation extends IHaveCustomOverlayIco
 			if (fluidStack.isEmpty())
 				continue;
 
-			CreateLang.fluidName(fluidStack)
+			CreateLang.fluidName(dev.architectury.hooks.fluid.forge.FluidStackHooksForge.fromForge(fluidStack))
 				.style(ChatFormatting.GRAY)
 				.forGoggles(tooltip, 1);
 
