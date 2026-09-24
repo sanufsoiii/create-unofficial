@@ -13,6 +13,7 @@
     "issues": "https://github.com/Creators-of-Create/Create/issues"
   },
   "license": "MIT",
+  "accessWidener": "create.accesswidener",
   "environment": "*",
   "entrypoints": {
     "main": [

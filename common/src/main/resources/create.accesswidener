@@ -37,3 +37,4 @@ accessible	method	net/minecraft/world/item/crafting/CraftingInput	<init>	(IILjav
 extendable	method	net/minecraft/world/entity/decoration/HangingEntity	recalculateBoundingBox	()V
 accessible	class	net/minecraft/world/item/alchemy/PotionBrewing$Mix
 accessible	class	net/minecraft/data/models/ItemModelGenerators$TrimModelData
+accessible	field	net/minecraft/client/KeyMapping	key	Lcom/mojang/blaze3d/platform/InputConstants$Key;

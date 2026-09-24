@@ -77,6 +77,7 @@ public class CreateClient {
 		modEventBus.addListener(CreateClient::clientInit);
 		modEventBus.addListener(AllParticleTypes::registerFactories);
 
+		AllKeys.register();
 		AllInstanceTypes.init();
 		com.simibubi.create.api.contraption.render.ContraptionRenderDispatcher.registerRenderer(new com.simibubi.create.content.contraptions.render.FlywheelContraptionRenderer());
 

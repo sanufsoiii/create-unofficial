@@ -6,17 +6,12 @@ import org.lwjgl.glfw.GLFW;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
+import dev.architectury.injectables.annotations.ExpectPlatform;
+import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
 import net.createmod.catnip.client.ConflictSafeKeyMapping;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.client.settings.KeyModifier;
-
-@EventBusSubscriber(Dist.CLIENT)
 public enum AllKeys {
 
 	TOOL_MENU("toolmenu", GLFW.GLFW_KEY_LEFT_ALT, "Focus Schematic Overlay"),
@@ -58,49 +53,51 @@ public enum AllKeys {
 				consumer.accept(key.description, key.translation);
 	}
 
-	@SubscribeEvent
-	public static void register(RegisterKeyMappingsEvent event) {
+	public static void register() {
 		for (AllKeys key : values()) {
-			if (key.conflictSafe) {
-				key.keybind = new ConflictSafeKeyMapping(key.description, key.key, Create.NAME);
-			} else {
-				key.keybind = new KeyMapping(key.description, key.key, Create.NAME);
-			}
+			key.getKeybind();
 			if (!key.modifiable)
 				continue;
 
-			event.register(key.keybind);
+			KeyMappingRegistry.register(key.keybind);
 		}
 	}
 
 	public KeyMapping getKeybind() {
+		if (keybind == null) {
+			if (conflictSafe) {
+				keybind = new ConflictSafeKeyMapping(description, key, Create.NAME);
+			} else {
+				keybind = new KeyMapping(description, key, Create.NAME);
+			}
+		}
 		return keybind;
 	}
 
 	public boolean isPressed() {
 		if (!modifiable)
 			return isKeyDown(key);
-		return keybind.isDown();
+		return getKeybind().isDown();
 	}
 
 	public String getBoundKey() {
-		return keybind.getTranslatedKeyMessage()
+		return getKeybind().getTranslatedKeyMessage()
 			.getString()
 			.toUpperCase();
 	}
 
 	public boolean doesModifierAndCodeMatch(int code) {
-		boolean codeMatches = code == keybind.getKey().getValue();
+		return doesModifierAndCodeMatch(getKeybind(), code);
+	}
 
-		boolean modifierMatches;
-		KeyModifier modifier = keybind.getKeyModifier();
-		if (modifier == KeyModifier.NONE) {
-			modifierMatches = true;
-		} else {
-			modifierMatches = KeyModifier.getActiveModifiers().contains(modifier);
-		}
+	@ExpectPlatform
+	public static boolean doesModifierAndCodeMatch(KeyMapping keyMapping, int code) {
+		throw new AssertionError();
+	}
 
-		return codeMatches && modifierMatches;
+	@ExpectPlatform
+	public static InputConstants.Key getBoundKey(KeyMapping keyMapping) {
+		throw new AssertionError();
 	}
 
 	public static boolean isKeyDown(int key) {
@@ -116,15 +113,15 @@ public enum AllKeys {
 	}
 
 	public static boolean ctrlDown() {
-		return isKeyDown(CTRL_MODIFIER.keybind.getKey().getValue());
+		return isKeyDown(getBoundKey(CTRL_MODIFIER.getKeybind()).getValue());
 	}
 
 	public static boolean shiftDown() {
-		return isKeyDown(SHIFT_MODIFIER.keybind.getKey().getValue());
+		return isKeyDown(getBoundKey(SHIFT_MODIFIER.getKeybind()).getValue());
 	}
 
 	public static boolean altDown() {
-		return isKeyDown(ALT_MODIFIER.keybind.getKey().getValue());
+		return isKeyDown(getBoundKey(ALT_MODIFIER.getKeybind()).getValue());
 	}
 
 }
