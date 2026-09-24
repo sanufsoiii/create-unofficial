@@ -36,6 +36,7 @@ public class AllContraptionTypes {
 	private static Reference<ContraptionType> register(String name, Supplier<? extends Contraption> factory) {
 		ContraptionType type = new ContraptionType(factory);
 		BY_LEGACY_NAME.put(name, type);
+		com.simibubi.create.api.contraption.ContraptionTypeRegistry.register(Create.asResource(name), type);
 
 		return Registry.registerForHolder(CreateBuiltInRegistries.CONTRAPTION_TYPE, Create.asResource(name), type);
 	}

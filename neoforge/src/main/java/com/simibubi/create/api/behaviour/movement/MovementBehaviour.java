@@ -33,7 +33,10 @@ public interface MovementBehaviour {
 	 * Creates a consumer that will register a behavior to a block. Useful for Registrate.
 	 */
 	static <B extends Block> NonNullConsumer<? super B> movementBehaviour(MovementBehaviour behaviour) {
-		return b -> REGISTRY.register(b, behaviour);
+		return b -> {
+			REGISTRY.register(b, behaviour);
+			MovementBehaviourRegistry.register(b, behaviour);
+		};
 	}
 
 	default boolean isActive(MovementContext context) {
