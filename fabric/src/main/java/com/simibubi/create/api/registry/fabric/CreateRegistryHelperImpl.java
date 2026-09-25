@@ -1,0 +1,24 @@
+package com.simibubi.create.api.registry.fabric;
+
+import com.mojang.serialization.Lifecycle;
+import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
+import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+
+public class CreateRegistryHelperImpl {
+
+	public static <T> Registry<T> register(ResourceKey<Registry<T>> key, boolean hasIntrusiveHolders, Runnable onBakeCallback) {
+		MappedRegistry<T> mappedRegistry = new MappedRegistry<>(key, Lifecycle.stable(), hasIntrusiveHolders);
+		Registry<T> registry = FabricRegistryBuilder.from(mappedRegistry)
+			.attribute(RegistryAttribute.SYNCED)
+			.buildAndRegister();
+
+		if (onBakeCallback != null) {
+			onBakeCallback.run();
+		}
+
+		return registry;
+	}
+}

@@ -17,13 +17,8 @@ import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPointTyp
 import com.simibubi.create.content.logistics.item.filter.attribute.ItemAttributeType;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTargetType;
 
-import net.minecraft.core.RegistrationInfo;
 import net.minecraft.core.Registry;
-import net.minecraft.core.WritableRegistry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-
-import net.neoforged.neoforge.registries.RegistryBuilder;
 
 /**
  * Static registries added by Create.
@@ -56,20 +51,8 @@ public class CreateBuiltInRegistries {
 		return register(key, true, () -> {});
 	}
 
-	@SuppressWarnings({"deprecation", "unchecked", "rawtypes"})
 	private static <T> Registry<T> register(ResourceKey<Registry<T>> key, boolean hasIntrusiveHolders, Runnable onBakeCallback) {
-		RegistryBuilder<T> builder = new RegistryBuilder<>(key)
-			.sync(true);
-
-		if (hasIntrusiveHolders)
-			builder.withIntrusiveHolders();
-
-		builder.onBake(r -> onBakeCallback.run());
-
-		Registry<T> registry = builder.create();
-		((WritableRegistry) BuiltInRegistries.REGISTRY)
-			.register(key, registry, RegistrationInfo.BUILT_IN);
-		return registry;
+		return CreateRegistryHelper.register(key, hasIntrusiveHolders, onBakeCallback);
 	}
 
 	@Internal
