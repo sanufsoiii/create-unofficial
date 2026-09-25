@@ -9,8 +9,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 public abstract class MenuBase<T> extends AbstractContainerMenu {
 
@@ -37,7 +37,7 @@ public abstract class MenuBase<T> extends AbstractContainerMenu {
 		broadcastChanges();
 	}
 
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	protected abstract T createOnClient(RegistryFriendlyByteBuf extraData);
 
 	protected abstract void initAndReadInventory(T contentHolder);
