@@ -56,7 +56,7 @@ public enum AllParticleTypes {
 	@OnlyIn(Dist.CLIENT)
 	public static void registerFactories(RegisterParticleProvidersEvent event) {
 		for (AllParticleTypes particle : values())
-			particle.entry.registerFactory(event);
+			particle.entry.registerFactory();
 	}
 
 	public ParticleType<?> get() {
@@ -82,9 +82,9 @@ public enum AllParticleTypes {
 		}
 
 		@OnlyIn(Dist.CLIENT)
-		public void registerFactory(RegisterParticleProvidersEvent event) {
+		public void registerFactory() {
 			typeFactory.get()
-				.register(object.get(), event);
+				.register(object.get());
 		}
 
 	}
