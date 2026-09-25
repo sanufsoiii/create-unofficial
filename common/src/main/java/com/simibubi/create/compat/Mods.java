@@ -11,7 +11,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
 
-import net.neoforged.fml.loading.LoadingModList;
+import dev.architectury.platform.Platform;
 
 /**
  * For compatibility with and without another mod present, we have to define load conditions of the specific code
@@ -47,7 +47,7 @@ public enum Mods {
 
 	Mods() {
 		id = Lang.asId(name());
-		isLoaded = LoadingModList.get().getModFileById(id) != null;
+		isLoaded = Platform.isModLoaded(id);
 	}
 
 	/**
