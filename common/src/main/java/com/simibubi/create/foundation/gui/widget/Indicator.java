@@ -4,9 +4,12 @@ import com.google.common.collect.ImmutableList;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 
 import net.createmod.catnip.gui.widget.AbstractSimiWidget;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
+@Environment(EnvType.CLIENT)
 public class Indicator extends AbstractSimiWidget {
 
 	public State state;

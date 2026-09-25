@@ -6,9 +6,12 @@ import com.simibubi.create.foundation.gui.AllGuiTextures;
 
 import net.createmod.catnip.gui.element.ScreenElement;
 import net.createmod.catnip.gui.widget.AbstractSimiWidget;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
+@Environment(EnvType.CLIENT)
 public class IconButton extends AbstractSimiWidget {
 
 	protected ScreenElement icon;

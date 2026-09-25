@@ -12,11 +12,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+
 /**
  * A wrapper around multiple widgets, allowing them to be managed together.
  * <p>
  * Mostly based on (Abstract|Object)SelectionList.
  */
+@Environment(EnvType.CLIENT)
 public class CompositeWidget extends AbstractContainerEventHandler implements NarratableEntry, Renderable, TickableGuiEventListener {
 	private final List<GuiEventListener> children = new ArrayList<>();
 	private final List<Renderable> renderables = new ArrayList<>();

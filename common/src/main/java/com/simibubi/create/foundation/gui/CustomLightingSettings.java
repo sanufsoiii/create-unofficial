@@ -6,7 +6,10 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.math.Axis;
 
 import net.createmod.catnip.gui.ILightingSettings;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
+@Environment(EnvType.CLIENT)
 public class CustomLightingSettings implements ILightingSettings {
 
 	private Vector3f light1;
