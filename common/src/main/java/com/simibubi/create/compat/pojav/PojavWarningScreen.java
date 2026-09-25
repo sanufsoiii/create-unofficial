@@ -2,6 +2,8 @@ package com.simibubi.create.compat.pojav;
 
 import com.simibubi.create.foundation.utility.CreateLang;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.layouts.Layout;
@@ -13,6 +15,7 @@ import net.minecraft.network.chat.Component;
 /**
  * @see TitleScreen
  */
+@Environment(EnvType.CLIENT)
 public class PojavWarningScreen extends WarningScreen {
 	public static final Component TITLE = CreateLang.translateDirect("gui.pojav.title").withStyle(ChatFormatting.RED);
 	public static final Component CONTENT = CreateLang.translateDirect("gui.pojav.content");
