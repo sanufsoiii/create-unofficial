@@ -6,10 +6,13 @@ import java.util.List;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.simibubi.create.AllKeys;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 
+@Environment(EnvType.CLIENT)
 public class ControlsUtil {
 
 	private static List<KeyMapping> standardControls;
@@ -29,7 +32,7 @@ public class ControlsUtil {
 	}
 
 	public static boolean isActuallyPressed(KeyMapping kb) {
-		InputConstants.Key key = kb.getKey();
+		InputConstants.Key key = AllKeys.getBoundKey(kb);
 		if (key.getType() == InputConstants.Type.MOUSE) {
 			return AllKeys.isMouseButtonDown(key.getValue());
 		} else {
