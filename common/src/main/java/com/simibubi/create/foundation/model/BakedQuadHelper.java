@@ -5,10 +5,13 @@ import java.util.Arrays;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
+@Environment(EnvType.CLIENT)
 public final class BakedQuadHelper {
 
 	public static final VertexFormat FORMAT = DefaultVertexFormat.BLOCK;
