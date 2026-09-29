@@ -24,12 +24,12 @@ public abstract class AbstractEncasedShaftBlock extends RotatedPillarKineticBloc
         super.createBlockStateDefinition(builder);
     }
 
-    @Override
+    // NeoForge IBlockExtension
     public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
         return false;
     }
 
-	@Override
+	// NeoForge IBlockExtension
     public PushReaction getPistonPushReaction(@Nullable BlockState state) {
         return PushReaction.NORMAL;
     }
