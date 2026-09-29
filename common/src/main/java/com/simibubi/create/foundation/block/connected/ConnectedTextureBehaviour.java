@@ -12,6 +12,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import com.simibubi.create.foundation.utility.CommonBlockHelper;
 
 public abstract class ConnectedTextureBehaviour {
 
@@ -76,7 +77,7 @@ public abstract class ConnectedTextureBehaviour {
 	public BlockState getCTBlockState(BlockAndTintGetter reader, BlockState reference, Direction face, BlockPos fromPos,
 		BlockPos toPos) {
 		BlockState blockState = reader.getBlockState(toPos);
-		return blockState.getAppearance(reader, toPos, face, reference, fromPos);
+		return CommonBlockHelper.getAppearance(blockState, reader, toPos, face, reference, fromPos);
 	}
 
 	protected boolean reverseUVs(BlockState state, Direction face) {
