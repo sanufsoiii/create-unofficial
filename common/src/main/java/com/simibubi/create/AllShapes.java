@@ -7,7 +7,6 @@ import static net.minecraft.core.Direction.UP;
 
 import java.util.function.BiFunction;
 
-import com.simibubi.create.content.logistics.chute.ChuteShapes;
 import com.simibubi.create.content.trains.track.TrackVoxelShapes;
 
 import net.createmod.catnip.math.VoxelShaper;
@@ -349,7 +348,7 @@ public class AllShapes {
 			.forHorizontal(SOUTH),
 		SCHEMATICS_TABLE = shape(4, 0, 4, 12, 12, 12).add(0, 11, 2, 16, 14, 14)
 			.forDirectional(SOUTH),
-		CHUTE_SLOPE = shape(ChuteShapes.createSlope()).forHorizontal(SOUTH),
+		CHUTE_SLOPE = shape(createSlope()).forHorizontal(SOUTH),
 
 		WHISTLE_SMALL_WALL = shape(WHISTLE_SMALL).add(WHISTLE_BASE.get(NORTH))
 			.forHorizontal(SOUTH),
@@ -370,6 +369,16 @@ public class AllShapes {
 
 	private static VoxelShape cuboid(double x1, double y1, double z1, double x2, double y2, double z2) {
 		return Block.box(x1, y1, z1, x2, y2, z2);
+	}
+
+	private static VoxelShape createSlope() {
+		VoxelShape shape = Shapes.empty();
+		VoxelShape panel = Block.box(1, -15, 0, 15, 4, 1);
+		for (int i = 0; i < 16; i++) {
+			float offset = i / 16f;
+			shape = Shapes.join(shape, panel.move(0, offset, offset), BooleanOp.OR);
+		}
+		return shape;
 	}
 
 	public static class Builder {

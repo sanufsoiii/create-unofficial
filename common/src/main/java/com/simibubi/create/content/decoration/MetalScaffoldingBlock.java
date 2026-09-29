@@ -40,7 +40,6 @@ public class MetalScaffoldingBlock extends ScaffoldingBlock implements IWrenchab
 		return super.getCollisionShape(pState, pLevel, pPos, pContext);
 	}
 	
-	@Override
 	public boolean isScaffolding(BlockState state, LevelReader level, BlockPos pos, LivingEntity entity) {
 		return true;
 	}
@@ -69,12 +68,10 @@ public class MetalScaffoldingBlock extends ScaffoldingBlock implements IWrenchab
 			!stateBelow.is(this) && !stateBelow.isFaceSturdy(pLevel, pCurrentPos.below(), Direction.UP)) : pState;
 	}
 
-	@Override
 	public boolean supportsExternalFaceHiding(BlockState state) {
 		return true;
 	}
 
-	@Override
 	public boolean hidesNeighborFace(BlockGetter level, BlockPos pos, BlockState state, BlockState neighborState,
 		Direction dir) {
 		if (!(neighborState.getBlock() instanceof MetalScaffoldingBlock))
