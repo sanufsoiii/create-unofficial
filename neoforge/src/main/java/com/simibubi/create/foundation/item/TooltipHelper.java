@@ -36,13 +36,7 @@ public class TooltipHelper {
 	}
 
 	public static String makeProgressBar(int length, int filledLength) {
-		String bar = " ";
-		int emptySpaces = length - filledLength;
-		for (int i = 0; i < filledLength; i++)
-			bar += "\u2588";
-		for (int i = 0; i < emptySpaces; i++)
-			bar += "\u2592";
-		return bar + " ";
+		return CommonItemHelper.makeProgressBar(length, filledLength);
 	}
 
 	public static Style styleFromColor(ChatFormatting color) {
