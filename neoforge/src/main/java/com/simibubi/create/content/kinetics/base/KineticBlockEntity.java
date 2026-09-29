@@ -62,6 +62,8 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 	public int preventSpeedUpdate;
 
 	protected KineticEffectHandler effects;
+	public KineticEffectHandler getEffects() { return effects; }
+	public void queueRotationIndicators() { effects.queueRotationIndicators(); }
 	protected float speed;
 	protected float capacity;
 	protected float stress;
