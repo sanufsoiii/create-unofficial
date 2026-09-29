@@ -155,4 +155,18 @@ public interface IRotate extends IWrenchable {
 		return false;
 	}
 
+	static float convertToDirection(float axisSpeed, Direction d) {
+		return d.getAxisDirection() == Direction.AxisDirection.POSITIVE ? axisSpeed : -axisSpeed;
+	}
+
+	static float convertToLinear(float speed) {
+		return speed / 512f;
+	}
+
+	static float convertToAngular(float speed) {
+		// speed (rpm) * 360 (revolution->deg) / 60 (min->sec) / 20 (sec->tick)
+		// rpm -> deg/tick
+		return speed * 360f / 60f / 20f;
+	}
+
 }

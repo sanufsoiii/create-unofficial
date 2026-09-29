@@ -508,17 +508,15 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 	}
 
 	public static float convertToDirection(float axisSpeed, Direction d) {
-		return d.getAxisDirection() == AxisDirection.POSITIVE ? axisSpeed : -axisSpeed;
+		return IRotate.convertToDirection(axisSpeed, d);
 	}
 
 	public static float convertToLinear(float speed) {
-		return speed / 512f;
+		return IRotate.convertToLinear(speed);
 	}
 
 	public static float convertToAngular(float speed) {
-		// speed (rpm) * 360 (revolution->deg) / 60 (min->sec) / 20 (sec->tick)
-		// rpm -> deg/tick
-		return speed * 360f / 60f / 20f;
+		return IRotate.convertToAngular(speed);
 	}
 
 	public boolean isOverStressed() {

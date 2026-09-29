@@ -3,7 +3,7 @@ package com.simibubi.create.content.kinetics.transmission.sequencer;
 import java.util.List;
 import java.util.Vector;
 
-import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.content.kinetics.base.IRotate;
 
 import io.netty.buffer.ByteBuf;
 import net.createmod.catnip.nbt.NBTHelper;
@@ -47,10 +47,10 @@ public class Instruction {
 
 		// Always overshoot, target will stop early
 		case TURN_ANGLE:
-			double degreesPerTick = KineticBlockEntity.convertToAngular(speed);
+			double degreesPerTick = IRotate.convertToAngular(speed);
 			return (int) Math.ceil(target / degreesPerTick) + 2;
 		case TURN_DISTANCE:
-			double metersPerTick = KineticBlockEntity.convertToLinear(speed);
+			double metersPerTick = IRotate.convertToLinear(speed);
 			return (int) Math.ceil(target / metersPerTick) + 2;
 
 		// Timing instructions
@@ -70,10 +70,10 @@ public class Instruction {
 		switch (instruction) {
 
 		case TURN_ANGLE:
-			return KineticBlockEntity.convertToAngular(speed);
+			return IRotate.convertToAngular(speed);
 
 		case TURN_DISTANCE:
-			return KineticBlockEntity.convertToLinear(speed);
+			return IRotate.convertToLinear(speed);
 
 		case DELAY:
 			return 1;
