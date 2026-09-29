@@ -2,7 +2,6 @@ package com.simibubi.create.content.decoration;
 
 import org.jetbrains.annotations.ApiStatus.ScheduledForRemoval;
 
-import com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 
 import net.minecraft.core.BlockPos;
@@ -25,7 +24,7 @@ public class TrainTrapdoorBlock extends TrapDoorBlock implements IWrenchable {
 	@ScheduledForRemoval(inVersion = "1.21.1+ Port")
 	@Deprecated(since = "6.0.7", forRemoval = true)
 	public TrainTrapdoorBlock(Properties properties) {
-		super(SlidingDoorBlock.TRAIN_SET_TYPE.get(), properties);
+		super(AllBlockSetTypes.TRAIN_SET_TYPE.get(), properties);
 	}
 
 	public TrainTrapdoorBlock(BlockSetType type, Properties properties) {
@@ -33,11 +32,11 @@ public class TrainTrapdoorBlock extends TrapDoorBlock implements IWrenchable {
 	}
 
 	public static TrainTrapdoorBlock metal(Properties properties) {
-		return new TrainTrapdoorBlock(SlidingDoorBlock.TRAIN_SET_TYPE.get(), properties);
+		return new TrainTrapdoorBlock(AllBlockSetTypes.TRAIN_SET_TYPE.get(), properties);
 	}
 
 	public static TrainTrapdoorBlock glass(Properties properties) {
-		return new TrainTrapdoorBlock(SlidingDoorBlock.GLASS_SET_TYPE.get(), properties);
+		return new TrainTrapdoorBlock(AllBlockSetTypes.GLASS_SET_TYPE.get(), properties);
 	}
 
 	@Override
