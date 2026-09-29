@@ -1,11 +1,9 @@
 package com.simibubi.create.content.contraptions.actors;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
-import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.CommonBlockHelper;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
@@ -25,7 +23,6 @@ import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public abstract class AttachedActorBlock extends HorizontalDirectionalBlock
 	implements IWrenchable, ProperWaterloggedBlock {
@@ -56,7 +53,7 @@ public abstract class AttachedActorBlock extends HorizontalDirectionalBlock
 	public boolean canSurvive(BlockState state, LevelReader worldIn, BlockPos pos) {
 		Direction direction = state.getValue(FACING);
 		BlockPos offset = pos.relative(direction.getOpposite());
-		return BlockHelper.hasBlockSolidSide(worldIn.getBlockState(offset), worldIn, offset, direction);
+		return CommonBlockHelper.hasBlockSolidSide(worldIn.getBlockState(offset), worldIn, offset, direction);
 	}
 
 	@Override
