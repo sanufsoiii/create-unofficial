@@ -6,7 +6,6 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import com.simibubi.create.Create;
-import com.tterrag.registrate.util.entry.ItemProviderEntry;
 
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
@@ -56,8 +55,6 @@ public class CreateAdvancement {
 
 		if (createBuilder.type == TaskType.SECRET)
 			description += SECRET_SUFFIX;
-
-		AllAdvancements.ENTRIES.add(this);
 	}
 
 	private String titleKey() {
@@ -90,7 +87,7 @@ public class CreateAdvancement {
 		builtinTrigger.trigger(sp);
 	}
 
-	void save(Consumer<AdvancementHolder> t, HolderLookup.Provider registries) {
+	public void save(Consumer<AdvancementHolder> t, HolderLookup.Provider registries) {
 		if (parent != null)
 			mcBuilder.parent(parent.datagenResult);
 
@@ -106,12 +103,12 @@ public class CreateAdvancement {
 			.toString());
 	}
 
-	void provideLang(BiConsumer<String, String> consumer) {
+	public void provideLang(BiConsumer<String, String> consumer) {
 		consumer.accept(titleKey(), title);
 		consumer.accept(descriptionKey(), description);
 	}
 
-	static enum TaskType {
+	public static enum TaskType {
 
 		SILENT(AdvancementType.TASK, false, false, false),
 		NORMAL(AdvancementType.TASK, true, false, false),
@@ -134,7 +131,7 @@ public class CreateAdvancement {
 		}
 	}
 
-	class Builder {
+	public class Builder {
 
 		private TaskType type = TaskType.NORMAL;
 		private boolean externalTrigger;
@@ -142,71 +139,64 @@ public class CreateAdvancement {
 		private ItemStack icon;
 		private Function<Provider, ItemStack> func;
 
-		Builder special(TaskType type) {
+		public Builder special(TaskType type) {
 			this.type = type;
 			return this;
 		}
 
-		Builder after(CreateAdvancement other) {
+		public Builder after(CreateAdvancement other) {
 			CreateAdvancement.this.parent = other;
 			return this;
 		}
 
-		Builder icon(ItemProviderEntry<?, ?> item) {
-			return icon(item.asStack());
-		}
 
-		Builder icon(ItemLike item) {
+		public Builder icon(ItemLike item) {
 			return icon(new ItemStack(item));
 		}
 
-		Builder icon(ItemStack stack) {
+		public Builder icon(ItemStack stack) {
 			icon = stack;
 			return this;
 		}
 
-		Builder icon(Function<Provider, ItemStack> func) {
+		public Builder icon(Function<Provider, ItemStack> func) {
 			this.func = func;
 			return this;
 		}
 
-		Builder title(String title) {
+		public Builder title(String title) {
 			CreateAdvancement.this.title = title;
 			return this;
 		}
 
-		Builder description(String description) {
+		public Builder description(String description) {
 			CreateAdvancement.this.description = description;
 			return this;
 		}
 
-		Builder whenBlockPlaced(Block block) {
+		public Builder whenBlockPlaced(Block block) {
 			return externalTrigger(ItemUsedOnLocationTrigger.TriggerInstance.placedBlock(block));
 		}
 
-		Builder whenIconCollected() {
+		public Builder whenIconCollected() {
 			return externalTrigger(InventoryChangeTrigger.TriggerInstance.hasItems(icon.getItem()));
 		}
 
-		Builder whenItemCollected(ItemProviderEntry<?, ?> item) {
-			return whenItemCollected(item.asStack()
-				.getItem());
-		}
 
-		Builder whenItemCollected(ItemLike itemProvider) {
+		public Builder whenItemCollected(ItemLike itemProvider) {
 			return externalTrigger(InventoryChangeTrigger.TriggerInstance.hasItems(itemProvider));
 		}
 
-		Builder whenItemCollected(TagKey<Item> tag) {
+		public Builder whenItemCollected(TagKey<Item> tag) {
 			return externalTrigger(InventoryChangeTrigger.TriggerInstance
 				.hasItems(ItemPredicate.Builder.item().of(tag).build()));
 		}
 
-		Builder awardedForFree() {
+		public Builder awardedForFree() {
 			return externalTrigger(InventoryChangeTrigger.TriggerInstance.hasItems(new ItemLike[] {}));
 		}
 
-		Builder externalTrigger(Criterion<?> trigger) {
+		public Builder externalTrigger(Criterion<?> trigger) {
 			mcBuilder.addCriterion(String.valueOf(keyIndex), trigger);
 			externalTrigger = true;
 			keyIndex++;

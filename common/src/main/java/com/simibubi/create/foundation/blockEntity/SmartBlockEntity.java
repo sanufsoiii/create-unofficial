@@ -8,7 +8,6 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.simibubi.create.api.event.BlockEntityBehaviourEvent;
 import com.simibubi.create.api.schematic.nbt.PartialSafeNBT;
 import com.simibubi.create.api.schematic.requirement.SpecialBlockEntityItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
@@ -27,8 +26,6 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-
-import net.neoforged.neoforge.common.NeoForge;
 
 public abstract class SmartBlockEntity extends CachedRenderBBBlockEntity
 	implements PartialSafeNBT, IInteractionChecker, SpecialBlockEntityItemRequirement, VirtualBlockEntity {
@@ -64,7 +61,7 @@ public abstract class SmartBlockEntity extends CachedRenderBBBlockEntity
 	public void initialize() {
 		if (firstNbtRead) {
 			firstNbtRead = false;
-			NeoForge.EVENT_BUS.post(new BlockEntityBehaviourEvent(this, behaviours));
+			SmartBlockEntityHooks.postBehaviourEvent(this, behaviours);
 		}
 
 		forEachBehaviour(BlockEntityBehaviour::initialize);
@@ -113,7 +110,7 @@ public abstract class SmartBlockEntity extends CachedRenderBBBlockEntity
 			ArrayList<BlockEntityBehaviour> list = new ArrayList<>();
 			addBehavioursDeferred(list);
 			list.forEach(b -> behaviours.put(b.getType(), b));
-			NeoForge.EVENT_BUS.post(new BlockEntityBehaviourEvent(this, behaviours));
+			SmartBlockEntityHooks.postBehaviourEvent(this, behaviours);
 		}
 		super.loadAdditional(tag, registries);
 		forEachBehaviour(tb -> tb.read(tag, registries, clientPacket));
@@ -124,9 +121,7 @@ public abstract class SmartBlockEntity extends CachedRenderBBBlockEntity
 		read(tag, registries, false);
 	}
 
-	@Override
 	public void onChunkUnloaded() {
-		super.onChunkUnloaded();
 		chunkUnloaded = true;
 	}
 

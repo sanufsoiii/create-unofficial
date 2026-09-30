@@ -8,6 +8,7 @@ import java.util.UUID;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.PlayerUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -18,7 +19,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.util.FakePlayer;
 
 public class AdvancementBehaviour extends BlockEntityBehaviour {
 
@@ -124,7 +124,7 @@ public class AdvancementBehaviour extends BlockEntityBehaviour {
 		AdvancementBehaviour behaviour = BlockEntityBehaviour.get(worldIn, pos, TYPE);
 		if (behaviour == null)
 			return;
-		if (placer instanceof FakePlayer)
+		if (placer instanceof Player player && PlayerUtil.isFakePlayer(player))
 			return;
 		if (placer instanceof ServerPlayer)
 			behaviour.setPlayer(placer.getUUID());

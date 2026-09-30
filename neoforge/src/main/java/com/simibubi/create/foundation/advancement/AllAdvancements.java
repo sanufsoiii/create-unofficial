@@ -683,7 +683,9 @@ public class AllAdvancements implements DataProvider {
 	}
 
 	private static CreateAdvancement create(String id, UnaryOperator<Builder> b) {
-		return new CreateAdvancement(id, b);
+		CreateAdvancement advancement = new CreateAdvancement(id, b);
+		ENTRIES.add(advancement);
+		return advancement;
 	}
 
 	// Datagen
