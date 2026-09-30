@@ -18,11 +18,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ItemStack;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 public interface LayeredArmorItem extends CustomRenderedArmorItem {
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	@Override
 	default void renderArmorPiece(HumanoidArmorLayer<?, ?, ?> layer, PoseStack poseStack,
@@ -31,7 +31,7 @@ public interface LayeredArmorItem extends CustomRenderedArmorItem {
 		if (!(stack.getItem() instanceof ArmorItem item)) {
 			return;
 		}
-		if (!item.canEquip(stack, slot, entity)) {
+		if (item.getType().getSlot() != slot) {
 			return;
 		}
 

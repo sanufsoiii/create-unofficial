@@ -19,4 +19,7 @@ dependencies {
 
     // Ponder (Common)
     compileOnly "net.createmod.ponder:ponder-common:$rootProject.ponder_version+mc$rootProject.minecraft_version"
+
+    // Annotations (JSR-305)
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
 }
