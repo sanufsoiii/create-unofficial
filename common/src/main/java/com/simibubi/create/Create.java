@@ -43,5 +43,6 @@ public class Create {
 	public static void init() {
 		AllSoundEvents.register();
 		AllMapDecorationTypes.register();
+		com.simibubi.create.infrastructure.worldgen.AllFeatures.register();
 	}
 }

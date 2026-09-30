@@ -129,7 +129,6 @@ public class Create {
 		AllStructureProcessorTypes.register(modEventBus);
 		AllEntityDataSerializers.register(modEventBus);
 		AllPackets.register();
-		AllFeatures.register(modEventBus);
 		AllPlacementModifiers.register(modEventBus);
 		AllIngredients.register(modEventBus);
 		AllAttachmentTypes.register(modEventBus);
