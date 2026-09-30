@@ -134,7 +134,6 @@ public class Create {
 		AllIngredients.register(modEventBus);
 		AllAttachmentTypes.register(modEventBus);
 		AllDataComponents.register(modEventBus);
-		AllMapDecorationTypes.register(modEventBus);
 		AllMountedStorageTypes.register();
 
 		AllConfigs.register(modLoadingContext, modContainer);
