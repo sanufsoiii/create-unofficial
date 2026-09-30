@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.logging.LogUtils;
 
+import com.simibubi.create.content.logistics.packagerLink.GlobalLogisticsManager;
 import com.simibubi.create.infrastructure.command.ServerLagger;
 import net.createmod.catnip.lang.LangBuilder;
 import net.minecraft.resources.ResourceLocation;
@@ -29,6 +30,7 @@ public class Create {
 	public static final Random RANDOM = new Random();
 
 	public static final ServerLagger LAGGER = new ServerLagger();
+	public static final GlobalLogisticsManager LOGISTICS = new GlobalLogisticsManager();
 
 	public static LangBuilder lang() {
 		return new LangBuilder(ID);
