@@ -4,6 +4,7 @@ import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 
 import com.google.common.base.Strings;
 import com.simibubi.create.foundation.utility.CreateLang;
@@ -76,7 +77,14 @@ public class TooltipHelper {
 
 		// Split words
 		List<String> words = new LinkedList<>();
-		BreakIterator iterator = BreakIterator.getLineInstance(Minecraft.getInstance().getLocale());
+		Locale locale = Locale.getDefault();
+		try {
+			String selected = Minecraft.getInstance().getLanguageManager().getSelected();
+			if (selected != null) {
+				locale = Locale.forLanguageTag(selected.replace('_', '-'));
+			}
+		} catch (Exception ignored) {}
+		BreakIterator iterator = BreakIterator.getLineInstance(locale);
 		iterator.setText(s);
 		int start = iterator.first();
 		for (int end = iterator.next(); end != BreakIterator.DONE; start = end, end = iterator.next()) {
