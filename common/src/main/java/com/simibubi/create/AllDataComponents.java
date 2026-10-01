@@ -10,27 +10,28 @@ import org.jetbrains.annotations.ApiStatus.ScheduledForRemoval;
 import com.mojang.serialization.Codec;
 import com.simibubi.create.content.equipment.clipboard.ClipboardContent;
 import com.simibubi.create.content.equipment.clipboard.ClipboardEntry;
-import com.simibubi.create.content.equipment.clipboard.ClipboardOverrides.ClipboardType;
+import com.simibubi.create.content.equipment.clipboard.ClipboardType;
 import com.simibubi.create.content.equipment.sandPaper.SandPaperItemComponent;
 import com.simibubi.create.content.equipment.symmetryWand.mirror.SymmetryMirror;
-import com.simibubi.create.content.equipment.toolbox.ToolboxInventory;
 import com.simibubi.create.content.equipment.zapper.PlacementPatterns;
 import com.simibubi.create.content.equipment.zapper.terrainzapper.PlacementOptions;
 import com.simibubi.create.content.equipment.zapper.terrainzapper.TerrainBrushes;
 import com.simibubi.create.content.equipment.zapper.terrainzapper.TerrainTools;
-import com.simibubi.create.content.fluids.potion.PotionFluid.BottleType;
-import com.simibubi.create.content.logistics.box.PackageItem.PackageOrderData;
+import com.simibubi.create.content.fluids.potion.PotionBottleType;
+import com.simibubi.create.content.logistics.box.PackageOrderData;
 import com.simibubi.create.content.logistics.filter.AttributeFilterWhitelistMode;
 import com.simibubi.create.content.logistics.item.filter.attribute.ItemAttribute.ItemAttributeEntry;
 import com.simibubi.create.content.logistics.redstoneRequester.AutoRequestData;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
-import com.simibubi.create.content.logistics.tableCloth.ShoppingListItem.ShoppingList;
-import com.simibubi.create.content.processing.sequenced.SequencedAssemblyRecipe.SequencedAssembly;
-import com.simibubi.create.content.redstone.displayLink.ClickToLinkBlockItem.ClickToLinkData;
-import com.simibubi.create.content.schematics.cannon.SchematicannonBlockEntity.SchematicannonOptions;
+import com.simibubi.create.content.logistics.tableCloth.ShoppingList;
+import com.simibubi.create.content.processing.sequenced.SequencedAssembly;
+import com.simibubi.create.content.redstone.displayLink.ClickToLinkData;
+import com.simibubi.create.content.schematics.cannon.SchematicannonOptions;
 import com.simibubi.create.content.trains.track.BezierTrackPointLocation;
-import com.simibubi.create.content.trains.track.TrackPlacement.ConnectingFrom;
+import com.simibubi.create.content.trains.track.TrackConnectingFrom;
 
+import dev.architectury.injectables.annotations.ExpectPlatform;
+import dev.architectury.registry.registries.DeferredRegister;
 import net.createmod.catnip.codecs.stream.CatnipStreamCodecBuilders;
 import net.createmod.catnip.codecs.stream.CatnipStreamCodecs;
 import net.minecraft.core.BlockPos;
@@ -50,11 +51,8 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredRegister;
-
 public class AllDataComponents {
-	private static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, Create.ID);
+	private static final DeferredRegister<DataComponentType<?>> DATA_COMPONENTS = DeferredRegister.create(Create.ID, Registries.DATA_COMPONENT_TYPE);
 
 	public static final DataComponentType<Integer> BACKTANK_AIR = register(
 			"banktank_air",
@@ -142,9 +140,9 @@ public class AllDataComponents {
 		builder -> builder.persistent(ClipboardContent.CODEC).networkSynchronized(ClipboardContent.STREAM_CODEC)
 	);
 
-	public static final DataComponentType<ConnectingFrom> TRACK_CONNECTING_FROM = register(
+	public static final DataComponentType<TrackConnectingFrom> TRACK_CONNECTING_FROM = register(
 			"track_connecting_from",
-			builder -> builder.persistent(ConnectingFrom.CODEC).networkSynchronized(ConnectingFrom.STREAM_CODEC)
+			builder -> builder.persistent(TrackConnectingFrom.CODEC).networkSynchronized(TrackConnectingFrom.STREAM_CODEC)
 	);
 
 	public static final DataComponentType<Boolean> TRACK_EXTENDED_CURVE = register(
@@ -233,10 +231,7 @@ public class AllDataComponents {
 			builder -> builder.persistent(ItemContainerContents.CODEC).networkSynchronized(ItemContainerContents.STREAM_CODEC)
 	);
 
-	public static final DataComponentType<ToolboxInventory> TOOLBOX_INVENTORY = register(
-			"toolbox_inventory",
-		builder -> builder.persistent(ToolboxInventory.BACKWARDS_COMPAT_CODEC).networkSynchronized(ToolboxInventory.STREAM_CODEC)
-	);
+	public static final DataComponentType<?> TOOLBOX_INVENTORY = registerToolboxInventory();
 
 	public static final DataComponentType<UUID> TOOLBOX_UUID = register(
 			"toolbox_uuid",
@@ -268,9 +263,9 @@ public class AllDataComponents {
 			builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL)
 	);
 
-	public static final DataComponentType<BottleType> POTION_FLUID_BOTTLE_TYPE = register(
+	public static final DataComponentType<PotionBottleType> POTION_FLUID_BOTTLE_TYPE = register(
 			"potion_fluid_bottle_type",
-			builder -> builder.persistent(BottleType.CODEC).networkSynchronized(BottleType.STREAM_CODEC)
+			builder -> builder.persistent(PotionBottleType.CODEC).networkSynchronized(PotionBottleType.STREAM_CODEC)
 	);
 
 	public static final DataComponentType<SchematicannonOptions> SCHEMATICANNON_OPTIONS = register(
@@ -375,8 +370,21 @@ public class AllDataComponents {
 		return type;
 	}
 
-	@Internal
-	public static void register(IEventBus modEventBus) {
-		DATA_COMPONENTS.register(modEventBus);
+	public static <T> DataComponentType<T> registerComponent(String name, UnaryOperator<Builder<T>> builder) {
+		return register(name, builder);
+	}
+
+	@ExpectPlatform
+	public static DataComponentType<?> registerToolboxInventory() {
+		throw new AssertionError();
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> DataComponentType<T> toolboxInventory() {
+		return (DataComponentType<T>) TOOLBOX_INVENTORY;
+	}
+
+	public static void register() {
+		DATA_COMPONENTS.register();
 	}
 }

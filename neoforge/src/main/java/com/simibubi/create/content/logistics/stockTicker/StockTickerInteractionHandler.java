@@ -11,8 +11,8 @@ import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour.RequestType;
+import com.simibubi.create.content.logistics.tableCloth.ShoppingList;
 import com.simibubi.create.content.logistics.tableCloth.ShoppingListItem;
-import com.simibubi.create.content.logistics.tableCloth.ShoppingListItem.ShoppingList;
 import com.simibubi.create.foundation.utility.CreateLang;
 
 import net.createmod.catnip.data.Couple;
@@ -112,7 +112,7 @@ public class StockTickerInteractionHandler {
 			return;
 		}
 
-		Couple<InventorySummary> bakeEntries = list.bakeEntries(level, null);
+		Couple<InventorySummary> bakeEntries = ShoppingListItem.bakeEntries(list, level, null);
 		InventorySummary paymentEntries = bakeEntries.getSecond();
 		InventorySummary orderEntries = bakeEntries.getFirst();
 		PackageOrder order = new PackageOrder(orderEntries.getStacksByCount());

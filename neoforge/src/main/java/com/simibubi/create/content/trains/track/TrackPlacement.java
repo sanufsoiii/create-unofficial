@@ -59,21 +59,13 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 public class TrackPlacement {
-	public record ConnectingFrom(BlockPos pos, Vec3 axis, Vec3 normal, Vec3 end) {
-		public static final Codec<ConnectingFrom> CODEC = RecordCodecBuilder.create(i -> i.group(
-			BlockPos.CODEC.fieldOf("pos").forGetter(ConnectingFrom::pos),
-			Vec3.CODEC.fieldOf("axis").forGetter(ConnectingFrom::axis),
-			Vec3.CODEC.fieldOf("normal").forGetter(ConnectingFrom::normal),
-			Vec3.CODEC.fieldOf("end").forGetter(ConnectingFrom::end)
-		).apply(i, ConnectingFrom::new));
+	public static class ConnectingFrom {
+		public static final Codec<TrackConnectingFrom> CODEC = TrackConnectingFrom.CODEC;
+		public static final StreamCodec<ByteBuf, TrackConnectingFrom> STREAM_CODEC = TrackConnectingFrom.STREAM_CODEC;
 
-		public static final StreamCodec<ByteBuf, ConnectingFrom> STREAM_CODEC = StreamCodec.composite(
-		    BlockPos.STREAM_CODEC, ConnectingFrom::pos,
-			CatnipStreamCodecs.VEC3, ConnectingFrom::axis,
-			CatnipStreamCodecs.VEC3, ConnectingFrom::normal,
-			CatnipStreamCodecs.VEC3, ConnectingFrom::end,
-		    ConnectingFrom::new
-		);
+		public static TrackConnectingFrom create(BlockPos pos, Vec3 axis, Vec3 normal, Vec3 end) {
+			return new TrackConnectingFrom(pos, axis, normal, end);
+		}
 	}
 
 	public static class PlacementInfo {
@@ -151,7 +143,7 @@ public class TrackPlacement {
 		Vec3 normedAxis2 = axis2.normalize();
 		Vec3 end2 = track.getCurveStart(level, pos2, state2, axis2);
 
-		ConnectingFrom connectingFrom = stack.get(AllDataComponents.TRACK_CONNECTING_FROM);
+		TrackConnectingFrom connectingFrom = stack.get(AllDataComponents.TRACK_CONNECTING_FROM);
 
 		BlockPos pos1 = connectingFrom.pos();
 		Vec3 axis1 = connectingFrom.axis();

@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.serialization.Dynamic;
-import com.simibubi.create.content.equipment.clipboard.ClipboardOverrides;
+import com.simibubi.create.content.equipment.clipboard.ClipboardType;
 import com.simibubi.create.content.equipment.zapper.PlacementPatterns;
 import com.simibubi.create.content.equipment.zapper.terrainzapper.PlacementOptions;
 import com.simibubi.create.content.equipment.zapper.terrainzapper.TerrainBrushes;
@@ -73,7 +73,7 @@ public class ItemStackComponentizationFixMixin {
 		}
 
 		if (stack.is("create:clipboard")) {
-			create$moveTagToEnumComponent(stack, "Type", "create:clipboard_type", ClipboardOverrides.ClipboardType.class);
+			create$moveTagToEnumComponent(stack, "Type", "create:clipboard_type", ClipboardType.class);
 			// Moves it from a boolean to a Unit (instance is the enum name)
 			stack.removeTag("Readonly").result().ifPresent(itemDynamic -> {
 				stack.setComponent("create:clipboard_read_only", itemDynamic.emptyMap().createString("instance"));

@@ -5,7 +5,7 @@ import com.simibubi.create.AllItems;
 import com.simibubi.create.content.equipment.blueprint.BlueprintOverlayRenderer;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerInteractionHandler;
-import com.simibubi.create.content.logistics.tableCloth.ShoppingListItem.ShoppingList;
+import com.simibubi.create.content.logistics.tableCloth.ShoppingList;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -63,7 +63,7 @@ public class TableClothOverlayRenderer {
 		if (!tickerBE.behaviour.freqId.equals(list.shopNetwork()))
 			return;
 
-		BlueprintOverlayRenderer.displayShoppingList(list.bakeEntries(mc.level, null));
+		BlueprintOverlayRenderer.displayShoppingList(ShoppingListItem.bakeEntries(list, mc.level, null));
 		return;
 
 	}

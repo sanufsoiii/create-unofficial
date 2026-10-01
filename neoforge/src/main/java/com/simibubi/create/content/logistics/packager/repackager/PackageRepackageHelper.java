@@ -9,7 +9,7 @@ import com.google.common.collect.Lists;
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.box.PackageItem;
-import com.simibubi.create.content.logistics.box.PackageItem.PackageOrderData;
+import com.simibubi.create.content.logistics.box.PackageOrderData;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts.CraftingEntry;

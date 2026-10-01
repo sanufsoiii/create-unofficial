@@ -161,7 +161,7 @@ public class TrackBlockItem extends BlockItem {
 		Vec3 normal = track.getUpNormal(world, pos, blockState)
 			.normalize();
 
-		heldItem.set(AllDataComponents.TRACK_CONNECTING_FROM, new TrackPlacement.ConnectingFrom(pos, axis, normal, end));
+		heldItem.set(AllDataComponents.TRACK_CONNECTING_FROM, new TrackConnectingFrom(pos, axis, normal, end));
 		return true;
 	}
 

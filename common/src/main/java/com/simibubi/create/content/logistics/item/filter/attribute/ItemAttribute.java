@@ -7,26 +7,36 @@ import org.jetbrains.annotations.Nullable;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.simibubi.create.api.registry.CreateBuiltInRegistries;
-import com.simibubi.create.api.registry.CreateRegistries;
 import com.simibubi.create.foundation.utility.CreateLang;
 
+import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.createmod.catnip.codecs.CatnipCodecUtils;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-
 public interface ItemAttribute {
-	Codec<ItemAttribute> CODEC = CreateBuiltInRegistries.ITEM_ATTRIBUTE_TYPE.byNameCodec().dispatch(ItemAttribute::getType, ItemAttributeType::codec);
-	StreamCodec<RegistryFriendlyByteBuf, ItemAttribute> STREAM_CODEC = ByteBufCodecs.registry(CreateRegistries.ITEM_ATTRIBUTE_TYPE).dispatch(ItemAttribute::getType, ItemAttributeType::streamCodec);
+	Codec<ItemAttribute> CODEC = getItemAttributeTypeRegistry().byNameCodec().dispatch(ItemAttribute::getType, ItemAttributeType::codec);
+	StreamCodec<RegistryFriendlyByteBuf, ItemAttribute> STREAM_CODEC = ByteBufCodecs.registry(getItemAttributeTypeRegistryKey()).dispatch(ItemAttribute::getType, ItemAttributeType::streamCodec);
+
+	@ExpectPlatform
+	static Registry<ItemAttributeType> getItemAttributeTypeRegistry() {
+		throw new AssertionError();
+	}
+
+	@ExpectPlatform
+	static ResourceKey<Registry<ItemAttributeType>> getItemAttributeTypeRegistryKey() {
+		throw new AssertionError();
+	}
 
 	static CompoundTag saveStatic(ItemAttribute attribute, HolderLookup.Provider registries) {
 		CompoundTag nbt = new CompoundTag();
@@ -41,7 +51,7 @@ public interface ItemAttribute {
 
 	static List<ItemAttribute> getAllAttributes(ItemStack stack, Level level) {
 		List<ItemAttribute> attributes = new ArrayList<>();
-		for (ItemAttributeType type : CreateBuiltInRegistries.ITEM_ATTRIBUTE_TYPE) {
+		for (ItemAttributeType type : getItemAttributeTypeRegistry()) {
 			attributes.addAll(type.getAllAttributes(stack, level));
 		}
 		return attributes;
@@ -51,7 +61,7 @@ public interface ItemAttribute {
 
 	ItemAttributeType getType();
 
-	@OnlyIn(value = Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	default MutableComponent format(boolean inverted) {
 		return CreateLang.translateDirect("item_attributes." + getTranslationKey() + (inverted ? ".inverted" : ""),
 			getTranslationParameters());

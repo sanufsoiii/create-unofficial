@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.simibubi.create.Create;
-import com.simibubi.create.content.fluids.potion.PotionFluid.BottleType;
+import com.simibubi.create.content.fluids.potion.PotionBottleType;
 import com.simibubi.create.content.kinetics.mixer.MixingRecipe;
 import com.simibubi.create.content.processing.recipe.HeatCondition;
 import com.simibubi.create.content.processing.recipe.StandardProcessingRecipe.Builder;
@@ -79,7 +79,7 @@ public class PotionMixingRecipes {
 		}
 
 		for (Item container : allowedSupportedContainers) {
-			BottleType bottleType = PotionFluidHandler.bottleTypeFromItem(container);
+			PotionBottleType bottleType = PotionFluidHandler.bottleTypeFromItem(container);
 			for (PotionBrewing.Mix<Potion> mix : ((PotionBrewingAccessor) potionBrewing).create$getPotionMixes()) {
 				FluidStack fromFluid = PotionFluidHandler.getFluidFromPotion(new PotionContents(mix.from()), bottleType, 1000);
 				FluidStack toFluid = PotionFluidHandler.getFluidFromPotion(new PotionContents(mix.to()), bottleType, 1000);
@@ -97,8 +97,8 @@ public class PotionMixingRecipes {
 			if (!allowedSupportedContainers.contains(to)) {
 				continue;
 			}
-			BottleType fromBottleType = PotionFluidHandler.bottleTypeFromItem(from);
-			BottleType toBottleType = PotionFluidHandler.bottleTypeFromItem(to);
+			PotionBottleType fromBottleType = PotionFluidHandler.bottleTypeFromItem(from);
+			PotionBottleType toBottleType = PotionFluidHandler.bottleTypeFromItem(to);
 			Ingredient ingredient = mix.ingredient();
 
 			List<Reference<Potion>> potions = level.registryAccess()

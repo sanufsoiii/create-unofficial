@@ -22,26 +22,9 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.model.generators.ItemModelBuilder;
 import net.neoforged.neoforge.client.model.generators.ModelFile.UncheckedModelFile;
 
+import com.simibubi.create.content.equipment.clipboard.ClipboardType;
+
 public class ClipboardOverrides {
-
-	public enum ClipboardType implements StringRepresentable {
-		EMPTY("empty_clipboard"), WRITTEN("clipboard"), EDITING("clipboard_and_quill");
-
-		public static final Codec<ClipboardType> CODEC = StringRepresentable.fromValues(ClipboardType::values);
-		public static final StreamCodec<ByteBuf, ClipboardType> STREAM_CODEC = CatnipStreamCodecBuilders.ofEnum(ClipboardType.class);
-
-		public final String file;
-		public static ResourceLocation ID = Create.asResource("clipboard_type");
-
-		ClipboardType(String file) {
-			this.file = file;
-		}
-
-		@Override
-		public @NotNull String getSerializedName() {
-			return Lang.asId(name());
-		}
-	}
 
 	@OnlyIn(Dist.CLIENT)
 	public static void registerModelOverridesClient(ClipboardBlockItem item) {

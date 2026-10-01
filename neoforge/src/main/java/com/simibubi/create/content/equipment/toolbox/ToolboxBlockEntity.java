@@ -386,12 +386,12 @@ public class ToolboxBlockEntity extends SmartBlockEntity implements MenuProvider
 	@Override
 	protected void applyImplicitComponents(DataComponentInput componentInput) {
 		setUniqueId(componentInput.get(AllDataComponents.TOOLBOX_UUID));
-		readInventory(componentInput.get(AllDataComponents.TOOLBOX_INVENTORY));
+		readInventory(componentInput.get(AllDataComponents.<ToolboxInventory>toolboxInventory()));
 	}
 
 	@Override
 	protected void collectImplicitComponents(Builder components) {
 		components.set(AllDataComponents.TOOLBOX_UUID, uniqueId);
-		components.set(AllDataComponents.TOOLBOX_INVENTORY, inventory);
+		components.set(AllDataComponents.<ToolboxInventory>toolboxInventory(), inventory);
 	}
 }

@@ -38,7 +38,7 @@ public class PotionFluid extends VirtualFluid {
 		super(properties, source);
 	}
 
-	public static FluidStack of(int amount, PotionContents potionContents, BottleType bottleType) {
+	public static FluidStack of(int amount, PotionContents potionContents, PotionBottleType bottleType) {
 		FluidStack fluidStack;
 		fluidStack = new FluidStack(AllFluids.POTION.get().getSource(), amount);
 		addPotionToFluidStack(fluidStack, potionContents);
@@ -55,15 +55,14 @@ public class PotionFluid extends VirtualFluid {
 		return fs;
 	}
 
-	public enum BottleType implements StringRepresentable {
-		REGULAR, SPLASH, LINGERING;
+	@Deprecated
+	public static class BottleType {
+		public static final PotionBottleType REGULAR = PotionBottleType.REGULAR;
+		public static final PotionBottleType SPLASH = PotionBottleType.SPLASH;
+		public static final PotionBottleType LINGERING = PotionBottleType.LINGERING;
 
-		public static final Codec<BottleType> CODEC = StringRepresentable.fromEnum(BottleType::values);
-		public static final StreamCodec<ByteBuf, BottleType> STREAM_CODEC = CatnipStreamCodecBuilders.ofEnum(BottleType.class);
-
-		@Override
-		public @NotNull String getSerializedName() {
-			return Lang.asId(name());
+		public static PotionBottleType[] values() {
+			return PotionBottleType.values();
 		}
 	}
 

@@ -183,9 +183,9 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		// Settings
 		SchematicannonOptions options = CatnipCodecUtils.decode(SchematicannonOptions.CODEC, registries, compound.getCompound("Options"))
 			.orElse(new SchematicannonOptions(2, false, false));
-		replaceMode = options.replaceMode;
-		skipMissing = options.skipMissing;
-		replaceBlockEntities = options.replaceBlockEntities;
+		replaceMode = options.replaceMode();
+		skipMissing = options.skipMissing();
+		replaceBlockEntities = options.replaceBlockEntities();
 
 		// Printer & Flying Blocks
 		if (compound.contains("Printer"))
@@ -896,9 +896,9 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 	protected void applyImplicitComponents(DataComponentInput componentInput) {
 		SchematicannonOptions options = componentInput.getOrDefault(AllDataComponents.SCHEMATICANNON_OPTIONS,
 				new SchematicannonOptions(2, true, false));
-		replaceMode = options.replaceMode;
-		skipMissing = options.skipMissing;
-		replaceBlockEntities = options.replaceBlockEntities;
+		replaceMode = options.replaceMode();
+		skipMissing = options.skipMissing();
+		replaceBlockEntities = options.replaceBlockEntities();
 	}
 
 	@Override
@@ -909,20 +909,5 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 
 	public enum State {
 		STOPPED, PAUSED, RUNNING;
-	}
-
-	public record SchematicannonOptions(int replaceMode, boolean skipMissing, boolean replaceBlockEntities) {
-		public static final Codec<SchematicannonOptions> CODEC = RecordCodecBuilder.create(i -> i.group(
-				Codec.INT.fieldOf("replace_mode").forGetter(SchematicannonOptions::replaceMode),
-				Codec.BOOL.fieldOf("skip_missing").forGetter(SchematicannonOptions::skipMissing),
-				Codec.BOOL.fieldOf("replace_block_entities").forGetter(SchematicannonOptions::replaceBlockEntities)
-		).apply(i, SchematicannonOptions::new));
-
-		public static final StreamCodec<ByteBuf, SchematicannonOptions> STREAM_CODEC = StreamCodec.composite(
-				ByteBufCodecs.INT, SchematicannonOptions::replaceMode,
-				ByteBufCodecs.BOOL, SchematicannonOptions::skipMissing,
-				ByteBufCodecs.BOOL, SchematicannonOptions::replaceBlockEntities,
-				SchematicannonOptions::new
-		);
 	}
 }

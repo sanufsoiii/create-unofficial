@@ -76,7 +76,7 @@ public class ToolboxBlock extends HorizontalDirectionalBlock implements SimpleWa
 		if (stack == null)
 			return;
 		withBlockEntityDo(worldIn, pos, be -> {
-			be.readInventory(stack.get(AllDataComponents.TOOLBOX_INVENTORY));
+			be.readInventory(stack.get(AllDataComponents.<ToolboxInventory>toolboxInventory()));
 			if (stack.has(AllDataComponents.TOOLBOX_UUID))
 				be.setUniqueId(stack.get(AllDataComponents.TOOLBOX_UUID));
 			if (stack.has(DataComponents.CUSTOM_NAME))
@@ -114,7 +114,7 @@ public class ToolboxBlock extends HorizontalDirectionalBlock implements SimpleWa
 		Optional<ToolboxBlockEntity> blockEntityOptional = getBlockEntityOptional(level, pos);
 
 		blockEntityOptional.map(tb ->
-			item.set(AllDataComponents.TOOLBOX_INVENTORY, tb.inventory));
+			item.set(AllDataComponents.<ToolboxInventory>toolboxInventory(), tb.inventory));
 
 		blockEntityOptional.map(ToolboxBlockEntity::getUniqueId)
 			.ifPresent(uid -> item.set(AllDataComponents.TOOLBOX_UUID, uid));

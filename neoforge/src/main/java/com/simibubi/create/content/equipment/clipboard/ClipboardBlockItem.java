@@ -3,7 +3,7 @@ package com.simibubi.create.content.equipment.clipboard;
 import org.jetbrains.annotations.NotNull;
 
 import com.simibubi.create.AllDataComponents;
-import com.simibubi.create.content.equipment.clipboard.ClipboardOverrides.ClipboardType;
+import com.simibubi.create.content.equipment.clipboard.ClipboardType;
 import com.simibubi.create.foundation.recipe.ItemCopyingRecipe.SupportsItemCopying;
 
 import net.createmod.catnip.gui.ScreenOpener;

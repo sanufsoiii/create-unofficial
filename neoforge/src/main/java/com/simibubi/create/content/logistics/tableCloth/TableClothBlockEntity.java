@@ -19,7 +19,7 @@ import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.redstoneRequester.AutoRequestData;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
-import com.simibubi.create.content.logistics.tableCloth.ShoppingListItem.ShoppingList;
+import com.simibubi.create.content.logistics.tableCloth.ShoppingList;
 import com.simibubi.create.foundation.blockEntity.RemoveBlockEntityPacket;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
@@ -312,7 +312,7 @@ public class TableClothBlockEntity extends SmartBlockEntity implements Transform
 
 		InventorySummary modifierSummary = new InventorySummary();
 		if (otherPurchases != null)
-			modifierSummary = otherPurchases.bakeEntries(level, worldPosition)
+			modifierSummary = ShoppingListItem.bakeEntries(otherPurchases, level, worldPosition)
 				.getFirst();
 
 		int smallestQuotient = Integer.MAX_VALUE;

@@ -6,7 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.CommonBlockHelper;
 import com.simibubi.create.foundation.utility.CreateLang;
 
 import net.minecraft.core.BlockPos;
@@ -109,7 +109,7 @@ public class DynamicBrush extends Brush {
 					continue;
 				if (stateToReplace.canBeReplaced())
 					continue;
-				if (BlockHelper.hasBlockSolidSide(stateAboveStateToReplace, world, currentPos.relative(targetFace),
+				if (CommonBlockHelper.hasBlockSolidSide(stateAboveStateToReplace, world, currentPos.relative(targetFace),
 					targetFace.getOpposite()) && surface)
 					continue;
 				affectedPositions.add(currentPos);

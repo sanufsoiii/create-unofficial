@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import com.mojang.serialization.Codec;
-import com.simibubi.create.content.equipment.zapper.ZapperItem;
+import com.simibubi.create.content.equipment.zapper.ZapperBlockEntityHelper;
 import com.simibubi.create.foundation.gui.AllIcons;
 
 import net.createmod.catnip.lang.Lang;
@@ -63,7 +63,7 @@ public enum TerrainTools implements StringRepresentable {
 				if (!isReplaceable(toReplace))
 					return;
 				world.setBlockAndUpdate(p, paintedState);
-				ZapperItem.setBlockEntityData(world, p, paintedState, data, player);
+				ZapperBlockEntityHelper.setBlockEntityData(world, p, paintedState, data, player);
 			});
 			break;
 		case Flatten:
@@ -83,13 +83,13 @@ public enum TerrainTools implements StringRepresentable {
 				if (!isReplaceable(toReplace))
 					return;
 				world.setBlockAndUpdate(p, paintedState);
-				ZapperItem.setBlockEntityData(world, p, paintedState, data, player);
+				ZapperBlockEntityHelper.setBlockEntityData(world, p, paintedState, data, player);
 			});
 			break;
 		case Place:
 			targetPositions.forEach(p -> {
 				world.setBlockAndUpdate(p, paintedState);
-				ZapperItem.setBlockEntityData(world, p, paintedState, data, player);
+				ZapperBlockEntityHelper.setBlockEntityData(world, p, paintedState, data, player);
 			});
 			break;
 		case Replace:
@@ -98,7 +98,7 @@ public enum TerrainTools implements StringRepresentable {
 				if (isReplaceable(toReplace))
 					return;
 				world.setBlockAndUpdate(p, paintedState);
-				ZapperItem.setBlockEntityData(world, p, paintedState, data, player);
+				ZapperBlockEntityHelper.setBlockEntityData(world, p, paintedState, data, player);
 			});
 			break;
 		}

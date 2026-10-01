@@ -5,8 +5,8 @@ import java.util.List;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.simibubi.create.content.logistics.BigItemStack;
-import com.simibubi.create.content.logistics.packager.InventorySummary;
 
+import net.minecraft.world.item.ItemStack;
 import net.createmod.catnip.codecs.stream.CatnipStreamCodecBuilders;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -82,18 +82,47 @@ public record PackageOrderWithCrafts(PackageOrder orderedStacks, List<CraftingEn
     	if (orderedCrafts.isEmpty())
     		return false;
 
-		InventorySummary stacks = new InventorySummary();
-    	InventorySummary crafts = new InventorySummary();
+		java.util.Map<net.minecraft.world.item.Item, List<BigItemStack>> stacks = new java.util.IdentityHashMap<>();
+		java.util.Map<net.minecraft.world.item.Item, List<BigItemStack>> crafts = new java.util.IdentityHashMap<>();
 
-		stacks().forEach(stacks::add);
-    	orderedCrafts.forEach(ce -> ce.pattern.stacks().forEach(bis -> crafts.add(new BigItemStack(bis.stack, bis.count * ce.count))));
+		stacks().forEach(bis -> addToMap(stacks, bis.stack, bis.count));
+    	orderedCrafts.forEach(ce -> ce.pattern.stacks().forEach(bis -> addToMap(crafts, bis.stack, bis.count * ce.count)));
 
-    	List<BigItemStack> stackEntries = stacks.getStacks();
-		if (stackEntries.size() != crafts.getStacks().size())
+		List<BigItemStack> stackEntries = flattenMap(stacks);
+		List<BigItemStack> craftEntries = flattenMap(crafts);
+		if (stackEntries.size() != craftEntries.size())
     		return false;
 		for (BigItemStack bis : stackEntries)
-			if (crafts.getCountOf(bis.stack) != bis.count)
+			if (getCountOf(crafts, bis.stack) != bis.count)
 				return false;
     	return true;
     }
+
+	private static void addToMap(java.util.Map<net.minecraft.world.item.Item, List<BigItemStack>> map, ItemStack stack, int count) {
+		if (count == 0 || stack.isEmpty()) return;
+		List<BigItemStack> list = map.computeIfAbsent(stack.getItem(), k -> new java.util.ArrayList<>());
+		for (BigItemStack existing : list) {
+			if (ItemStack.isSameItemSameComponents(existing.stack, stack)) {
+				existing.count += count;
+				return;
+			}
+		}
+		list.add(new BigItemStack(stack.copyWithCount(1), count));
+	}
+
+	private static List<BigItemStack> flattenMap(java.util.Map<net.minecraft.world.item.Item, List<BigItemStack>> map) {
+		List<BigItemStack> list = new java.util.ArrayList<>();
+		map.values().forEach(list::addAll);
+		return list;
+	}
+
+	private static int getCountOf(java.util.Map<net.minecraft.world.item.Item, List<BigItemStack>> map, ItemStack stack) {
+		List<BigItemStack> list = map.get(stack.getItem());
+		if (list == null) return 0;
+		for (BigItemStack bis : list) {
+			if (ItemStack.isSameItemSameComponents(bis.stack, stack))
+				return bis.count;
+		}
+		return 0;
+	}
 }

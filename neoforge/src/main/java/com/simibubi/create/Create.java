@@ -132,7 +132,7 @@ public class Create {
 		AllPlacementModifiers.register(modEventBus);
 		AllIngredients.register(modEventBus);
 		AllAttachmentTypes.register(modEventBus);
-		AllDataComponents.register(modEventBus);
+		AllDataComponents.register();
 		AllMountedStorageTypes.register();
 
 		AllConfigs.register(modLoadingContext, modContainer);

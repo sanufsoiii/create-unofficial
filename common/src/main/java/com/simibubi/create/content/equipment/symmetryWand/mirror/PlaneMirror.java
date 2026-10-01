@@ -6,20 +6,22 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.simibubi.create.AllPartialModels;
+import com.simibubi.create.Create;
 import com.simibubi.create.foundation.utility.CreateLang;
 
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import dev.engine_room.flywheel.lib.transform.TransformStack;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 public class PlaneMirror extends SymmetryMirror {
+
+	public static final PartialModel MODEL = PartialModel.of(Create.asResource("block/symmetry_effect/plane"));
 
 	public static enum Align implements StringRepresentable {
 		XY("xy"), YZ("yz");
@@ -85,9 +87,9 @@ public class PlaneMirror extends SymmetryMirror {
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public PartialModel getModel() {
-		return AllPartialModels.SYMMETRY_PLANE;
+		return MODEL;
 	}
 
 	@Override

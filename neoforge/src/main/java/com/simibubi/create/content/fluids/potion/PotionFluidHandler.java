@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import com.google.common.collect.Lists;
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.AllTags.AllItemTags;
-import com.simibubi.create.content.fluids.potion.PotionFluid.BottleType;
+import com.simibubi.create.content.fluids.potion.PotionBottleType;
 import com.simibubi.create.foundation.fluid.FluidHelper;
 
 import net.createmod.catnip.data.Pair;
@@ -64,29 +64,29 @@ public class PotionFluidHandler {
 
 	public static FluidStack getFluidFromPotionItem(ItemStack stack) {
 		PotionContents potion = stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
-		BottleType bottleTypeFromItem = bottleTypeFromItem(stack.getItem());
-		if (potion.is(Potions.WATER) && potion.customEffects().isEmpty() && bottleTypeFromItem == BottleType.REGULAR)
+		PotionBottleType bottleTypeFromItem = bottleTypeFromItem(stack.getItem());
+		if (potion.is(Potions.WATER) && potion.customEffects().isEmpty() && bottleTypeFromItem == PotionBottleType.REGULAR)
 			return new FluidStack(Fluids.WATER, 250);
 		FluidStack fluid = getFluidFromPotion(potion, bottleTypeFromItem, 250);
 		fluid.set(AllDataComponents.POTION_FLUID_BOTTLE_TYPE, bottleTypeFromItem);
 		return fluid;
 	}
 
-	public static FluidStack getFluidFromPotion(PotionContents potionContents, BottleType bottleType, int amount) {
-		if (potionContents.is(Potions.WATER) && bottleType == BottleType.REGULAR)
+	public static FluidStack getFluidFromPotion(PotionContents potionContents, PotionBottleType bottleType, int amount) {
+		if (potionContents.is(Potions.WATER) && bottleType == PotionBottleType.REGULAR)
 			return new FluidStack(Fluids.WATER, amount);
 		return PotionFluid.of(amount, potionContents, bottleType);
 	}
 
-	public static BottleType bottleTypeFromItem(Item item) {
+	public static PotionBottleType bottleTypeFromItem(Item item) {
 		if (item == Items.LINGERING_POTION)
-			return BottleType.LINGERING;
+			return PotionBottleType.LINGERING;
 		if (item == Items.SPLASH_POTION)
-			return BottleType.SPLASH;
-		return BottleType.REGULAR;
+			return PotionBottleType.SPLASH;
+		return PotionBottleType.REGULAR;
 	}
 
-	public static ItemLike itemFromBottleType(BottleType type) {
+	public static ItemLike itemFromBottleType(PotionBottleType type) {
 		return switch (type) {
 			case LINGERING -> Items.LINGERING_POTION;
 			case SPLASH -> Items.SPLASH_POTION;
@@ -99,7 +99,7 @@ public class PotionFluidHandler {
 	}
 
 	public static ItemStack fillBottle(ItemStack stack, FluidStack availableFluid) {
-		ItemStack potionStack = new ItemStack(itemFromBottleType(availableFluid.getOrDefault(AllDataComponents.POTION_FLUID_BOTTLE_TYPE, BottleType.REGULAR)));
+		ItemStack potionStack = new ItemStack(itemFromBottleType(availableFluid.getOrDefault(AllDataComponents.POTION_FLUID_BOTTLE_TYPE, PotionBottleType.REGULAR)));
 		potionStack.set(DataComponents.POTION_CONTENTS, availableFluid.get(DataComponents.POTION_CONTENTS));
 		return potionStack;
 	}

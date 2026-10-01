@@ -211,18 +211,7 @@ public abstract class ZapperItem extends Item implements CustomArmPoseItem {
 	}
 
 	public static void setBlockEntityData(Level world, BlockPos pos, BlockState state, CompoundTag data, Player player) {
-		if (data != null && AllBlockTags.SAFE_NBT.matches(state)) {
-			BlockEntity blockEntity = world.getBlockEntity(pos);
-			if (blockEntity != null) {
-				data = NBTProcessors.process(state, blockEntity, data, !player.isCreative());
-				if (data == null)
-					return;
-				data.putInt("x", pos.getX());
-				data.putInt("y", pos.getY());
-				data.putInt("z", pos.getZ());
-				blockEntity.loadWithComponents(data, world.registryAccess());
-			}
-		}
+		ZapperBlockEntityHelper.setBlockEntityData(world, pos, state, data, player);
 	}
 
 }
