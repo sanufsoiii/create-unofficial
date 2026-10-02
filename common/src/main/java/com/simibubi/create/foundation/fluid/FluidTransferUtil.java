@@ -7,6 +7,7 @@ import dev.architectury.fluid.FluidStack;
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 public class FluidTransferUtil {
@@ -28,6 +29,11 @@ public class FluidTransferUtil {
 
 	@ExpectPlatform
 	public static boolean hasFluidHandler(Level level, BlockPos pos, @Nullable Direction side) {
+		throw new AssertionError();
+	}
+
+	@ExpectPlatform
+	public static @NotNull FluidStack getContainedFluid(Level level, ItemStack stack) {
 		throw new AssertionError();
 	}
 }

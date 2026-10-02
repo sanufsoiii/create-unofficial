@@ -80,4 +80,19 @@ public class FluidTransferUtilImpl {
 	public static boolean hasFluidHandler(Level level, BlockPos pos, @Nullable Direction side) {
 		return FluidStorage.SIDED.find(level, pos, side) != null;
 	}
+
+	public static @NotNull FluidStack getContainedFluid(Level level, net.minecraft.world.item.ItemStack stack) {
+		if (stack.isEmpty())
+			return FluidStack.empty();
+		net.fabricmc.fabric.api.transfer.v1.item.ItemVariant itemVariant = net.fabricmc.fabric.api.transfer.v1.item.ItemVariant.of(stack);
+		Storage<FluidVariant> storage = net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext.withConstant(itemVariant, 1).find(FluidStorage.ITEM);
+		if (storage != null) {
+			for (net.fabricmc.fabric.api.transfer.v1.storage.StorageView<FluidVariant> view : storage) {
+				if (!view.isResourceBlank() && view.getAmount() > 0) {
+					return FluidStackHooksFabric.fromFabric(view.getResource(), view.getAmount());
+				}
+			}
+		}
+		return FluidStack.empty();
+	}
 }

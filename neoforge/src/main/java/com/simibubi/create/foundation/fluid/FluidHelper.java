@@ -6,6 +6,7 @@ import com.simibubi.create.content.fluids.tank.CreativeFluidTankBlockEntity;
 import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
 import com.simibubi.create.content.fluids.transfer.GenericItemFilling;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 
 import net.createmod.catnip.data.Pair;
 import net.minecraft.sounds.SoundEvent;
@@ -62,6 +63,26 @@ public class FluidHelper {
 
 	public static boolean isTag(FluidStack fluid, TagKey<Fluid> tag) {
 		return isTag(fluid.getFluid(), tag);
+	}
+
+	public static boolean test(com.simibubi.create.content.logistics.filter.FilterItemStack filter, Level world, FluidStack stack) {
+		return filter.test(world, dev.architectury.hooks.fluid.forge.FluidStackHooksForge.fromForge(stack));
+	}
+
+	public static boolean test(com.simibubi.create.content.logistics.filter.FilterItemStack filter, Level world, FluidStack stack, boolean matchNBT) {
+		return filter.test(world, dev.architectury.hooks.fluid.forge.FluidStackHooksForge.fromForge(stack), matchNBT);
+	}
+
+	public static boolean test(FilteringBehaviour filtering, FluidStack stack) {
+		return filtering.test(dev.architectury.hooks.fluid.forge.FluidStackHooksForge.fromForge(stack));
+	}
+
+	public static FluidStack toForge(dev.architectury.fluid.FluidStack stack) {
+		return dev.architectury.hooks.fluid.forge.FluidStackHooksForge.toForge(stack);
+	}
+
+	public static dev.architectury.fluid.FluidStack fromForge(FluidStack stack) {
+		return dev.architectury.hooks.fluid.forge.FluidStackHooksForge.fromForge(stack);
 	}
 
 	public static SoundEvent getFillSound(FluidStack fluid) {

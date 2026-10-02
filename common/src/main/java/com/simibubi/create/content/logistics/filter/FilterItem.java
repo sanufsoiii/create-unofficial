@@ -1,18 +1,18 @@
 package com.simibubi.create.content.logistics.filter;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.AllKeys;
-import com.simibubi.create.content.logistics.box.PackageItem;
-import com.simibubi.create.foundation.item.ItemHelper;
-import com.simibubi.create.foundation.recipe.ItemCopyingRecipe.SupportsItemCopying;
+import com.simibubi.create.content.logistics.box.PackageItemHelper;
+import com.simibubi.create.foundation.item.CommonItemHelper;
+import com.simibubi.create.foundation.recipe.SupportsItemCopying;
 
+import dev.architectury.registry.menu.MenuRegistry;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,9 +28,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 public abstract class FilterItem extends Item implements MenuProvider, SupportsItemCopying {
 	public static ListFilterItem regular(Properties properties) {
@@ -58,7 +55,7 @@ public abstract class FilterItem extends Item implements MenuProvider, SupportsI
 	}
 
 	@Override
-	@OnlyIn(Dist.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flagIn) {
 		if (AllKeys.shiftDown())
 			return;
@@ -76,10 +73,8 @@ public abstract class FilterItem extends Item implements MenuProvider, SupportsI
 		ItemStack heldItem = player.getItemInHand(hand);
 
 		if (!player.isShiftKeyDown() && hand == InteractionHand.MAIN_HAND) {
-			if (!world.isClientSide && player instanceof ServerPlayer)
-				player.openMenu(this, buf -> {
-					ItemStack.STREAM_CODEC.encode(buf, heldItem);
-				});
+			if (!world.isClientSide && player instanceof ServerPlayer serverPlayer)
+				FilterMenuFactory.openFilterMenu(serverPlayer, this, heldItem);
 			return InteractionResultHolder.success(heldItem);
 		}
 		return InteractionResultHolder.pass(heldItem);
@@ -95,32 +90,20 @@ public abstract class FilterItem extends Item implements MenuProvider, SupportsI
 
 	public static boolean testDirect(ItemStack filter, ItemStack stack, boolean matchNBT) {
 		if (matchNBT) {
-			if (PackageItem.isPackage(filter) && PackageItem.isPackage(stack))
+			if (PackageItemHelper.isPackage(filter) && PackageItemHelper.isPackage(stack))
 				return doPackagesHaveSameData(filter, stack);
 
 			return ItemStack.isSameItemSameComponents(filter, stack);
 		}
 
-		if (PackageItem.isPackage(filter) && PackageItem.isPackage(stack))
+		if (PackageItemHelper.isPackage(filter) && PackageItemHelper.isPackage(stack))
 			return true;
 
-		return ItemHelper.sameItem(filter, stack);
+		return CommonItemHelper.sameItem(filter, stack);
 	}
 
 	public static boolean doPackagesHaveSameData(@NotNull ItemStack a, @NotNull ItemStack b) {
-		if (a.isEmpty())
-			return false;
-		if (!ItemStack.isSameItemSameComponents(a, b))
-			return false;
-		for (TypedDataComponent<?> component : a.getComponents()) {
-			DataComponentType<?> type = component.type();
-			if (type.equals(AllDataComponents.PACKAGE_ORDER_DATA) ||
-				type.equals(AllDataComponents.PACKAGE_ORDER_CONTEXT))
-				continue;
-			if (!Objects.equals(a.get(type), b.get(type)))
-				return false;
-		}
-		return true;
+		return PackageItemHelper.doPackagesHaveSameData(a, b);
 	}
 
 	public abstract DataComponentType<?> getComponentType();

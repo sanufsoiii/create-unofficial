@@ -33,7 +33,7 @@ public class FluidAmountDisplaySource extends SingleLineDisplaySource {
 			FluidStack stack = handler.getFluidInTank(i);
 			if (stack.isEmpty())
 				continue;
-			if (!filteringBehaviour.test(stack))
+			if (!com.simibubi.create.foundation.fluid.FluidHelper.test(filteringBehaviour, stack))
 				continue;
 			collected += stack.getAmount();
 		}

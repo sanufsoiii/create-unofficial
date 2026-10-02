@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 
+import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.mixin.accessor.ItemStackHandlerAccessor;
@@ -233,6 +234,13 @@ public class ItemHelper extends CommonItemHelper {
 		for (int i = 0; i < itemStacks.size(); i++) {
 			inv.setStackInSlot(i, itemStacks.get(i));
 		}
+	}
+
+	public static ItemStackHandler getFilterItemHandler(ItemStack stack) {
+		ItemStackHandler newInv = new ItemStackHandler(18);
+		ItemContainerContents contents = stack.getOrDefault(AllDataComponents.FILTER_ITEMS, ItemContainerContents.EMPTY);
+		fillItemStackHandler(contents, newInv);
+		return newInv;
 	}
 
 	public static ItemContainerContents containerContentsFromHandler(ItemStackHandler handler) {

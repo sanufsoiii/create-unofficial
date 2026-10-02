@@ -35,6 +35,15 @@ public record InTagAttribute(TagKey<Item> tag) implements ItemAttribute {
 	}
 
 	@Override
+	public ItemStack[] getMatchingItemStacks() {
+		java.util.List<ItemStack> stacks = new java.util.ArrayList<>();
+		for (net.minecraft.core.Holder<Item> holder : net.minecraft.core.registries.BuiltInRegistries.ITEM.getTagOrEmpty(tag)) {
+			stacks.add(new ItemStack(holder.value()));
+		}
+		return stacks.toArray(ItemStack[]::new);
+	}
+
+	@Override
 	public String getTranslationKey() {
 		return "in_tag";
 	}

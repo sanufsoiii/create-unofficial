@@ -50,7 +50,7 @@ public class FluidListDisplaySource extends ValueListDisplaySource {
 			FluidStack stack = handler.getFluidInTank(i);
 			if (stack.isEmpty())
 				continue;
-			if (!filteringBehaviour.test(stack))
+			if (!com.simibubi.create.foundation.fluid.FluidHelper.test(filteringBehaviour, stack))
 				continue;
 
 			fluids.merge(stack.getFluid(), stack.getAmount(), Integer::sum);

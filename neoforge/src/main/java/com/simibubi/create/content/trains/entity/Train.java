@@ -263,7 +263,7 @@ public class Train {
 						FluidStack drain = tank.drain(1, FluidAction.SIMULATE);
 						if (drain.isEmpty())
 							continue;
-						shouldActivate |= filter.test(level, drain);
+						shouldActivate |= com.simibubi.create.foundation.fluid.FluidHelper.test(filter, level, drain);
 					}
 				}
 			}

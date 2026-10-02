@@ -6,9 +6,8 @@ import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.simibubi.create.AllBlocks;
-import com.simibubi.create.AllItems;
 import com.simibubi.create.AllSoundEvents;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.logistics.filter.FilterItem;
 import com.simibubi.create.content.logistics.filter.FilterItemStack;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
@@ -19,10 +18,12 @@ import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsFormatter;
-import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.item.CommonItemHelper;
 import com.simibubi.create.foundation.utility.CreateLang;
-import com.simibubi.create.infrastructure.config.AllConfigs;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 
+import dev.architectury.fluid.FluidStack;
 import net.createmod.catnip.data.Iterate;
 import net.createmod.catnip.math.VecHelper;
 import net.minecraft.ChatFormatting;
@@ -43,9 +44,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.items.wrapper.InvWrapper;
 
 public class FilteringBehaviour extends BlockEntityBehaviour implements ValueSettingsBehaviour {
 	public static final BehaviourType<FilteringBehaviour> TYPE = new BehaviourType<>();
@@ -295,8 +293,8 @@ public class FilteringBehaviour extends BlockEntityBehaviour implements ValueSet
 			return;
 
 		if (getFilter(side).getItem() instanceof FilterItem) {
-			if (!player.isCreative() || ItemHelper
-				.extract(new InvWrapper(player.getInventory()),
+			if (!player.isCreative() || CommonItemHelper
+				.extract(player.getInventory(),
 					stack -> ItemStack.isSameItemSameComponents(stack, getFilter(side)), true)
 				.isEmpty())
 				player.getInventory()
@@ -325,10 +323,12 @@ public class FilteringBehaviour extends BlockEntityBehaviour implements ValueSet
 	}
 
 	public boolean canShortInteract(ItemStack toApply) {
-		if (AllItems.WRENCH.isIn(toApply))
-			return false;
-		if (AllBlocks.MECHANICAL_ARM.isIn(toApply))
-			return false;
+		ResourceLocation id = BuiltInRegistries.ITEM.getKey(toApply.getItem());
+		if (id != null && id.getNamespace().equals(Create.ID)) {
+			String path = id.getPath();
+			if (path.equals("wrench") || path.equals("mechanical_arm"))
+				return false;
+		}
 		return true;
 	}
 
@@ -385,11 +385,9 @@ public class FilteringBehaviour extends BlockEntityBehaviour implements ValueSet
 		ItemStack copied = ItemStack.parseOptional(registries, tag.getCompound("Filter"));
 
 		if (copied.getItem() instanceof FilterItem filterType && !player.isCreative()) {
-			InvWrapper inv = new InvWrapper(player.getInventory());
-
 			for (boolean preferStacksWithoutData : Iterate.trueAndFalse) {
-				if (refund.getItem() != filterType && ItemHelper
-					.extract(inv, stack -> stack.getItem() == filterType && preferStacksWithoutData == stack.isComponentsPatchEmpty(),
+				if (refund.getItem() != filterType && CommonItemHelper
+					.extract(player.getInventory(), stack -> stack.getItem() == filterType && preferStacksWithoutData == stack.getComponentsPatch().isEmpty(),
 						1, false)
 					.isEmpty())
 					continue;
@@ -429,6 +427,6 @@ public class FilteringBehaviour extends BlockEntityBehaviour implements ValueSet
 	}
 
 	public float getRenderDistance() {
-		return AllConfigs.client().filterItemRenderDistance.getF();
+		return 64.0f;
 	}
 }

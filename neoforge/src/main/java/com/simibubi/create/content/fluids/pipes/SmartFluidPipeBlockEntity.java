@@ -58,7 +58,7 @@ public class SmartFluidPipeBlockEntity extends SmartBlockEntity implements Clear
 
 		@Override
 		public boolean canPullFluidFrom(FluidStack fluid, BlockState state, Direction direction) {
-			if (fluid.isEmpty() || filter != null && filter.test(fluid))
+			if (fluid.isEmpty() || filter != null && com.simibubi.create.foundation.fluid.FluidHelper.test(filter, fluid))
 				return super.canPullFluidFrom(fluid, state, direction);
 			return false;
 		}

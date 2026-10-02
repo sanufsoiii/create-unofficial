@@ -107,7 +107,7 @@ public class SmartObserverBlockEntity extends SmartBlockEntity implements Cleara
 				Flow flow = fluidBehaviour.getFlow(side);
 				if (flow == null || !flow.inbound || !flow.complete)
 					continue;
-				if (!filtering.test(flow.fluid))
+				if (!com.simibubi.create.foundation.fluid.FluidHelper.test(filtering, flow.fluid))
 					continue;
 				activate();
 				return;

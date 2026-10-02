@@ -8,19 +8,14 @@ import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.filter.FilterItemStack.AttributeFilterItemStack;
 import com.simibubi.create.content.logistics.item.filter.attribute.ItemAttribute;
 import com.simibubi.create.content.logistics.item.filter.attribute.ItemAttribute.ItemAttributeEntry;
-import com.simibubi.create.content.logistics.item.filter.attribute.attributes.InTagAttribute;
 import com.simibubi.create.foundation.utility.CreateLang;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 public class AttributeFilterItem extends FilterItem {
@@ -64,7 +59,7 @@ public class AttributeFilterItem extends FilterItem {
 
 	@Override
 	public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
-		return AttributeFilterMenu.create(id, inv, player.getMainHandItem());
+		return FilterMenuFactory.createAttributeFilterMenu(id, inv, player);
 	}
 
 	@Override
@@ -84,12 +79,10 @@ public class AttributeFilterItem extends FilterItem {
 
 		if (whitelistMode == AttributeFilterWhitelistMode.WHITELIST_DISJ && attributes.size() == 1) {
 			ItemAttribute attribute = attributes.getFirst().attribute();
-			if (attribute instanceof InTagAttribute(TagKey<Item> tag)) {
-				List<ItemStack> stacks = new ArrayList<>();
-				for (Holder<Item> holder : BuiltInRegistries.ITEM.getTagOrEmpty(tag)) {
-					stacks.add(new ItemStack(holder.value()));
-				}
-				return stacks.toArray(ItemStack[]::new);
+			if (attribute != null) {
+				ItemStack[] matching = attribute.getMatchingItemStacks();
+				if (matching != null)
+					return matching;
 			}
 		}
 		return new ItemStack[0];

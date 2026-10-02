@@ -48,7 +48,7 @@ public class BasinRecipe extends StandardProcessingRecipe<RecipeInput> {
 				.isEmpty()
 				&& !basinRecipe.getFluidResults()
 				.isEmpty())
-				filterTest = filter.test(basinRecipe.getFluidResults()
+				filterTest = com.simibubi.create.foundation.fluid.FluidHelper.test(filter, basinRecipe.getFluidResults()
 					.get(0));
 		}
 

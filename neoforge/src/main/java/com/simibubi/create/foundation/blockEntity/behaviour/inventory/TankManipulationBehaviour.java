@@ -52,7 +52,7 @@ public class TankManipulationBehaviour extends CapManipulationBehaviourBase<IFlu
 		Predicate<FluidStack> test = customFilter;
 		FilteringBehaviour filter = blockEntity.getBehaviour(FilteringBehaviour.TYPE);
 		if (filter != null)
-			test = customFilter.and(filter::test);
+			test = customFilter.and(fs -> com.simibubi.create.foundation.fluid.FluidHelper.test(filter, fs));
 		return test;
 	}
 

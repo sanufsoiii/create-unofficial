@@ -50,4 +50,14 @@ public class FluidTransferUtilImpl {
 	public static boolean hasFluidHandler(Level level, BlockPos pos, @Nullable Direction side) {
 		return level.getCapability(Capabilities.FluidHandler.BLOCK, pos, side) != null;
 	}
+
+	public static @NotNull FluidStack getContainedFluid(Level level, net.minecraft.world.item.ItemStack stack) {
+		if (stack.isEmpty())
+			return FluidStack.empty();
+		if (com.simibubi.create.content.fluids.transfer.GenericItemEmptying.canItemBeEmptied(level, stack)) {
+			net.neoforged.neoforge.fluids.FluidStack drained = com.simibubi.create.content.fluids.transfer.GenericItemEmptying.emptyItem(level, stack, true).getFirst();
+			return FluidStackHooksForge.fromForge(drained);
+		}
+		return FluidStack.empty();
+	}
 }

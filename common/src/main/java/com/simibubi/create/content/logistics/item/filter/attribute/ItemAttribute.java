@@ -59,6 +59,10 @@ public interface ItemAttribute {
 
 	boolean appliesTo(ItemStack stack, Level world);
 
+	default ItemStack[] getMatchingItemStacks() {
+		return null;
+	}
+
 	ItemAttributeType getType();
 
 	@Environment(EnvType.CLIENT)

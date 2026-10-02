@@ -195,7 +195,7 @@ public class ThresholdSwitchBlockEntity extends SmartBlockEntity implements Clea
 						continue;
 
 					currentMaxLevel += space;
-					if (filtering.test(stackInSlot))
+					if (com.simibubi.create.foundation.fluid.FluidHelper.test(filtering, stackInSlot))
 						currentLevel += count;
 				}
 			}

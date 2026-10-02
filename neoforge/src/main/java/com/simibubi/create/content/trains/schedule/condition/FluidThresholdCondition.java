@@ -49,7 +49,7 @@ public class FluidThresholdCondition extends CargoThresholdCondition {
 			IFluidHandler fluids = carriage.storage.getFluids();
 			for (int i = 0; i < fluids.getTanks(); i++) {
 				FluidStack fluidInTank = fluids.getFluidInTank(i);
-				if (!compareStack.test(level, fluidInTank))
+				if (!com.simibubi.create.foundation.fluid.FluidHelper.test(compareStack, level, fluidInTank))
 					continue;
 				foundFluid += fluidInTank.getAmount();
 			}
@@ -79,7 +79,7 @@ public class FluidThresholdCondition extends CargoThresholdCondition {
 
 	@OnlyIn(Dist.CLIENT)
 	private FluidStack loadFluid() {
-		return compareStack.fluid(Minecraft.getInstance().level);
+		return com.simibubi.create.foundation.fluid.FluidHelper.toForge(compareStack.fluid(Minecraft.getInstance().level));
 	}
 
 	@Override

@@ -3,6 +3,7 @@ package com.simibubi.create.content.logistics.filter;
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllMenuTypes;
+import com.simibubi.create.foundation.item.ItemHelper;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
@@ -50,7 +51,7 @@ public class FilterMenu extends AbstractFilterMenu {
 
 	@Override
 	protected ItemStackHandler createGhostInventory() {
-		return AllItems.FILTER.get().getFilterItemHandler(contentHolder);
+		return ItemHelper.getFilterItemHandler(contentHolder);
 	}
 
 	@Override

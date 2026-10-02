@@ -4,19 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.simibubi.create.AllDataComponents;
-import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
-import com.simibubi.create.content.logistics.box.PackageItem;
+import com.simibubi.create.content.logistics.box.PackageItemHelper;
 import com.simibubi.create.content.logistics.item.filter.attribute.ItemAttribute;
+import com.simibubi.create.foundation.fluid.FluidTransferUtil;
 
+import dev.architectury.fluid.FluidStack;
 import net.createmod.catnip.data.Pair;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.Level;
-
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.items.ItemStackHandler;
 
 public class FilterItemStack {
 	private final ItemStack filterItemStack;
@@ -24,7 +23,7 @@ public class FilterItemStack {
 	private FluidStack filterFluidStack;
 
 	public static FilterItemStack of(ItemStack filter) {
-		if (!filter.isComponentsPatchEmpty() && filter.getItem() instanceof FilterItem item) {
+		if (!filter.getComponentsPatch().isEmpty() && filter.getItem() instanceof FilterItem item) {
 			trimFilterComponents(filter);
 			return item.makeStackWrapper(filter);
 		}
@@ -66,8 +65,6 @@ public class FilterItemStack {
 		return filterItemStack.getItem() instanceof FilterItem;
 	}
 
-	//
-
 	public boolean test(Level world, ItemStack stack) {
 		return test(world, stack, false);
 	}
@@ -95,23 +92,19 @@ public class FilterItemStack {
 		if (!matchNBT)
 			return filterFluidStack.getFluid()
 				.isSame(stack.getFluid());
-		return net.neoforged.neoforge.fluids.FluidStack.isSameFluidSameComponents(filterFluidStack, stack);
+		return filterFluidStack.isFluidStackEqual(stack);
 	}
-
-	//
 
 	private void resolveFluid(Level world) {
 		if (!fluidExtracted) {
 			fluidExtracted = true;
-			if (GenericItemEmptying.canItemBeEmptied(world, filterItemStack))
-				filterFluidStack = GenericItemEmptying.emptyItem(world, filterItemStack, true)
-					.getFirst();
+			filterFluidStack = FluidTransferUtil.getContainedFluid(world, filterItemStack);
 		}
 	}
 
 	protected FilterItemStack(ItemStack filter) {
 		filterItemStack = filter;
-		filterFluidStack = FluidStack.EMPTY;
+		filterFluidStack = FluidStack.empty();
 		fluidExtracted = false;
 	}
 
@@ -126,9 +119,8 @@ public class FilterItemStack {
 			boolean hasFilterItems = filter.has(AllDataComponents.FILTER_ITEMS);
 
 			containedItems = new ArrayList<>();
-			ItemStackHandler items = ((ListFilterItem) filter.getItem()).getFilterItemHandler(filter);
-			for (int i = 0; i < items.getSlots(); i++) {
-				ItemStack stackInSlot = items.getStackInSlot(i);
+			ItemContainerContents contents = filter.getOrDefault(AllDataComponents.FILTER_ITEMS, ItemContainerContents.EMPTY);
+			for (ItemStack stackInSlot : contents.stream().toList()) {
 				if (!stackInSlot.isEmpty())
 					containedItems.add(FilterItemStack.of(stackInSlot));
 			}
@@ -168,11 +160,12 @@ public class FilterItemStack {
 
 			List<ItemAttribute.ItemAttributeEntry> attributes = defaults ? new ArrayList<>()
 				: filter.get(AllDataComponents.ATTRIBUTE_FILTER_MATCHED_ATTRIBUTES);
-			//noinspection DataFlowIssue
-			for (ItemAttribute.ItemAttributeEntry attributeEntry : attributes) {
-				ItemAttribute attribute = attributeEntry.attribute();
-				if (attribute != null)
-					attributeTests.add(Pair.of(attribute, attributeEntry.inverted()));
+			if (attributes != null) {
+				for (ItemAttribute.ItemAttributeEntry attributeEntry : attributes) {
+					ItemAttribute attribute = attributeEntry.attribute();
+					if (attribute != null)
+						attributeTests.add(Pair.of(attribute, attributeEntry.inverted()));
+				}
 			}
 		}
 
@@ -229,13 +222,13 @@ public class FilterItemStack {
 
 		public PackageFilterItemStack(ItemStack filter) {
 			super(filter);
-			filterString = PackageItem.getAddress(filter);
+			filterString = PackageItemHelper.getAddress(filter);
 		}
 
 		@Override
 		public boolean test(Level world, ItemStack stack, boolean matchNBT) {
 			return (filterString.isBlank() && super.test(world, stack, matchNBT))
-				|| PackageItem.isPackage(stack) && PackageItem.matchAddress(stack, filterString);
+				|| PackageItemHelper.isPackage(stack) && PackageItemHelper.matchAddress(stack, filterString);
 		}
 
 		@Override

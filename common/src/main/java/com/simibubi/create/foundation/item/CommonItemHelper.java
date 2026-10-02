@@ -125,4 +125,35 @@ public class CommonItemHelper {
 			bar += "\u2592";
 		return bar + " ";
 	}
+
+	public static ItemStack extract(net.minecraft.world.Container inv, Predicate<ItemStack> test, boolean simulate) {
+		return extract(inv, test, 1, simulate);
+	}
+
+	public static ItemStack extract(net.minecraft.world.Container inv, Predicate<ItemStack> test, int maxCount, boolean simulate) {
+		ItemStack extracting = ItemStack.EMPTY;
+		for (int slot = 0; slot < inv.getContainerSize(); slot++) {
+			ItemStack slotStack = inv.getItem(slot);
+			if (slotStack.isEmpty() || !test.test(slotStack))
+				continue;
+
+			if (extracting.isEmpty()) {
+				int toExtract = Math.min(maxCount, slotStack.getCount());
+				extracting = slotStack.copyWithCount(toExtract);
+				if (!simulate)
+					inv.removeItem(slot, toExtract);
+			} else if (ItemStack.isSameItemSameComponents(slotStack, extracting)) {
+				int toExtract = Math.min(maxCount - extracting.getCount(), slotStack.getCount());
+				if (toExtract > 0) {
+					extracting.grow(toExtract);
+					if (!simulate)
+						inv.removeItem(slot, toExtract);
+				}
+			}
+
+			if (extracting.getCount() >= maxCount)
+				break;
+		}
+		return extracting;
+	}
 }

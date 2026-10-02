@@ -6,7 +6,6 @@ import java.util.List;
 
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.filter.FilterItemStack.ListFilterItemStack;
-import com.simibubi.create.foundation.item.ItemHelper;
 import com.simibubi.create.foundation.utility.CreateLang;
 
 import net.minecraft.ChatFormatting;
@@ -18,8 +17,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 
-import net.neoforged.neoforge.items.ItemStackHandler;
-
 public class ListFilterItem extends FilterItem {
 	protected ListFilterItem(Properties properties) {
 		super(properties);
@@ -29,20 +26,19 @@ public class ListFilterItem extends FilterItem {
 	public List<Component> makeSummary(ItemStack filter) {
 		List<Component> list = new ArrayList<>();
 
-		ItemStackHandler filterItems = getFilterItemHandler(filter);
+		ItemContainerContents contents = filter.getOrDefault(AllDataComponents.FILTER_ITEMS, ItemContainerContents.EMPTY);
 		boolean blacklist = filter.getOrDefault(AllDataComponents.FILTER_ITEMS_BLACKLIST, false);
 
 		list.add((blacklist ? CreateLang.translateDirect("gui.filter.deny_list")
 			: CreateLang.translateDirect("gui.filter.allow_list")).withStyle(ChatFormatting.GOLD));
 		int count = 0;
-		for (int i = 0; i < filterItems.getSlots(); i++) {
+		for (ItemStack filterStack : contents.stream().toList()) {
 			if (count > 3) {
 				list.add(Component.literal("- ...")
 					.withStyle(ChatFormatting.DARK_GRAY));
 				break;
 			}
 
-			ItemStack filterStack = filterItems.getStackInSlot(i);
 			if (filterStack.isEmpty())
 				continue;
 			list.add(Component.literal("- ")
@@ -59,7 +55,7 @@ public class ListFilterItem extends FilterItem {
 
 	@Override
 	public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
-		return FilterMenu.create(id, inv, player.getMainHandItem());
+		return FilterMenuFactory.createFilterMenu(id, inv, player);
 	}
 
 	@Override
@@ -72,17 +68,16 @@ public class ListFilterItem extends FilterItem {
 		return new ListFilterItemStack(filter);
 	}
 
-	public ItemStackHandler getFilterItemHandler(ItemStack stack) {
-		ItemStackHandler newInv = new ItemStackHandler(18);
-		ItemContainerContents contents = stack.getOrDefault(AllDataComponents.FILTER_ITEMS, ItemContainerContents.EMPTY);
-		ItemHelper.fillItemStackHandler(contents, newInv);
-		return newInv;
-	}
-
 	@Override
 	public ItemStack[] getFilterItems(ItemStack stack) {
 		if (stack.getOrDefault(AllDataComponents.FILTER_ITEMS_BLACKLIST, false))
 			return new ItemStack[0];
-		return ItemHelper.getNonEmptyStacks(getFilterItemHandler(stack)).toArray(ItemStack[]::new);
+		ItemContainerContents contents = stack.getOrDefault(AllDataComponents.FILTER_ITEMS, ItemContainerContents.EMPTY);
+		List<ItemStack> list = new ArrayList<>();
+		for (ItemStack s : contents.stream().toList()) {
+			if (!s.isEmpty())
+				list.add(s);
+		}
+		return list.toArray(ItemStack[]::new);
 	}
 }

@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.simibubi.create.AllDataComponents;
-import com.simibubi.create.content.logistics.box.PackageItem;
+import com.simibubi.create.content.logistics.box.PackageItemHelper;
 import com.simibubi.create.content.logistics.filter.FilterItemStack.PackageFilterItemStack;
 import com.simibubi.create.foundation.utility.CreateLang;
 
@@ -23,7 +23,7 @@ public class PackageFilterItem extends FilterItem {
 
 	@Override
 	public List<Component> makeSummary(ItemStack filter) {
-		String address = PackageItem.getAddress(filter);
+		String address = PackageItemHelper.getAddress(filter);
 		if (address.isBlank())
 			return Collections.emptyList();
 
@@ -36,7 +36,7 @@ public class PackageFilterItem extends FilterItem {
 
 	@Override
 	public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
-		return PackageFilterMenu.create(id, inv, player.getMainHandItem());
+		return FilterMenuFactory.createPackageFilterMenu(id, inv, player);
 	}
 
 	@Override
