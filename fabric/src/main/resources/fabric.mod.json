@@ -18,6 +18,9 @@
   "entrypoints": {
     "main": [
       "com.simibubi.create.fabric.CreateFabric"
+    ],
+    "client": [
+      "com.simibubi.create.fabric.CreateClient"
     ]
   },
   "depends": {
