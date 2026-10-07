@@ -5,22 +5,17 @@ import java.util.function.Predicate;
 import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Predicates;
-import com.simibubi.create.api.packager.InventoryIdentifier;
-import com.simibubi.create.content.logistics.packager.IdentifiedInventory;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
-import com.simibubi.create.foundation.item.ItemHelper;
-import com.simibubi.create.foundation.item.ItemHelper.ExtractionCountMode;
+import com.simibubi.create.foundation.item.CommonItemHelper.ExtractionCountMode;
+import com.simibubi.create.foundation.item.ItemTransferUtil;
 
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.capabilities.BlockCapability;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.minecraft.world.level.Level;
 
-public class InvManipulationBehaviour extends CapManipulationBehaviourBase<IItemHandler, InvManipulationBehaviour> {
+public class InvManipulationBehaviour extends CapManipulationBehaviourBase<Object, InvManipulationBehaviour> {
 
 	// Extra types available for multibehaviour
 	public static final BehaviourType<InvManipulationBehaviour>
@@ -48,19 +43,15 @@ public class InvManipulationBehaviour extends CapManipulationBehaviourBase<IItem
 	}
 
 	@Nullable
-	public IdentifiedInventory getIdentifiedInventory() {
-		IItemHandler inventory = this.getInventory();
-		if (inventory == null)
-			return null;
-
-		InventoryIdentifier identifier = InventoryIdentifier.get(this.getWorld(), this.getTarget().getOpposite());
-		return new IdentifiedInventory(identifier, inventory);
+	public <T> T getIdentifiedInventory() {
+		return InvManipulationHooks.getIdentifiedInventory(this);
 	}
 
 	@Override
-	protected BlockCapability<IItemHandler, Direction> capability() {
-		return Capabilities.ItemHandler.BLOCK;
+	protected Object findCapability(Level world, net.minecraft.core.BlockPos pos, Direction side) {
+		return ItemTransferUtil.getInventory(world, pos, side);
 	}
+
 
 	public ItemStack extract() {
 		return extract(getModeFromFilter(), getAmountFromFilter());
@@ -76,21 +67,21 @@ public class InvManipulationBehaviour extends CapManipulationBehaviourBase<IItem
 
 		if (getWorld().isClientSide)
 			return ItemStack.EMPTY;
-		IItemHandler inventory = targetCapability;
+		Object inventory = targetCapability;
 		if (inventory == null)
 			return ItemStack.EMPTY;
 
 		Predicate<ItemStack> test = getFilterTest(filter);
-		return ItemHelper.extract(inventory, test, mode, amount, shouldSimulate);
+		return ItemTransferUtil.extract(inventory, test, mode, amount, shouldSimulate);
 	}
 
 	public ItemStack insert(ItemStack stack) {
 		boolean shouldSimulate = simulateNext;
 		simulateNext = false;
-		IItemHandler inventory = targetCapability;
+		Object inventory = targetCapability;
 		if (inventory == null)
 			return stack;
-		return ItemHandlerHelper.insertItemStacked(inventory, stack, shouldSimulate);
+		return ItemTransferUtil.insertItem(inventory, stack, shouldSimulate);
 	}
 
 	protected Predicate<ItemStack> getFilterTest(Predicate<ItemStack> customFilter) {

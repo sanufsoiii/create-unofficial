@@ -126,34 +126,67 @@ public class CommonItemHelper {
 		return bar + " ";
 	}
 
+	public enum ExtractionCountMode {
+		EXACTLY, UPTO
+	}
+
 	public static ItemStack extract(net.minecraft.world.Container inv, Predicate<ItemStack> test, boolean simulate) {
-		return extract(inv, test, 1, simulate);
+		return extract(inv, test, ExtractionCountMode.UPTO, 1, simulate);
 	}
 
 	public static ItemStack extract(net.minecraft.world.Container inv, Predicate<ItemStack> test, int maxCount, boolean simulate) {
-		ItemStack extracting = ItemStack.EMPTY;
-		for (int slot = 0; slot < inv.getContainerSize(); slot++) {
-			ItemStack slotStack = inv.getItem(slot);
-			if (slotStack.isEmpty() || !test.test(slotStack))
-				continue;
+		return extract(inv, test, ExtractionCountMode.UPTO, maxCount, simulate);
+	}
 
-			if (extracting.isEmpty()) {
-				int toExtract = Math.min(maxCount, slotStack.getCount());
-				extracting = slotStack.copyWithCount(toExtract);
-				if (!simulate)
-					inv.removeItem(slot, toExtract);
-			} else if (ItemStack.isSameItemSameComponents(slotStack, extracting)) {
-				int toExtract = Math.min(maxCount - extracting.getCount(), slotStack.getCount());
-				if (toExtract > 0) {
+	public static ItemStack extract(net.minecraft.world.Container inv, Predicate<ItemStack> test, ExtractionCountMode mode, int amount, boolean simulate) {
+		ItemStack extracting = ItemStack.EMPTY;
+		boolean amountRequired = mode == ExtractionCountMode.EXACTLY;
+		boolean checkHasEnoughItems = amountRequired;
+		boolean hasEnoughItems = !checkHasEnoughItems;
+		int maxExtractionCount = amount;
+
+		Extraction:
+		do {
+			extracting = ItemStack.EMPTY;
+
+			for (int slot = 0; slot < inv.getContainerSize(); slot++) {
+				ItemStack slotStack = inv.getItem(slot);
+				if (slotStack.isEmpty())
+					continue;
+				if (!test.test(slotStack))
+					continue;
+				if (!extracting.isEmpty() && !canItemStackAmountsStack(slotStack, extracting))
+					continue;
+
+				int toExtract = Math.min(maxExtractionCount - extracting.getCount(), slotStack.getCount());
+				if (toExtract <= 0)
+					continue;
+
+				if (extracting.isEmpty())
+					extracting = slotStack.copyWithCount(toExtract);
+				else
 					extracting.grow(toExtract);
-					if (!simulate)
-						inv.removeItem(slot, toExtract);
+
+				if (!simulate && hasEnoughItems)
+					inv.removeItem(slot, toExtract);
+
+				if (extracting.getCount() >= maxExtractionCount) {
+					if (checkHasEnoughItems) {
+						hasEnoughItems = true;
+						checkHasEnoughItems = false;
+						continue Extraction;
+					} else {
+						break Extraction;
+					}
 				}
 			}
 
-			if (extracting.getCount() >= maxCount)
-				break;
-		}
+			if (checkHasEnoughItems)
+				return ItemStack.EMPTY;
+
+			break;
+		} while (true);
+
 		return extracting;
 	}
 }

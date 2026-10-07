@@ -7,7 +7,7 @@ import com.google.common.base.Predicates;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
-import com.simibubi.create.foundation.item.ItemHelper.ExtractionCountMode;
+import com.simibubi.create.foundation.item.CommonItemHelper.ExtractionCountMode;
 
 import net.createmod.catnip.math.BlockFace;
 import net.minecraft.core.BlockPos;
@@ -16,7 +16,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.neoforged.neoforge.capabilities.BlockCapability;
 
 public abstract class CapManipulationBehaviourBase<T, S extends CapManipulationBehaviourBase<?, ?>>
 	extends BlockEntityBehaviour {
@@ -38,7 +37,7 @@ public abstract class CapManipulationBehaviourBase<T, S extends CapManipulationB
 		filter = Predicates.alwaysTrue();
 	}
 
-	protected abstract BlockCapability<T, Direction> capability();
+	protected abstract T findCapability(Level world, BlockPos pos, Direction side);
 
 	@Override
 	public void initialize() {
@@ -77,9 +76,10 @@ public abstract class CapManipulationBehaviourBase<T, S extends CapManipulationB
 		return targetCapability != null;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Nullable
-	public T getInventory() {
-		return targetCapability;
+	public <INV> INV getInventory() {
+		return (INV) targetCapability;
 	}
 
 	/**
@@ -143,8 +143,7 @@ public abstract class CapManipulationBehaviourBase<T, S extends CapManipulationB
 		BlockEntity invBE = world.getBlockEntity(pos);
 		if (!filter.test(invBE))
 			return;
-		BlockCapability<T, Direction> capability = capability();
-		targetCapability = world.getCapability(capability, pos, bypassSided ? null : targetBlockFace.getFace());
+		targetCapability = findCapability(world, pos, bypassSided ? null : targetBlockFace.getFace());
 	}
 
 	@FunctionalInterface

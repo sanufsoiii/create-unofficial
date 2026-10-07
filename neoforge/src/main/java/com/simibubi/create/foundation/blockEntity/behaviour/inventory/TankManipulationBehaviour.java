@@ -57,8 +57,8 @@ public class TankManipulationBehaviour extends CapManipulationBehaviourBase<IFlu
 	}
 
 	@Override
-	protected BlockCapability<IFluidHandler, Direction> capability() {
-		return Capabilities.FluidHandler.BLOCK;
+	protected IFluidHandler findCapability(net.minecraft.world.level.Level world, net.minecraft.core.BlockPos pos, Direction side) {
+		return world.getCapability(Capabilities.FluidHandler.BLOCK, pos, side);
 	}
 
 	@Override

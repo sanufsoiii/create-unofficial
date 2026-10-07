@@ -6,7 +6,7 @@ import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock.Shape;
 import com.simibubi.create.content.logistics.funnel.FunnelBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
-import com.simibubi.create.foundation.item.ItemHelper.ExtractionCountMode;
+import com.simibubi.create.foundation.item.CommonItemHelper.ExtractionCountMode;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

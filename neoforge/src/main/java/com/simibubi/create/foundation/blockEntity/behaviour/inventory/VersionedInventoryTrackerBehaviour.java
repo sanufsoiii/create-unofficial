@@ -18,7 +18,7 @@ public class VersionedInventoryTrackerBehaviour extends BlockEntityBehaviour {
 	}
 
 	public boolean stillWaiting(InvManipulationBehaviour behaviour) {
-		return behaviour.hasInventory() && stillWaiting(behaviour.getInventory());
+		return behaviour.hasInventory() && stillWaiting((IItemHandler) behaviour.getInventory());
 	}
 
 	public boolean stillWaiting(IItemHandler handler) {
@@ -29,7 +29,7 @@ public class VersionedInventoryTrackerBehaviour extends BlockEntityBehaviour {
 
 	public void awaitNewVersion(InvManipulationBehaviour behaviour) {
 		if (behaviour.hasInventory())
-			awaitNewVersion(behaviour.getInventory());
+			awaitNewVersion((IItemHandler) behaviour.getInventory());
 	}
 
 	public void awaitNewVersion(IItemHandler handler) {

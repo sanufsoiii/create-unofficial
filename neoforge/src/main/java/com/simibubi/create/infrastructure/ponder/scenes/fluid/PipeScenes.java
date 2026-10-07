@@ -15,6 +15,7 @@ import com.simibubi.create.content.fluids.tank.FluidTankBlockEntity;
 import com.simibubi.create.content.processing.basin.BasinBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.fluid.FluidHelper;
+import com.simibubi.create.foundation.fluid.SmartFluidTank;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 
 import net.createmod.catnip.math.Pointing;
@@ -227,7 +228,7 @@ public class PipeScenes {
 		scene.world().modifyBlockEntity(drainPos, ItemDrainBlockEntity.class,
 			be -> be.getBehaviour(SmartFluidTankBehaviour.TYPE)
 				.allowInsertion()
-				.getPrimaryHandler()
+				.<SmartFluidTank>getPrimaryHandler()
 				.fill(new FluidStack(Fluids.WATER, 1500), FluidAction.EXECUTE));
 
 		scene.idle(50);

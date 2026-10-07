@@ -5,7 +5,7 @@ import java.util.List;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
-import com.simibubi.create.foundation.item.ItemHelper.ExtractionCountMode;
+import com.simibubi.create.foundation.item.CommonItemHelper.ExtractionCountMode;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

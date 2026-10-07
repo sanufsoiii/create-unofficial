@@ -85,10 +85,6 @@ public class ItemHelper extends CommonItemHelper {
 		return Mth.floor(f * 14.0F) + (i > 0 ? 1 : 0);
 	}
 
-	public static enum ExtractionCountMode {
-		EXACTLY, UPTO
-	}
-
 	public static ItemStack extract(IItemHandler inv, Predicate<ItemStack> test, boolean simulate) {
 		return extract(inv, test, ExtractionCountMode.UPTO, 64, simulate);
 	}

@@ -40,6 +40,17 @@ dependencies {
     compileOnly "dev.engine-room.flywheel:flywheel-fabric-api-$rootProject.minecraft_version:$rootProject.flywheel_version"
     runtimeOnly "dev.engine-room.flywheel:flywheel-fabric-$rootProject.minecraft_version:$rootProject.flywheel_version"
 
+    // Registrate Fabric
+    modImplementation "com.tterrag.registrate_fabric:Registrate:1.3.77-MC1.21.1"
+
+    // Porting Lib (Fabric port utilities)
+    def portingLib = '3.1.0-beta.47+1.21.1'
+    ['core', 'base', 'extensions', 'entity', 'accessors', 'transfer', 'models', 'model_loader', 'tags', 'blocks', 'fluids'].each { module ->
+        modImplementation "io.github.fabricators_of_create.Porting-Lib:${module}:${portingLib}"
+    }
+    modImplementation "io.github.tropheusj:milk-lib:1.2.60"
+    modImplementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:21.1.3"
+
     // Ponder Fabric
     implementation "net.createmod.ponder:ponder-fabric:$rootProject.ponder_version+mc$rootProject.minecraft_version"
 }

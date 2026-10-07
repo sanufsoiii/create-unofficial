@@ -23,6 +23,7 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.fluid.FluidHelper;
+import com.simibubi.create.foundation.fluid.SmartFluidTank;
 
 import net.createmod.catnip.math.VecHelper;
 import net.createmod.catnip.nbt.NBTHelper;
@@ -147,7 +148,7 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 				award(AllAdvancements.FOODS);
 		}
 
-		tank.getPrimaryHandler()
+		tank.<SmartFluidTank>getPrimaryHandler()
 			.setFluid(fluid);
 		sendSplash = true;
 		notifyUpdate();
@@ -155,7 +156,7 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 	}
 
 	private FluidStack getCurrentFluidInTank() {
-		return tank.getPrimaryHandler()
+		return tank.<SmartFluidTank>getPrimaryHandler()
 			.getFluid();
 	}
 
@@ -219,7 +220,7 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 				int fillBlock = customProcess.fillBlock(level, worldPosition.below(2), this, currentFluidInTank.copy(), false);
 				customProcess = null;
 				if (fillBlock > 0) {
-					tank.getPrimaryHandler()
+					tank.<SmartFluidTank>getPrimaryHandler()
 						.setFluid(FluidHelper.copyStackWithAmount(currentFluidInTank,
 							currentFluidInTank.getAmount() - fillBlock));
 					sendSplash = true;

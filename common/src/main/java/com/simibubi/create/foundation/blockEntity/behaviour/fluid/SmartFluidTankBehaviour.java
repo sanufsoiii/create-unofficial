@@ -7,23 +7,18 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.fluid.CombinedTankWrapper;
-import com.simibubi.create.foundation.fluid.SmartFluidTank;
 
-import net.createmod.catnip.nbt.NBTHelper;
 import net.createmod.catnip.animation.LerpedFloat;
 import net.createmod.catnip.animation.LerpedFloat.Chaser;
+import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class SmartFluidTankBehaviour extends BlockEntityBehaviour {
 
 	public static final BehaviourType<SmartFluidTankBehaviour>
-
 	TYPE = new BehaviourType<>(), INPUT = new BehaviourType<>("Input"), OUTPUT = new BehaviourType<>("Output");
 
 	private static final int SYNC_RATE = 8;
@@ -31,7 +26,7 @@ public class SmartFluidTankBehaviour extends BlockEntityBehaviour {
 	protected int syncCooldown;
 	protected boolean queuedSync;
 	protected TankSegment[] tanks;
-	protected IFluidHandler capability;
+	protected Object capability;
 	protected boolean extractionAllowed;
 	protected boolean insertionAllowed;
 	protected Runnable fluidUpdateCallback;
@@ -49,13 +44,10 @@ public class SmartFluidTankBehaviour extends BlockEntityBehaviour {
 		extractionAllowed = true;
 		behaviourType = type;
 		this.tanks = new TankSegment[tanks];
-		IFluidHandler[] handlers = new IFluidHandler[tanks];
 		for (int i = 0; i < tanks; i++) {
-			TankSegment tankSegment = new TankSegment(tankCapacity);
-			this.tanks[i] = tankSegment;
-			handlers[i] = tankSegment.tank;
+			this.tanks[i] = SmartFluidTankHooks.createTankSegment(this, tankCapacity);
 		}
-		capability = new InternalFluidHandler(handlers, enforceVariety);
+		capability = SmartFluidTankHooks.createHandler(this, this.tanks, enforceVariety);
 		fluidUpdateCallback = () -> {
 		};
 	}
@@ -83,6 +75,14 @@ public class SmartFluidTankBehaviour extends BlockEntityBehaviour {
 	public SmartFluidTankBehaviour forbidExtraction() {
 		extractionAllowed = false;
 		return this;
+	}
+
+	public boolean isInsertionAllowed() {
+		return insertionAllowed;
+	}
+
+	public boolean isExtractionAllowed() {
+		return extractionAllowed;
 	}
 
 	@Override
@@ -138,11 +138,12 @@ public class SmartFluidTankBehaviour extends BlockEntityBehaviour {
 	@Override
 	public void unload() {
 		super.unload();
-		blockEntity.getLevel().invalidateCapabilities(getPos());
+		SmartFluidTankHooks.invalidateCapabilities(blockEntity);
 	}
 
-	public SmartFluidTank getPrimaryHandler() {
-		return getPrimaryTank().tank;
+	@SuppressWarnings("unchecked")
+	public <T> T getPrimaryHandler() {
+		return (T) getPrimaryTank().getTank();
 	}
 
 	public TankSegment getPrimaryTank() {
@@ -155,7 +156,7 @@ public class SmartFluidTankBehaviour extends BlockEntityBehaviour {
 
 	public boolean isEmpty() {
 		for (TankSegment tankSegment : tanks)
-			if (!tankSegment.tank.isEmpty())
+			if (!tankSegment.isEmpty())
 				return false;
 		return true;
 	}
@@ -165,8 +166,9 @@ public class SmartFluidTankBehaviour extends BlockEntityBehaviour {
 			action.accept(tankSegment);
 	}
 
-	public IFluidHandler getCapability() {
-		return capability;
+	@SuppressWarnings("unchecked")
+	public <T> T getCapability() {
+		return (T) capability;
 	}
 
 	@Override
@@ -189,103 +191,52 @@ public class SmartFluidTankBehaviour extends BlockEntityBehaviour {
 		});
 	}
 
-	public class InternalFluidHandler extends CombinedTankWrapper {
+	public abstract static class TankSegment {
+		protected final SmartFluidTankBehaviour behaviour;
+		protected final LerpedFloat fluidLevel;
 
-		public InternalFluidHandler(IFluidHandler[] handlers, boolean enforceVariety) {
-			super(handlers);
-			if (enforceVariety)
-				enforceVariety();
-		}
-
-		@Override
-		public int fill(FluidStack resource, FluidAction action) {
-			if (!insertionAllowed)
-				return 0;
-			return super.fill(resource, action);
-		}
-
-		public int forceFill(FluidStack resource, FluidAction action) {
-			return super.fill(resource, action);
-		}
-
-		@Override
-		public FluidStack drain(FluidStack resource, FluidAction action) {
-			if (!extractionAllowed)
-				return FluidStack.EMPTY;
-			return super.drain(resource, action);
-		}
-
-		@Override
-		public FluidStack drain(int maxDrain, FluidAction action) {
-			if (!extractionAllowed)
-				return FluidStack.EMPTY;
-			return super.drain(maxDrain, action);
-		}
-
-	}
-
-	public class TankSegment {
-
-		protected SmartFluidTank tank;
-		protected LerpedFloat fluidLevel;
-		protected FluidStack renderedFluid;
-
-		public TankSegment(int capacity) {
-			tank = new SmartFluidTank(capacity, f -> onFluidStackChanged());
-			fluidLevel = LerpedFloat.linear()
+		public TankSegment(SmartFluidTankBehaviour behaviour) {
+			this.behaviour = behaviour;
+			this.fluidLevel = LerpedFloat.linear()
 				.startWithValue(0)
 				.chase(0, .25, Chaser.EXP);
-			renderedFluid = FluidStack.EMPTY;
-		}
-
-		public void onFluidStackChanged() {
-			if (!blockEntity.hasLevel())
-				return;
-			fluidLevel.chase(tank.getFluidAmount() / (float) tank.getCapacity(), .25, Chaser.EXP);
-			if (!getWorld().isClientSide)
-				sendDataLazily();
-			if (blockEntity.isVirtual() && !tank.getFluid()
-				.isEmpty())
-				renderedFluid = tank.getFluid();
-		}
-
-		public FluidStack getRenderedFluid() {
-			return renderedFluid;
 		}
 
 		public LerpedFloat getFluidLevel() {
 			return fluidLevel;
 		}
 
-		public float getTotalUnits(float partialTicks) {
-			return fluidLevel.getValue(partialTicks) * tank.getCapacity();
-		}
+		public abstract <F> F getRenderedFluid();
+
+		public abstract <T> T getTank();
+
+		public abstract float getTotalUnits(float partialTicks);
+
+		public abstract boolean isEmpty(float partialTicks);
+
+		public abstract boolean isEmpty();
 
 		public CompoundTag writeNBT(HolderLookup.Provider registries) {
 			CompoundTag compound = new CompoundTag();
-			compound.put("TankContent", tank.writeToNBT(registries, new CompoundTag()));
+			writeTankNBT(compound, registries);
 			compound.put("Level", fluidLevel.writeNBT());
 			return compound;
 		}
 
 		public void readNBT(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-			tank.readFromNBT(registries, compound.getCompound("TankContent"));
+			readTankNBT(compound, registries, clientPacket);
 			fluidLevel.readNBT(compound.getCompound("Level"), clientPacket);
-			if (!tank.getFluid()
-				.isEmpty())
-				renderedFluid = tank.getFluid();
 		}
 
-		public boolean isEmpty(float partialTicks) {
-			FluidStack renderedFluid = getRenderedFluid();
-			if (renderedFluid.isEmpty())
-				return true;
-			float units = getTotalUnits(partialTicks);
-			if (units < 1)
-				return true;
-			return false;
-		}
+		public abstract void writeTankNBT(CompoundTag compound, HolderLookup.Provider registries);
 
+		public abstract void readTankNBT(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket);
+
+		public abstract void onFluidStackChanged();
+	}
+
+	public interface InternalFluidHandler {
+		int forceFill(Object resource, Object action);
 	}
 
 	@Override

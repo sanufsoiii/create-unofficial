@@ -50,12 +50,14 @@ public class PackagerPeripheral extends SyncedPeripheral<PackagerBlockEntity> {
 
 	@LuaFunction(mainThread = true)
 	public Map<Integer, Map<String, ?>> list() {
-		return ComputerUtil.list(blockEntity.targetInventory.getInventory());
+		net.neoforged.neoforge.items.IItemHandler inv = blockEntity.targetInventory.getInventory();
+		return ComputerUtil.list(inv);
 	}
 
 	@LuaFunction(mainThread = true)
 	public Map<String, ?> getItemDetail(int slot) throws LuaException {
-		return ComputerUtil.getItemDetail(blockEntity.targetInventory.getInventory(), slot);
+		net.neoforged.neoforge.items.IItemHandler inv = blockEntity.targetInventory.getInventory();
+		return ComputerUtil.getItemDetail(inv, slot);
 	}
 
 	@LuaFunction(mainThread = true)

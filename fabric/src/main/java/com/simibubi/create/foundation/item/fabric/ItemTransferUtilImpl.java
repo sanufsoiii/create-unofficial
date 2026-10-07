@@ -64,4 +64,53 @@ public class ItemTransferUtilImpl {
         }
         return ItemStack.EMPTY;
     }
+
+    public static Object getInventory(net.minecraft.world.level.Level level, net.minecraft.core.BlockPos pos, @org.jetbrains.annotations.Nullable net.minecraft.core.Direction side) {
+        return net.fabricmc.fabric.api.transfer.v1.item.ItemStorage.SIDED.find(level, pos, side);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static ItemStack extract(Object target, java.util.function.Predicate<ItemStack> test, com.simibubi.create.foundation.item.CommonItemHelper.ExtractionCountMode mode, int amount, boolean simulate) {
+        if (target instanceof Container container) {
+            return com.simibubi.create.foundation.item.CommonItemHelper.extract(container, test, mode, amount, simulate);
+        } else if (target instanceof Storage<?> storage) {
+            Storage<ItemVariant> itemStorage = (Storage<ItemVariant>) storage;
+            boolean amountRequired = mode == com.simibubi.create.foundation.item.CommonItemHelper.ExtractionCountMode.EXACTLY;
+            ItemStack extracting = ItemStack.EMPTY;
+
+            try (Transaction transaction = Transaction.openOuter()) {
+                for (net.fabricmc.fabric.api.transfer.v1.storage.StorageView<ItemVariant> view : itemStorage) {
+                    if (view.isResourceBlank()) continue;
+                    ItemVariant variant = view.getResource();
+                    ItemStack stack = variant.toStack();
+                    if (!test.test(stack)) continue;
+                    if (!extracting.isEmpty() && !com.simibubi.create.foundation.item.CommonItemHelper.canItemStackAmountsStack(stack, extracting)) continue;
+
+                    int maxToExtract = amount - extracting.getCount();
+                    if (maxToExtract <= 0) break;
+
+                    long extracted = view.extract(variant, maxToExtract, transaction);
+                    if (extracted <= 0) continue;
+
+                    if (extracting.isEmpty()) {
+                        extracting = variant.toStack((int) extracted);
+                    } else {
+                        extracting.grow((int) extracted);
+                    }
+
+                    if (extracting.getCount() >= amount) break;
+                }
+
+                if (amountRequired && extracting.getCount() < amount) {
+                    return ItemStack.EMPTY;
+                }
+
+                if (!simulate) {
+                    transaction.commit();
+                }
+                return extracting;
+            }
+        }
+        return ItemStack.EMPTY;
+    }
 }

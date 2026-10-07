@@ -13,6 +13,7 @@ import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import com.simibubi.create.foundation.fluid.SmartFluidTank;
 import com.simibubi.create.foundation.utility.BlockHelper;
 
 import net.createmod.catnip.data.Iterate;
@@ -243,7 +244,7 @@ public class ItemDrainBlockEntity extends SmartBlockEntity implements IHaveGoggl
 
 		if (processingTicks > 5) {
 			internalTank.allowInsertion();
-			if (internalTank.getPrimaryHandler()
+			if (internalTank.<SmartFluidTank>getPrimaryHandler()
 				.fill(fluidFromItem, FluidAction.SIMULATE) != fluidFromItem.getAmount()) {
 				internalTank.forbidInsertion();
 				processingTicks = FILLING_TIME;
@@ -263,7 +264,7 @@ public class ItemDrainBlockEntity extends SmartBlockEntity implements IHaveGoggl
 		else
 			heldItem = null;
 		internalTank.allowInsertion();
-		internalTank.getPrimaryHandler()
+		internalTank.<SmartFluidTank>getPrimaryHandler()
 			.fill(fluidFromItem, FluidAction.EXECUTE);
 		internalTank.forbidInsertion();
 		notifyUpdate();

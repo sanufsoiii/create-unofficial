@@ -20,7 +20,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.VersionedInventoryTrackerBehaviour;
-import com.simibubi.create.foundation.item.ItemHelper.ExtractionCountMode;
+import com.simibubi.create.foundation.item.CommonItemHelper.ExtractionCountMode;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
 import dev.engine_room.flywheel.lib.visualization.VisualizationHelper;
@@ -223,7 +223,7 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 		});
 		if (stack.isEmpty()) {
 			if (deniedByInsertion.isFalse())
-				invVersionTracker.awaitNewVersion(invManipulation.getInventory());
+				invVersionTracker.awaitNewVersion(invManipulation);
 			return;
 		}
 		flap(false);
