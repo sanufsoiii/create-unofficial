@@ -1,7 +1,7 @@
 package com.simibubi.create.infrastructure.config;
 
 
-import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen.SearchSyncMode;
+import com.simibubi.create.content.logistics.stockTicker.SearchSyncMode;
 
 import net.createmod.catnip.config.ConfigBase;
 import net.createmod.catnip.config.ui.ConfigAnnotations;
