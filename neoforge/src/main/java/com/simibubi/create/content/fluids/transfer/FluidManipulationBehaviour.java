@@ -249,22 +249,4 @@ public abstract class FluidManipulationBehaviour extends BlockEntityBehaviour {
 				NBTHelper.readBlockPos(nbt, "AffectedAreaTo"));
 		super.read(nbt, registries, clientPacket);
 	}
-
-	public enum BottomlessFluidMode implements Predicate<Fluid> {
-		ALLOW_ALL(Predicates.alwaysTrue()),
-		DENY_ALL(Predicates.alwaysFalse()),
-		ALLOW_BY_TAG(AllFluidTags.BOTTOMLESS_ALLOW::matches),
-		DENY_BY_TAG(Predicates.not(AllFluidTags.BOTTOMLESS_DENY::matches));
-
-		private final Predicate<Fluid> predicate;
-
-		BottomlessFluidMode(Predicate<Fluid> predicate) {
-			this.predicate = predicate;
-		}
-
-		@Override
-		public boolean test(Fluid fluid) {
-			return predicate.test(fluid);
-		}
-	}
 }

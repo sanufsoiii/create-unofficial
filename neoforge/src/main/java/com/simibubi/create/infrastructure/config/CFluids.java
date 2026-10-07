@@ -1,6 +1,6 @@
 package com.simibubi.create.infrastructure.config;
 
-import com.simibubi.create.content.fluids.transfer.FluidManipulationBehaviour.BottomlessFluidMode;
+import com.simibubi.create.content.fluids.transfer.BottomlessFluidMode;
 
 import net.createmod.catnip.config.ConfigBase;
 
