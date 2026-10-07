@@ -1,10 +1,12 @@
 package com.simibubi.create.fabric;
 
+import com.simibubi.create.AllCreativeModeTabs;
 import com.simibubi.create.Create;
 import com.simibubi.create.CreateBuildInfo;
 import com.simibubi.create.api.boiler.BoilerHeater;
 import com.simibubi.create.api.boiler.BoilerHeaterDefaults;
 import com.simibubi.create.api.registry.SimpleRegistry;
+import com.simibubi.create.content.equipment.armor.AllArmorMaterials;
 
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -17,6 +19,8 @@ public class CreateFabric implements ModInitializer {
 		Create.LOGGER.info("{} {} initializing on Fabric/Quilt! Commit: {}", Create.NAME, CreateBuildInfo.VERSION, CreateBuildInfo.GIT_COMMIT);
 
 		Create.init();
+		AllArmorMaterials.register();
+		AllCreativeModeTabs.register();
 		com.simibubi.create.infrastructure.config.AllConfigs.register();
 
 		// Register default passive boiler heater for Fabric
