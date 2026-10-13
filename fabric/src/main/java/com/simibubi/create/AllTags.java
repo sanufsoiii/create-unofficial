@@ -141,6 +141,7 @@ public class AllTags {
 	}
 
 	public enum AllItemTags {
+		BLAZE_BURNER_FUEL_REGULAR(MOD, "blaze_burner_fuel/regular"),
 		BLAZE_BURNER_FUEL_SPECIAL(MOD, "blaze_burner_fuel/special"),
 		CASING,
 		CONTRAPTION_CONTROLLED,

@@ -23,6 +23,7 @@ import com.simibubi.create.content.logistics.filter.AttributeFilterItem;
 import com.simibubi.create.content.logistics.filter.FilterItem;
 import com.simibubi.create.content.logistics.filter.PackageFilterItem;
 import com.simibubi.create.content.materials.ExperienceNuggetItem;
+import com.simibubi.create.content.processing.burner.BlazeBurnerBlockItem;
 import com.simibubi.create.content.processing.sequenced.SequencedAssemblyItem;
 import com.simibubi.create.fabric.CreateFabric;
 import com.simibubi.create.foundation.data.CreateRegistrate;
@@ -77,13 +78,17 @@ public class AllItems {
 		.register();
 
 	public static final ItemEntry<Item> BLAZE_CAKE = REGISTRATE.item("blaze_cake", Item::new)
-		.tag(AllItemTags.UPRIGHT_ON_BELT.tag)
+		.tag(AllItemTags.UPRIGHT_ON_BELT.tag, AllItemTags.BLAZE_BURNER_FUEL_SPECIAL.tag)
 		.register();
 
 	public static final ItemEntry<Item> CREATIVE_BLAZE_CAKE = REGISTRATE.item("creative_blaze_cake", Item::new)
 		.properties(p -> p.rarity(Rarity.EPIC))
 		.tag(AllItemTags.UPRIGHT_ON_BELT.tag)
 		.register();
+
+	public static final ItemEntry<BlazeBurnerBlockItem> EMPTY_BLAZE_BURNER =
+		REGISTRATE.item("empty_blaze_burner", BlazeBurnerBlockItem::empty)
+			.register();
 
 	public static final ItemEntry<Item> BAR_OF_CHOCOLATE = REGISTRATE.item("bar_of_chocolate", Item::new)
 		.properties(p -> p.food(new FoodProperties.Builder().nutrition(6).saturationModifier(0.3F).build()))

@@ -45,6 +45,9 @@ import com.simibubi.create.content.kinetics.press.MechanicalPressBlock;
 import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlock;
 import com.simibubi.create.content.logistics.depot.DepotBlock;
 import com.simibubi.create.content.processing.basin.BasinBlock;
+import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
+import com.simibubi.create.content.processing.burner.BlazeBurnerBlockItem;
+import com.simibubi.create.content.processing.burner.LitBlazeBurnerBlock;
 import com.simibubi.create.content.kinetics.gauge.GaugeBlock;
 import com.simibubi.create.content.kinetics.clock.CuckooClockBlock;
 import com.simibubi.create.content.kinetics.turntable.TurntableBlock;
@@ -459,6 +462,28 @@ public class AllBlocks {
 		.transform(TagGen.pickaxeOnly())
 		.simpleItem()
 		.register();
+
+	public static final BlockEntry<BlazeBurnerBlock> BLAZE_BURNER =
+		REGISTRATE.block("blaze_burner", BlazeBurnerBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.COLOR_GRAY)
+				.lightLevel(BlazeBurnerBlock::getLight))
+			.transform(TagGen.pickaxeOnly())
+			.tag(AllBlockTags.FAN_PROCESSING_CATALYSTS_BLASTING.tag, AllBlockTags.FAN_PROCESSING_CATALYSTS_SMOKING.tag,
+				AllBlockTags.FAN_TRANSPARENT.tag, AllBlockTags.PASSIVE_BOILER_HEATERS.tag)
+			.item(BlazeBurnerBlockItem::withBlaze)
+			.build()
+			.register();
+
+	public static final BlockEntry<LitBlazeBurnerBlock> LIT_BLAZE_BURNER =
+		REGISTRATE.block("lit_blaze_burner", LitBlazeBurnerBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.COLOR_LIGHT_GRAY)
+				.lightLevel(LitBlazeBurnerBlock::getLight))
+			.transform(TagGen.pickaxeOnly())
+			.tag(AllBlockTags.FAN_PROCESSING_CATALYSTS_HAUNTING.tag, AllBlockTags.FAN_PROCESSING_CATALYSTS_SMOKING.tag,
+				AllBlockTags.FAN_TRANSPARENT.tag, AllBlockTags.PASSIVE_BOILER_HEATERS.tag)
+			.register();
 
 	public static void register() {
 	}

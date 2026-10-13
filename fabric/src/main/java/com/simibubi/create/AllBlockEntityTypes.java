@@ -139,6 +139,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.BASIN)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.processing.burner.BlazeBurnerBlockEntity> HEATER = REGISTRATE
+		.blockEntity("blaze_heater", com.simibubi.create.content.processing.burner.BlazeBurnerBlockEntity::new)
+		.validBlocks(AllBlocks.BLAZE_BURNER)
+		.register();
+
 	public static void register() {
 	}
 }
