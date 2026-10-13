@@ -74,6 +74,21 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.MECHANICAL_SAW)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.millstone.MillstoneBlockEntity> MILLSTONE = REGISTRATE
+		.blockEntity("millstone", com.simibubi.create.content.kinetics.millstone.MillstoneBlockEntity::new)
+		.validBlocks(AllBlocks.MILLSTONE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crusher.CrushingWheelBlockEntity> CRUSHING_WHEEL = REGISTRATE
+		.blockEntity("crushing_wheel", com.simibubi.create.content.kinetics.crusher.CrushingWheelBlockEntity::new)
+		.validBlocks(AllBlocks.CRUSHING_WHEEL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crusher.CrushingWheelControllerBlockEntity> CRUSHING_WHEEL_CONTROLLER = REGISTRATE
+		.blockEntity("crushing_wheel_controller", com.simibubi.create.content.kinetics.crusher.CrushingWheelControllerBlockEntity::new)
+		.validBlocks(AllBlocks.CRUSHING_WHEEL_CONTROLLER)
+		.register();
+
 	public static void register() {
 	}
 }

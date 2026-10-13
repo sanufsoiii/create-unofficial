@@ -38,6 +38,11 @@ import com.simibubi.create.foundation.data.BuilderTransformers;
 import com.simibubi.create.foundation.data.SharedProperties;
 import com.simibubi.create.foundation.data.TagGen;
 import com.simibubi.create.infrastructure.config.CStress;
+import com.simibubi.create.content.kinetics.crusher.CrushingWheelBlock;
+import com.simibubi.create.content.kinetics.crusher.CrushingWheelControllerBlock;
+import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.PushReaction;
 import net.createmod.catnip.data.Couple;
 
 public class AllBlocks {
@@ -318,6 +323,34 @@ public class AllBlocks {
 		.transform(CStress.setImpact(4.0))
 		.simpleItem()
 		.register();
+
+	public static final BlockEntry<MillstoneBlock> MILLSTONE = REGISTRATE.block("millstone", MillstoneBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.mapColor(MapColor.METAL))
+		.transform(TagGen.pickaxeOnly())
+		.transform(CStress.setImpact(4.0))
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<CrushingWheelBlock> CRUSHING_WHEEL =
+		REGISTRATE.block("crushing_wheel", CrushingWheelBlock::new)
+			.properties(p -> p.mapColor(MapColor.METAL))
+			.initialProperties(SharedProperties::stone)
+			.properties(BlockBehaviour.Properties::noOcclusion)
+			.transform(TagGen.pickaxeOnly())
+			.transform(CStress.setImpact(8.0))
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<CrushingWheelControllerBlock> CRUSHING_WHEEL_CONTROLLER =
+		REGISTRATE.block("crushing_wheel_controller", CrushingWheelControllerBlock::new)
+			.properties(p -> p.mapColor(MapColor.STONE)
+				.noOcclusion()
+				.noLootTable()
+				.air()
+				.noCollission()
+				.pushReaction(PushReaction.BLOCK))
+			.register();
 
 	public static void register() {
 	}
