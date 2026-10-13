@@ -47,6 +47,9 @@ import com.simibubi.create.content.logistics.depot.DepotBlock;
 import com.simibubi.create.content.processing.basin.BasinBlock;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlockItem;
+import com.simibubi.create.content.logistics.chute.ChuteBlock;
+import com.simibubi.create.content.logistics.chute.ChuteItem;
+import com.simibubi.create.content.logistics.chute.SmartChuteBlock;
 import com.simibubi.create.content.processing.burner.LitBlazeBurnerBlock;
 import com.simibubi.create.content.kinetics.gauge.GaugeBlock;
 import com.simibubi.create.content.kinetics.clock.CuckooClockBlock;
@@ -484,6 +487,35 @@ public class AllBlocks {
 			.tag(AllBlockTags.FAN_PROCESSING_CATALYSTS_HAUNTING.tag, AllBlockTags.FAN_PROCESSING_CATALYSTS_SMOKING.tag,
 				AllBlockTags.FAN_TRANSPARENT.tag, AllBlockTags.PASSIVE_BOILER_HEATERS.tag)
 			.register();
+
+	public static final BlockEntry<Block> INDUSTRIAL_IRON_BLOCK = REGISTRATE.block("industrial_iron_block", Block::new)
+		.initialProperties(() -> Blocks.IRON_BLOCK)
+		.properties(p -> p.mapColor(MapColor.COLOR_GRAY))
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<ChuteBlock> CHUTE = REGISTRATE.block("chute", ChuteBlock::new)
+		.initialProperties(SharedProperties::softMetal)
+		.properties(p -> p.mapColor(MapColor.COLOR_GRAY)
+			.sound(SoundType.NETHERITE_BLOCK)
+			.noOcclusion()
+			.isSuffocating((state, level, pos) -> false))
+		.transform(TagGen.pickaxeOnly())
+		.item(ChuteItem::new)
+		.build()
+		.register();
+
+	public static final BlockEntry<SmartChuteBlock> SMART_CHUTE = REGISTRATE.block("smart_chute", SmartChuteBlock::new)
+		.initialProperties(SharedProperties::softMetal)
+		.properties(p -> p.mapColor(MapColor.COLOR_GRAY)
+			.sound(SoundType.NETHERITE_BLOCK)
+			.noOcclusion()
+			.isSuffocating((state, level, pos) -> false)
+			.isRedstoneConductor((state, level, pos) -> false))
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
 
 	public static void register() {
 	}

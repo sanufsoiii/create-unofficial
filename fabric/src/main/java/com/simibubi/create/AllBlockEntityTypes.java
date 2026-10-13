@@ -144,6 +144,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.BLAZE_BURNER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.chute.ChuteBlockEntity> CHUTE = REGISTRATE
+		.blockEntity("chute", com.simibubi.create.content.logistics.chute.ChuteBlockEntity::new)
+		.validBlocks(AllBlocks.CHUTE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.chute.SmartChuteBlockEntity> SMART_CHUTE = REGISTRATE
+		.blockEntity("smart_chute", com.simibubi.create.content.logistics.chute.SmartChuteBlockEntity::new)
+		.validBlocks(AllBlocks.SMART_CHUTE)
+		.register();
+
 	public static void register() {
 	}
 }
