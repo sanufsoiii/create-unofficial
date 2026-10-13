@@ -43,6 +43,7 @@ import com.simibubi.create.content.kinetics.crusher.CrushingWheelControllerBlock
 import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
 import com.simibubi.create.content.kinetics.press.MechanicalPressBlock;
 import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlock;
+import com.simibubi.create.content.logistics.depot.DepotBlock;
 import com.simibubi.create.content.kinetics.gauge.GaugeBlock;
 import com.simibubi.create.content.kinetics.clock.CuckooClockBlock;
 import com.simibubi.create.content.kinetics.turntable.TurntableBlock;
@@ -442,6 +443,13 @@ public class AllBlocks {
 			.transform(CStress.setNoImpact())
 			.simpleItem()
 			.register();
+
+	public static final BlockEntry<DepotBlock> DEPOT = REGISTRATE.block("depot", DepotBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.mapColor(MapColor.COLOR_GRAY))
+		.transform(TagGen.axeOrPickaxe())
+		.simpleItem()
+		.register();
 
 	public static void register() {
 	}

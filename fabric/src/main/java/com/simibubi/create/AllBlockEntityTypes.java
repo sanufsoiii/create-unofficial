@@ -129,6 +129,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.ROTATION_SPEED_CONTROLLER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.depot.DepotBlockEntity> DEPOT = REGISTRATE
+		.blockEntity("depot", com.simibubi.create.content.logistics.depot.DepotBlockEntity::new)
+		.validBlocks(AllBlocks.DEPOT)
+		.register();
+
 	public static void register() {
 	}
 }
