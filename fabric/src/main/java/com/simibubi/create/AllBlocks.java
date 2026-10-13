@@ -57,6 +57,12 @@ import com.simibubi.create.content.kinetics.clock.CuckooClockBlock;
 import com.simibubi.create.content.kinetics.turntable.TurntableBlock;
 import com.simibubi.create.content.kinetics.motor.CreativeMotorBlock;
 import com.simibubi.create.content.kinetics.speedController.SpeedControllerBlock;
+import com.simibubi.create.AllTags.AllItemTags;
+import com.simibubi.create.content.kinetics.belt.BeltBlock;
+import com.simibubi.create.content.logistics.funnel.AndesiteFunnelBlock;
+import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock;
+import com.simibubi.create.content.logistics.funnel.BrassFunnelBlock;
+import com.simibubi.create.content.logistics.funnel.FunnelItem;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.PushReaction;
@@ -525,6 +531,52 @@ public class AllBlocks {
 		.transform(CStress.setImpact(2.0))
 		.simpleItem()
 		.register();
+
+	public static final BlockEntry<BeltBlock> BELT = REGISTRATE.block("belt", BeltBlock::new)
+		.properties(p -> p.sound(SoundType.WOOL)
+			.strength(0.8f)
+			.mapColor(MapColor.COLOR_GRAY))
+		.register();
+
+	public static final BlockEntry<AndesiteFunnelBlock> ANDESITE_FUNNEL =
+		REGISTRATE.block("andesite_funnel", AndesiteFunnelBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.STONE))
+			.transform(TagGen.pickaxeOnly())
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.item(FunnelItem::new)
+			.tag(AllItemTags.CONTRAPTION_CONTROLLED.tag)
+			.build()
+			.register();
+
+	public static final BlockEntry<BeltFunnelBlock> ANDESITE_BELT_FUNNEL =
+		REGISTRATE.block("andesite_belt_funnel", p -> new BeltFunnelBlock(AllBlocks.ANDESITE_FUNNEL, p))
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.STONE))
+			.transform(TagGen.pickaxeOnly())
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.loot((p, b) -> p.dropOther(b, ANDESITE_FUNNEL.get()))
+			.register();
+
+	public static final BlockEntry<BrassFunnelBlock> BRASS_FUNNEL =
+		REGISTRATE.block("brass_funnel", BrassFunnelBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(TagGen.pickaxeOnly())
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.item(FunnelItem::new)
+			.tag(AllItemTags.CONTRAPTION_CONTROLLED.tag)
+			.build()
+			.register();
+
+	public static final BlockEntry<BeltFunnelBlock> BRASS_BELT_FUNNEL =
+		REGISTRATE.block("brass_belt_funnel", p -> new BeltFunnelBlock(AllBlocks.BRASS_FUNNEL, p))
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(TagGen.pickaxeOnly())
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.loot((p, b) -> p.dropOther(b, BRASS_FUNNEL.get()))
+			.register();
 
 	public static void register() {
 	}

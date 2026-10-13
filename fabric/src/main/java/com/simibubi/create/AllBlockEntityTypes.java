@@ -159,6 +159,12 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.ENCASED_FAN)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.funnel.FunnelBlockEntity> FUNNEL = REGISTRATE
+		.blockEntity("funnel", com.simibubi.create.content.logistics.funnel.FunnelBlockEntity::new)
+		.validBlocks(AllBlocks.BRASS_FUNNEL, AllBlocks.BRASS_BELT_FUNNEL, AllBlocks.ANDESITE_FUNNEL,
+			AllBlocks.ANDESITE_BELT_FUNNEL)
+		.register();
+
 	public static void register() {
 	}
 }
