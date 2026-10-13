@@ -119,6 +119,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.TURNTABLE)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.motor.CreativeMotorBlockEntity> MOTOR = REGISTRATE
+		.blockEntity("motor", com.simibubi.create.content.kinetics.motor.CreativeMotorBlockEntity::new)
+		.validBlocks(AllBlocks.CREATIVE_MOTOR)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.speedController.SpeedControllerBlockEntity> ROTATION_SPEED_CONTROLLER = REGISTRATE
+		.blockEntity("rotation_speed_controller", com.simibubi.create.content.kinetics.speedController.SpeedControllerBlockEntity::new)
+		.validBlocks(AllBlocks.ROTATION_SPEED_CONTROLLER)
+		.register();
+
 	public static void register() {
 	}
 }

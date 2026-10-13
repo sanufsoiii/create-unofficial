@@ -46,6 +46,9 @@ import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlock;
 import com.simibubi.create.content.kinetics.gauge.GaugeBlock;
 import com.simibubi.create.content.kinetics.clock.CuckooClockBlock;
 import com.simibubi.create.content.kinetics.turntable.TurntableBlock;
+import com.simibubi.create.content.kinetics.motor.CreativeMotorBlock;
+import com.simibubi.create.content.kinetics.speedController.SpeedControllerBlock;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.PushReaction;
 import net.createmod.catnip.data.Couple;
@@ -416,6 +419,29 @@ public class AllBlocks {
 		.transform(CStress.setImpact(4.0))
 		.simpleItem()
 		.register();
+
+	public static final BlockEntry<CreativeMotorBlock> CREATIVE_MOTOR =
+		REGISTRATE.block("creative_motor", CreativeMotorBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.COLOR_PURPLE).forceSolidOn())
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.transform(TagGen.pickaxeOnly())
+			.transform(CStress.setCapacity(16384.0))
+			.onRegister(BlockStressValues.setGeneratorSpeed(256, true))
+			.item()
+			.properties(p -> p.rarity(Rarity.EPIC))
+			.build()
+			.register();
+
+	public static final BlockEntry<SpeedControllerBlock> ROTATION_SPEED_CONTROLLER =
+		REGISTRATE.block("rotation_speed_controller", SpeedControllerBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(TagGen.axeOrPickaxe())
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.transform(CStress.setNoImpact())
+			.simpleItem()
+			.register();
 
 	public static void register() {
 	}
