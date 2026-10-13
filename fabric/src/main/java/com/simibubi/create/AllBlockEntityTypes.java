@@ -89,6 +89,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.CRUSHING_WHEEL_CONTROLLER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.press.MechanicalPressBlockEntity> MECHANICAL_PRESS = REGISTRATE
+		.blockEntity("mechanical_press", com.simibubi.create.content.kinetics.press.MechanicalPressBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_PRESS)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlockEntity> MECHANICAL_MIXER = REGISTRATE
+		.blockEntity("mechanical_mixer", com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_MIXER)
+		.register();
+
 	public static void register() {
 	}
 }

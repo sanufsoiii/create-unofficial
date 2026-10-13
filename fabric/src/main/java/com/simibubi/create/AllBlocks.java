@@ -41,6 +41,8 @@ import com.simibubi.create.infrastructure.config.CStress;
 import com.simibubi.create.content.kinetics.crusher.CrushingWheelBlock;
 import com.simibubi.create.content.kinetics.crusher.CrushingWheelControllerBlock;
 import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
+import com.simibubi.create.content.kinetics.press.MechanicalPressBlock;
+import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.PushReaction;
 import net.createmod.catnip.data.Couple;
@@ -350,6 +352,24 @@ public class AllBlocks {
 				.air()
 				.noCollission()
 				.pushReaction(PushReaction.BLOCK))
+			.register();
+
+	public static final BlockEntry<MechanicalPressBlock> MECHANICAL_PRESS =
+		REGISTRATE.block("mechanical_press", MechanicalPressBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(8.0))
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<MechanicalMixerBlock> MECHANICAL_MIXER =
+		REGISTRATE.block("mechanical_mixer", MechanicalMixerBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(4.0))
+			.simpleItem()
 			.register();
 
 	public static void register() {
