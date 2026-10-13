@@ -578,6 +578,16 @@ public class AllBlocks {
 			.loot((p, b) -> p.dropOther(b, BRASS_FUNNEL.get()))
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.kinetics.mechanicalArm.ArmBlock> MECHANICAL_ARM =
+		REGISTRATE.block("mechanical_arm", com.simibubi.create.content.kinetics.mechanicalArm.ArmBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(2.0))
+			.item(com.simibubi.create.content.kinetics.mechanicalArm.ArmItem::new)
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }

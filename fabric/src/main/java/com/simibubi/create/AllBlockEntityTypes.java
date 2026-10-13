@@ -165,6 +165,11 @@ public class AllBlockEntityTypes {
 			AllBlocks.ANDESITE_BELT_FUNNEL)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.mechanicalArm.ArmBlockEntity> MECHANICAL_ARM = REGISTRATE
+		.blockEntity("mechanical_arm", com.simibubi.create.content.kinetics.mechanicalArm.ArmBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_ARM)
+		.register();
+
 	public static void register() {
 	}
 }
