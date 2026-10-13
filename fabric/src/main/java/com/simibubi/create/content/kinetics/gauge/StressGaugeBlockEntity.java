@@ -1,0 +1,103 @@
+package com.simibubi.create.content.kinetics.gauge;
+
+import java.util.List;
+
+import com.simibubi.create.content.kinetics.base.IRotate.StressImpact;
+import com.simibubi.create.foundation.item.TooltipHelper;
+import com.simibubi.create.foundation.utility.CreateLang;
+
+import net.createmod.catnip.lang.LangBuilder;
+import net.createmod.catnip.theme.Color;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+
+public class StressGaugeBlockEntity extends GaugeBlockEntity {
+
+	public StressGaugeBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+		super(type, pos, state);
+	}
+
+	@Override
+	public void updateFromNetwork(float maxStress, float currentStress, int networkSize) {
+		super.updateFromNetwork(maxStress, currentStress, networkSize);
+
+		if (!StressImpact.isEnabled())
+			dialTarget = 0;
+		else if (isOverStressed())
+			dialTarget = 1.125f;
+		else if (maxStress == 0)
+			dialTarget = 0;
+		else
+			dialTarget = currentStress / maxStress;
+
+		if (dialTarget > 0) {
+			if (dialTarget < .5f)
+				color = Color.mixColors(0x00FF00, 0xFFFF00, dialTarget * 2);
+			else if (dialTarget < 1)
+				color = Color.mixColors(0xFFFF00, 0xFF0000, (dialTarget) * 2 - 1);
+			else
+				color = 0xFF0000;
+		}
+
+		sendData();
+		setChanged();
+	}
+
+	@Override
+	public void onSpeedChanged(float prevSpeed) {
+		super.onSpeedChanged(prevSpeed);
+		if (getSpeed() == 0) {
+			dialTarget = 0;
+			setChanged();
+			return;
+		}
+
+		updateFromNetwork(capacity, stress, 1);
+	}
+
+	@Override
+	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
+		if (!StressImpact.isEnabled())
+			return false;
+
+		super.addToGoggleTooltip(tooltip, isPlayerSneaking);
+
+		double capacity = getNetworkCapacity();
+		double stressFraction = getNetworkStress() / (capacity == 0 ? 1 : capacity);
+
+		CreateLang.translate("gui.stressometer.title").style(ChatFormatting.GRAY).forGoggles(tooltip);
+
+		if (getTheoreticalSpeed() == 0)
+			CreateLang.text(TooltipHelper.makeProgressBar(3, 0)).translate("gui.stressometer.no_rotation")
+					.style(ChatFormatting.DARK_GRAY).forGoggles(tooltip);
+		else {
+			StressImpact.getFormattedStressText(stressFraction).forGoggles(tooltip);
+			CreateLang.translate("gui.stressometer.capacity").style(ChatFormatting.GRAY).forGoggles(tooltip);
+
+			double remainingCapacity = capacity - getNetworkStress();
+
+			LangBuilder su = CreateLang.translate("generic.unit.stress");
+			LangBuilder stressTip = CreateLang.number(remainingCapacity).add(su)
+					.style(StressImpact.of(stressFraction).getRelativeColor());
+
+			if (remainingCapacity != capacity)
+				stressTip.text(ChatFormatting.GRAY, " / ")
+						.add(CreateLang.number(capacity).add(su).style(ChatFormatting.DARK_GRAY));
+
+			stressTip.forGoggles(tooltip, 1);
+		}
+
+		return true;
+	}
+
+	public float getNetworkStress() {
+		return stress;
+	}
+
+	public float getNetworkCapacity() {
+		return capacity;
+	}
+}

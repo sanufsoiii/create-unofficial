@@ -91,6 +91,16 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 		return IRotate.convertToAngular(speed);
 	}
 
+	public boolean isOverStressed() {
+		return overStressed;
+	}
+
+	public void updateFromNetwork(float maxStress, float currentStress, int networkSize) {
+		this.capacity = maxStress;
+		this.stress = currentStress;
+		this.overStressed = capacity < stress;
+	}
+
 	public void onSpeedChanged(float previousSpeed) {
 	}
 }

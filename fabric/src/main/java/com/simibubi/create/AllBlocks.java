@@ -43,6 +43,8 @@ import com.simibubi.create.content.kinetics.crusher.CrushingWheelControllerBlock
 import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
 import com.simibubi.create.content.kinetics.press.MechanicalPressBlock;
 import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlock;
+import com.simibubi.create.content.kinetics.gauge.GaugeBlock;
+import com.simibubi.create.content.kinetics.clock.CuckooClockBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.PushReaction;
 import net.createmod.catnip.data.Couple;
@@ -369,6 +371,40 @@ public class AllBlocks {
 			.properties(p -> p.noOcclusion().mapColor(MapColor.PODZOL))
 			.transform(TagGen.axeOrPickaxe())
 			.transform(CStress.setImpact(4.0))
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<GaugeBlock> SPEEDOMETER = REGISTRATE.block("speedometer", GaugeBlock::speed)
+		.initialProperties(SharedProperties::wooden)
+		.properties(p -> p.mapColor(MapColor.PODZOL))
+		.transform(TagGen.axeOrPickaxe())
+		.transform(CStress.setNoImpact())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<GaugeBlock> STRESSOMETER = REGISTRATE.block("stressometer", GaugeBlock::stress)
+		.initialProperties(SharedProperties::wooden)
+		.properties(p -> p.mapColor(MapColor.PODZOL))
+		.transform(TagGen.axeOrPickaxe())
+		.transform(CStress.setNoImpact())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<CuckooClockBlock> CUCKOO_CLOCK =
+		REGISTRATE.block("cuckoo_clock", CuckooClockBlock::regular)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(1.0))
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<CuckooClockBlock> MYSTERIOUS_CUCKOO_CLOCK =
+		REGISTRATE.block("mysterious_cuckoo_clock", CuckooClockBlock::mysterious)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(1.0))
 			.simpleItem()
 			.register();
 

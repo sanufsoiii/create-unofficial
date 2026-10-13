@@ -99,6 +99,21 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.MECHANICAL_MIXER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.gauge.SpeedGaugeBlockEntity> SPEEDOMETER = REGISTRATE
+		.blockEntity("speedometer", com.simibubi.create.content.kinetics.gauge.SpeedGaugeBlockEntity::new)
+		.validBlocks(AllBlocks.SPEEDOMETER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.gauge.StressGaugeBlockEntity> STRESSOMETER = REGISTRATE
+		.blockEntity("stressometer", com.simibubi.create.content.kinetics.gauge.StressGaugeBlockEntity::new)
+		.validBlocks(AllBlocks.STRESSOMETER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.clock.CuckooClockBlockEntity> CUCKOO_CLOCK = REGISTRATE
+		.blockEntity("cuckoo_clock", com.simibubi.create.content.kinetics.clock.CuckooClockBlockEntity::new)
+		.validBlocks(AllBlocks.CUCKOO_CLOCK, AllBlocks.MYSTERIOUS_CUCKOO_CLOCK)
+		.register();
+
 	public static void register() {
 	}
 }
