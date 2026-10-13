@@ -28,6 +28,8 @@ import com.simibubi.create.content.kinetics.transmission.GearshiftBlock;
 import com.simibubi.create.AllTags.AllBlockTags;
 import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.content.kinetics.crank.HandCrankBlock;
+import com.simibubi.create.content.kinetics.drill.DrillBlock;
+import com.simibubi.create.content.kinetics.saw.SawBlock;
 import com.simibubi.create.content.kinetics.waterwheel.LargeWaterWheelBlock;
 import com.simibubi.create.content.kinetics.waterwheel.LargeWaterWheelBlockItem;
 import com.simibubi.create.content.kinetics.waterwheel.WaterWheelBlock;
@@ -298,6 +300,22 @@ public class AllBlocks {
 		.transform(CStress.setCapacity(8.0))
 		.onRegister(BlockStressValues.setGeneratorSpeed(32))
 		.tag(AllBlockTags.BRITTLE.tag)
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<DrillBlock> MECHANICAL_DRILL = REGISTRATE.block("mechanical_drill", DrillBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.mapColor(MapColor.PODZOL))
+		.transform(TagGen.axeOrPickaxe())
+		.transform(CStress.setImpact(4.0))
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<SawBlock> MECHANICAL_SAW = REGISTRATE.block("mechanical_saw", SawBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.mapColor(MapColor.PODZOL))
+		.transform(TagGen.axeOrPickaxe())
+		.transform(CStress.setImpact(4.0))
 		.simpleItem()
 		.register();
 

@@ -64,6 +64,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.HAND_CRANK)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.drill.DrillBlockEntity> DRILL = REGISTRATE
+		.blockEntity("drill", com.simibubi.create.content.kinetics.drill.DrillBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_DRILL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.saw.SawBlockEntity> SAW = REGISTRATE
+		.blockEntity("saw", com.simibubi.create.content.kinetics.saw.SawBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_SAW)
+		.register();
+
 	public static void register() {
 	}
 }

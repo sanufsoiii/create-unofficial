@@ -90,4 +90,7 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 	public static float convertToAngular(float speed) {
 		return IRotate.convertToAngular(speed);
 	}
+
+	public void onSpeedChanged(float previousSpeed) {
+	}
 }
