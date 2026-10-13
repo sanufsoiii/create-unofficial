@@ -45,6 +45,7 @@ import com.simibubi.create.content.kinetics.press.MechanicalPressBlock;
 import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlock;
 import com.simibubi.create.content.kinetics.gauge.GaugeBlock;
 import com.simibubi.create.content.kinetics.clock.CuckooClockBlock;
+import com.simibubi.create.content.kinetics.turntable.TurntableBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.PushReaction;
 import net.createmod.catnip.data.Couple;
@@ -407,6 +408,14 @@ public class AllBlocks {
 			.transform(CStress.setImpact(1.0))
 			.simpleItem()
 			.register();
+
+	public static final BlockEntry<TurntableBlock> TURNTABLE = REGISTRATE.block("turntable", TurntableBlock::new)
+		.initialProperties(SharedProperties::wooden)
+		.properties(p -> p.mapColor(MapColor.PODZOL))
+		.transform(TagGen.axeOrPickaxe())
+		.transform(CStress.setImpact(4.0))
+		.simpleItem()
+		.register();
 
 	public static void register() {
 	}

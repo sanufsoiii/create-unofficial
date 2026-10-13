@@ -114,6 +114,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.CUCKOO_CLOCK, AllBlocks.MYSTERIOUS_CUCKOO_CLOCK)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.turntable.TurntableBlockEntity> TURNTABLE = REGISTRATE
+		.blockEntity("turntable", com.simibubi.create.content.kinetics.turntable.TurntableBlockEntity::new)
+		.validBlocks(AllBlocks.TURNTABLE)
+		.register();
+
 	public static void register() {
 	}
 }
