@@ -15,7 +15,13 @@ public class SmartFluidTankHooksImpl {
 	}
 
 	public static Object createHandler(SmartFluidTankBehaviour behaviour, SmartFluidTankBehaviour.TankSegment[] tanks, boolean enforceVariety) {
-		return null;
+		java.util.List<net.fabricmc.fabric.api.transfer.v1.storage.Storage<FluidVariant>> storages = new java.util.ArrayList<>();
+		for (SmartFluidTankBehaviour.TankSegment segment : tanks) {
+			if (segment instanceof FabricTankSegment fabricSegment) {
+				storages.add(fabricSegment.storage);
+			}
+		}
+		return new net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage<>(storages);
 	}
 
 	public static void invalidateCapabilities(SmartBlockEntity blockEntity) {

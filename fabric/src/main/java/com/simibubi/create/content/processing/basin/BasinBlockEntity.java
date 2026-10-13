@@ -1,0 +1,715 @@
+package com.simibubi.create.content.processing.basin;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.jetbrains.annotations.Nullable;
+
+import com.google.common.collect.ImmutableList;
+import com.simibubi.create.AllTags;
+import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehaviour;
+import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlockEntity;
+import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
+import com.simibubi.create.content.processing.burner.BlazeBurnerBlock.HeatLevel;
+import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour.TankSegment;
+import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
+import com.simibubi.create.foundation.fluid.CombinedTankWrapper;
+import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.item.SmartInventory;
+import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.CreateLang;
+
+import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib.util.StorageProvider;
+import it.unimi.dsi.fastutil.Pair;
+import net.createmod.catnip.animation.LerpedFloat;
+import net.createmod.catnip.animation.LerpedFloat.Chaser;
+import net.createmod.catnip.data.Couple;
+import net.createmod.catnip.data.IntAttached;
+import net.createmod.catnip.data.Iterate;
+import net.createmod.catnip.lang.LangBuilder;
+import net.createmod.catnip.math.VecHelper;
+import net.createmod.catnip.nbt.NBTHelper;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.Clearable;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+
+public class BasinBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation, SidedStorageBlockEntity, Clearable {
+
+	private boolean needsUpdate;
+	private boolean areFluidsMoving;
+	LerpedFloat ingredientRotationSpeed;
+	LerpedFloat ingredientRotation;
+
+	public BasinInventory inputInventory;
+	public SmartFluidTankBehaviour inputTank;
+	protected SmartInventory outputInventory;
+	protected SmartFluidTankBehaviour outputTank;
+	private FilteringBehaviour filtering;
+	private boolean contentsChanged;
+
+	private Couple<SmartInventory> invs;
+	private Couple<SmartFluidTankBehaviour> tanks;
+
+	protected Storage<ItemVariant> itemCapability;
+	protected Storage<FluidVariant> fluidCapability;
+
+	List<Direction> disabledSpoutputs;
+	Direction preferredSpoutput;
+	protected List<ItemStack> spoutputBuffer;
+	protected List<FluidStack> spoutputFluidBuffer;
+	int recipeBackupCheck;
+
+	public static final int OUTPUT_ANIMATION_TIME = 10;
+	List<IntAttached<ItemStack>> visualizedOutputItems;
+	List<IntAttached<FluidStack>> visualizedOutputFluids;
+
+	private final Map<Direction, Pair<StorageProvider<ItemVariant>, StorageProvider<FluidVariant>>> spoutputOutputs = new HashMap<>();
+
+	SnapshotParticipant<Data> snapshotParticipant = new SnapshotParticipant<>() {
+		@Override
+		protected Data createSnapshot() {
+			return new Data(new ArrayList<>(spoutputBuffer), new ArrayList<>(spoutputFluidBuffer));
+		}
+
+		@Override
+		protected void readSnapshot(Data snapshot) {
+			spoutputBuffer = snapshot.spoutputBuffer;
+			spoutputFluidBuffer = snapshot.spoutputFluidBuffer;
+		}
+	};
+
+	record Data(List<ItemStack> spoutputBuffer, List<FluidStack> spoutputFluidBuffer) {
+	}
+
+	public BasinBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+		super(type, pos, state);
+		inputInventory = new BasinInventory(9, this);
+		inputInventory.whenContentsChanged(() -> contentsChanged = true);
+		outputInventory = new BasinInventory(9, this);
+		outputInventory.forbidInsertion();
+		outputInventory.withMaxStackSize(64);
+		areFluidsMoving = false;
+		itemCapability = new CombinedStorage<>(List.of(inputInventory, outputInventory));
+		contentsChanged = true;
+		ingredientRotation = LerpedFloat.angular().startWithValue(0);
+		ingredientRotationSpeed = LerpedFloat.linear().startWithValue(0);
+
+		invs = Couple.create(inputInventory, outputInventory);
+		tanks = Couple.create(inputTank, outputTank);
+		visualizedOutputItems = Collections.synchronizedList(new ArrayList<>());
+		visualizedOutputFluids = Collections.synchronizedList(new ArrayList<>());
+		disabledSpoutputs = new ArrayList<>();
+		preferredSpoutput = null;
+		spoutputBuffer = new ArrayList<>();
+		spoutputFluidBuffer = new ArrayList<>();
+		recipeBackupCheck = 20;
+	}
+
+	@Override
+	public void setLevel(Level level) {
+		super.setLevel(level);
+		spoutputOutputs.clear();
+		for (Direction direction : Iterate.horizontalDirections) {
+			BlockPos pos = getBlockPos().below().relative(direction);
+			StorageProvider<ItemVariant> items = StorageProvider.createForItems(level, pos);
+			StorageProvider<FluidVariant> fluids = StorageProvider.createForFluids(level, pos);
+			spoutputOutputs.put(direction, Pair.of(items, fluids));
+		}
+	}
+
+	public Storage<ItemVariant> getItemSpoutputOutput(Direction facing) {
+		Pair<StorageProvider<ItemVariant>, StorageProvider<FluidVariant>> providers = spoutputOutputs.get(facing);
+		return providers == null ? null : providers.first().get(facing.getOpposite());
+	}
+
+	public Storage<FluidVariant> getFluidSpoutputOutput(Direction facing) {
+		Pair<StorageProvider<ItemVariant>, StorageProvider<FluidVariant>> providers = spoutputOutputs.get(facing);
+		return providers == null ? null : providers.second().get(facing.getOpposite());
+	}
+
+	@Override
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+		behaviours.add(new DirectBeltInputBehaviour(this));
+		filtering = new FilteringBehaviour(this, new BasinValueBox()).withCallback(newFilter -> contentsChanged = true)
+			.forRecipes();
+		behaviours.add(filtering);
+
+		inputTank = new SmartFluidTankBehaviour(SmartFluidTankBehaviour.INPUT, this, 2, 1000, true)
+			.whenFluidUpdates(() -> contentsChanged = true);
+		outputTank = new SmartFluidTankBehaviour(SmartFluidTankBehaviour.OUTPUT, this, 2, 1000, true)
+			.whenFluidUpdates(() -> contentsChanged = true)
+			.forbidInsertion();
+		behaviours.add(inputTank);
+		behaviours.add(outputTank);
+
+		fluidCapability = new CombinedTankWrapper(inputTank.getCapability(), outputTank.getCapability());
+		tanks = Couple.create(inputTank, outputTank);
+	}
+
+	@Override
+	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+		super.read(compound, registries, clientPacket);
+		inputInventory.deserializeNBT(compound.getCompound("InputItems"));
+		outputInventory.deserializeNBT(compound.getCompound("OutputItems"));
+
+		preferredSpoutput = null;
+		if (compound.contains("PreferredSpoutput"))
+			preferredSpoutput = NBTHelper.readEnum(compound, "PreferredSpoutput", Direction.class);
+		disabledSpoutputs.clear();
+		ListTag disabledList = compound.getList("DisabledSpoutput", Tag.TAG_STRING);
+		disabledList.forEach(d -> disabledSpoutputs.add(Direction.valueOf(((StringTag) d).getAsString())));
+		spoutputBuffer = NBTHelper.readItemList(compound.getList("Overflow", Tag.TAG_COMPOUND), registries);
+		spoutputFluidBuffer = NBTHelper.readCompoundList(compound.getList("FluidOverflow", Tag.TAG_COMPOUND),
+			tag -> FluidStack.parseOptional(registries, tag));
+
+		if (!clientPacket)
+			return;
+
+		NBTHelper.iterateCompoundList(compound.getList("VisualizedItems", Tag.TAG_COMPOUND),
+			c -> visualizedOutputItems.add(IntAttached.with(OUTPUT_ANIMATION_TIME, ItemStack.parseOptional(registries, c))));
+		NBTHelper.iterateCompoundList(compound.getList("VisualizedFluids", Tag.TAG_COMPOUND),
+			c -> visualizedOutputFluids.add(IntAttached.with(OUTPUT_ANIMATION_TIME, FluidStack.parseOptional(registries, c))));
+	}
+
+	@Override
+	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+		super.write(compound, registries, clientPacket);
+		compound.put("InputItems", inputInventory.serializeNBT());
+		compound.put("OutputItems", outputInventory.serializeNBT());
+
+		if (preferredSpoutput != null)
+			NBTHelper.writeEnum(compound, "PreferredSpoutput", preferredSpoutput);
+		ListTag disabledList = new ListTag();
+		disabledSpoutputs.forEach(d -> disabledList.add(StringTag.valueOf(d.name())));
+		compound.put("DisabledSpoutput", disabledList);
+
+		compound.put("Overflow", NBTHelper.writeItemList(spoutputBuffer, registries));
+		compound.put("FluidOverflow",
+			NBTHelper.writeCompoundList(spoutputFluidBuffer, fs -> (CompoundTag) fs.saveOptional(registries)));
+
+		if (!clientPacket)
+			return;
+
+		compound.put("VisualizedItems",
+			NBTHelper.writeCompoundList(visualizedOutputItems, ia -> (CompoundTag) ia.getValue().saveOptional(registries)));
+		compound.put("VisualizedFluids",
+			NBTHelper.writeCompoundList(visualizedOutputFluids, ia -> (CompoundTag) ia.getValue().saveOptional(registries)));
+		visualizedOutputItems.clear();
+		visualizedOutputFluids.clear();
+	}
+
+	@Override
+	public void destroy() {
+		super.destroy();
+		ItemHelper.dropContents(level, worldPosition, inputInventory);
+		ItemHelper.dropContents(level, worldPosition, outputInventory);
+		spoutputBuffer.forEach(is -> Block.popResource(level, worldPosition, is));
+	}
+
+	@Override
+	public void clearContent() {
+		spoutputBuffer.clear();
+		inputInventory.clear();
+		outputInventory.clear();
+		filtering.setFilter(ItemStack.EMPTY);
+	}
+
+	public void onEmptied() {
+		getOperator().ifPresent(be -> be.basinRemoved = true);
+	}
+
+	@Override
+	public void lazyTick() {
+		super.lazyTick();
+
+		if (!level.isClientSide) {
+			updateSpoutput();
+			if (recipeBackupCheck-- > 0)
+				return;
+			recipeBackupCheck = 20;
+			if (isEmpty())
+				return;
+			notifyChangeOfContents();
+			return;
+		}
+
+		BlockEntity blockEntity = level.getBlockEntity(worldPosition.above(2));
+		if (!(blockEntity instanceof MechanicalMixerBlockEntity)) {
+			setAreFluidsMoving(false);
+			return;
+		}
+
+		MechanicalMixerBlockEntity mixer = (MechanicalMixerBlockEntity) blockEntity;
+		setAreFluidsMoving(mixer.running && mixer.runningTicks <= 20);
+	}
+
+	public boolean isEmpty() {
+		return inputInventory.empty() && outputInventory.empty() && inputTank.isEmpty() && outputTank.isEmpty();
+	}
+
+	public void onWrenched(Direction face) {
+		BlockState blockState = getBlockState();
+		Direction currentFacing = blockState.getValue(BasinBlock.FACING);
+
+		disabledSpoutputs.remove(face);
+		if (currentFacing == face) {
+			if (preferredSpoutput == face)
+				preferredSpoutput = null;
+			disabledSpoutputs.add(face);
+		} else
+			preferredSpoutput = face;
+
+		updateSpoutput();
+	}
+
+	private void updateSpoutput() {
+		BlockState blockState = getBlockState();
+		Direction currentFacing = blockState.getValue(BasinBlock.FACING);
+		Direction newFacing = Direction.DOWN;
+		for (Direction test : Iterate.horizontalDirections) {
+			boolean canOutputTo = BasinBlock.canOutputTo(level, worldPosition, test);
+			if (canOutputTo && !disabledSpoutputs.contains(test))
+				newFacing = test;
+		}
+
+		if (preferredSpoutput != null && BasinBlock.canOutputTo(level, worldPosition, preferredSpoutput)
+			&& preferredSpoutput != Direction.UP)
+			newFacing = preferredSpoutput;
+
+		if (newFacing == currentFacing)
+			return;
+
+		level.setBlockAndUpdate(worldPosition, blockState.setValue(BasinBlock.FACING, newFacing));
+
+		if (newFacing.getAxis().isVertical())
+			return;
+
+		try (Transaction t = TransferUtil.getTransaction()) {
+			for (StorageView<ItemVariant> view : outputInventory.nonEmptyViews()) {
+				ItemVariant variant = view.getResource();
+				ItemStack stack = variant.toStack(ItemHelper.truncateLong(view.getAmount()));
+				if (acceptOutputs(ImmutableList.of(stack), ImmutableList.of(), t)) {
+					view.extract(variant, stack.getCount(), t);
+				}
+			}
+			Storage<FluidVariant> outputTankStorage = outputTank.getCapability();
+			if (outputTankStorage != null) {
+				for (StorageView<FluidVariant> view : outputTankStorage.nonEmptyViews()) {
+					FluidVariant variant = view.getResource();
+					FluidStack stack = new FluidStack(view);
+					if (acceptOutputs(ImmutableList.of(), ImmutableList.of(stack), t)) {
+						view.extract(variant, stack.getAmount(), t);
+					}
+				}
+			}
+			t.commit();
+		}
+
+		notifyChangeOfContents();
+		notifyUpdate();
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		if (needsUpdate) {
+			needsUpdate = false;
+			super.notifyUpdate();
+		}
+		if (level.isClientSide) {
+			tickVisualizedOutputs();
+			ingredientRotationSpeed.tickChaser();
+			ingredientRotation.setValue(ingredientRotation.getValue() + ingredientRotationSpeed.getValue());
+		}
+
+		if ((!spoutputBuffer.isEmpty() || !spoutputFluidBuffer.isEmpty()) && !level.isClientSide)
+			tryClearingSpoutputOverflow();
+		if (!contentsChanged)
+			return;
+
+		contentsChanged = false;
+		sendData();
+
+		for (Direction offset : Iterate.horizontalDirections) {
+			BlockPos toUpdate = worldPosition.above().relative(offset);
+			BlockState stateToUpdate = level.getBlockState(toUpdate);
+			if (stateToUpdate.getBlock() instanceof BasinBlock
+				&& stateToUpdate.getValue(BasinBlock.FACING) == offset.getOpposite()) {
+				BlockEntity be = level.getBlockEntity(toUpdate);
+				if (be instanceof BasinBlockEntity)
+					((BasinBlockEntity) be).contentsChanged = true;
+			}
+		}
+	}
+
+	private void tryClearingSpoutputOverflow() {
+		BlockState blockState = getBlockState();
+		if (!(blockState.getBlock() instanceof BasinBlock))
+			return;
+		Direction direction = blockState.getValue(BasinBlock.FACING);
+		BlockEntity be = level.getBlockEntity(worldPosition.below().relative(direction));
+
+		FilteringBehaviour filter = null;
+		InvManipulationBehaviour inserter = null;
+		if (be != null) {
+			filter = BlockEntityBehaviour.get(level, be.getBlockPos(), FilteringBehaviour.TYPE);
+			inserter = BlockEntityBehaviour.get(level, be.getBlockPos(), InvManipulationBehaviour.TYPE);
+		}
+
+		Storage<ItemVariant> targetInv = getItemSpoutputOutput(direction);
+		if (targetInv == null && inserter != null) targetInv = inserter.getInventory();
+
+		Storage<FluidVariant> targetTank = getFluidSpoutputOutput(direction);
+
+		boolean update = false;
+
+		try (Transaction t = TransferUtil.getTransaction()) {
+			for (Iterator<ItemStack> iterator = spoutputBuffer.iterator(); iterator.hasNext();) {
+				ItemStack itemStack = iterator.next();
+				if (itemStack.isEmpty())
+					continue;
+
+				if (direction == Direction.DOWN) {
+					Block.popResource(level, worldPosition, itemStack);
+					iterator.remove();
+					update = true;
+					continue;
+				}
+
+				if (targetInv == null)
+					break;
+				try (Transaction nested = t.openNested()) {
+					long inserted = targetInv.insert(ItemVariant.of(itemStack), itemStack.getCount(), nested);
+					if (itemStack.getCount() != inserted)
+						continue;
+					if (filter != null && !filter.test(itemStack))
+						continue;
+
+					update = true;
+					iterator.remove();
+					visualizedOutputItems.add(IntAttached.withZero(itemStack));
+					nested.commit();
+				}
+			}
+
+			for (Iterator<FluidStack> iterator = spoutputFluidBuffer.iterator(); iterator.hasNext();) {
+				FluidStack fluidStack = iterator.next();
+
+				if (direction == Direction.DOWN) {
+					iterator.remove();
+					update = true;
+					continue;
+				}
+
+				if (targetTank == null)
+					break;
+
+				try (Transaction nested = t.openNested()) {
+					long fill = targetTank instanceof SmartFluidTankBehaviour.InternalFluidHandler
+							? ((SmartFluidTankBehaviour.InternalFluidHandler) targetTank).forceFill(fluidStack.copy(), nested)
+							: targetTank.insert(fluidStack.getVariant(), fluidStack.getAmount(), nested);
+					if (fill != fluidStack.getAmount())
+						break;
+
+					update = true;
+					iterator.remove();
+					visualizedOutputFluids.add(IntAttached.withZero(fluidStack));
+					nested.commit();
+				}
+			}
+
+			if (update) {
+				notifyChangeOfContents();
+				sendData();
+			}
+			t.commit();
+		}
+	}
+
+	public float getTotalFluidUnits(float partialTicks) {
+		int renderedFluids = 0;
+		float totalUnits = 0;
+
+		for (SmartFluidTankBehaviour behaviour : getTanks()) {
+			if (behaviour == null)
+				continue;
+			for (TankSegment tankSegment : behaviour.getTanks()) {
+				dev.architectury.fluid.FluidStack rendered = tankSegment.getRenderedFluid();
+				if (rendered == null || rendered.isEmpty())
+					continue;
+				float units = tankSegment.getTotalUnits(partialTicks);
+				if (units < 1)
+					continue;
+				totalUnits += units;
+				renderedFluids++;
+			}
+		}
+
+		if (renderedFluids == 0)
+			return 0;
+		if (totalUnits < 1)
+			return 0;
+		return totalUnits;
+	}
+
+	private Optional<BasinOperatingBlockEntity> getOperator() {
+		if (level == null)
+			return Optional.empty();
+		BlockEntity be = level.getBlockEntity(worldPosition.above(2));
+		if (be instanceof BasinOperatingBlockEntity)
+			return Optional.of((BasinOperatingBlockEntity) be);
+		return Optional.empty();
+	}
+
+	public FilteringBehaviour getFilter() {
+		return filtering;
+	}
+
+	public void notifyChangeOfContents() {
+		contentsChanged = true;
+	}
+
+	public SmartInventory getInputInventory() {
+		return inputInventory;
+	}
+
+	public SmartInventory getOutputInventory() {
+		return outputInventory;
+	}
+
+	public boolean canContinueProcessing() {
+		return spoutputBuffer.isEmpty() && spoutputFluidBuffer.isEmpty();
+	}
+
+	public boolean acceptOutputs(List<ItemStack> outputItems, List<FluidStack> outputFluids, TransactionContext ctx) {
+		outputInventory.allowInsertion();
+		outputTank.allowInsertion();
+		boolean acceptOutputsInner = acceptOutputsInner(outputItems, outputFluids, ctx);
+		outputInventory.forbidInsertion();
+		outputTank.forbidInsertion();
+		return acceptOutputsInner;
+	}
+
+	private boolean acceptOutputsInner(List<ItemStack> outputItems, List<FluidStack> outputFluids, TransactionContext ctx) {
+		BlockState blockState = getBlockState();
+		if (!(blockState.getBlock() instanceof BasinBlock))
+			return false;
+
+		Direction direction = blockState.getValue(BasinBlock.FACING);
+		snapshotParticipant.updateSnapshots(ctx);
+		if (direction != Direction.DOWN) {
+			BlockEntity be = level.getBlockEntity(worldPosition.below().relative(direction));
+
+			InvManipulationBehaviour inserter =
+					be == null ? null : BlockEntityBehaviour.get(level, be.getBlockPos(), InvManipulationBehaviour.TYPE);
+			Storage<ItemVariant> targetInv = getItemSpoutputOutput(direction);
+			if (targetInv == null && inserter != null) targetInv = inserter.getInventory();
+			Storage<FluidVariant> targetTank = getFluidSpoutputOutput(direction);
+			boolean externalTankNotPresent = targetTank == null;
+
+			if (!outputItems.isEmpty() && targetInv == null)
+				return false;
+			if (!outputFluids.isEmpty() && externalTankNotPresent) {
+				targetTank = outputTank.getCapability();
+				if (targetTank == null)
+					return false;
+				if (!acceptFluidOutputsIntoBasin(outputFluids, ctx, targetTank))
+					return false;
+			}
+
+			for (ItemStack itemStack : outputItems) {
+				spoutputBuffer.add(itemStack.copy());
+			}
+			if (!externalTankNotPresent)
+				for (FluidStack fluidStack : outputFluids)
+					spoutputFluidBuffer.add(fluidStack.copy());
+			return true;
+		}
+
+		Storage<ItemVariant> targetInv = outputInventory;
+		Storage<FluidVariant> targetTank = outputTank.getCapability();
+
+		if (targetInv == null && !outputItems.isEmpty())
+			return false;
+		if (!acceptItemOutputsIntoBasin(outputItems, ctx, targetInv))
+			return false;
+		if (outputFluids.isEmpty())
+			return true;
+		if (targetTank == null)
+			return false;
+		if (!acceptFluidOutputsIntoBasin(outputFluids, ctx, targetTank))
+			return false;
+
+		return true;
+	}
+
+	private boolean acceptFluidOutputsIntoBasin(List<FluidStack> outputFluids, TransactionContext ctx,
+		Storage<FluidVariant> targetTank) {
+		for (FluidStack fluidStack : outputFluids) {
+			long fill = targetTank instanceof SmartFluidTankBehaviour.InternalFluidHandler
+				? ((SmartFluidTankBehaviour.InternalFluidHandler) targetTank).forceFill(fluidStack.copy(), ctx)
+				: targetTank.insert(fluidStack.getVariant(), fluidStack.getAmount(), ctx);
+			if (fill != fluidStack.getAmount())
+				return false;
+		}
+		return true;
+	}
+
+	private boolean acceptItemOutputsIntoBasin(List<ItemStack> outputItems, TransactionContext ctx, Storage<ItemVariant> targetInv) {
+		try (Transaction t = ctx.openNested()) {
+			for (ItemStack itemStack : outputItems) {
+				long inserted = targetInv.insert(ItemVariant.of(itemStack), itemStack.getCount(), t);
+				if (inserted != itemStack.getCount()) {
+					t.commit();
+					return false;
+				}
+			}
+			t.commit();
+		}
+		return true;
+	}
+
+	public static HeatLevel getHeatLevelOf(BlockState state) {
+		if (state.hasProperty(BlazeBurnerBlock.HEAT_LEVEL))
+			return state.getValue(BlazeBurnerBlock.HEAT_LEVEL);
+		return AllTags.AllBlockTags.PASSIVE_BOILER_HEATERS.matches(state) && BlockHelper.isNotUnheated(state)
+			? HeatLevel.SMOULDERING
+			: HeatLevel.NONE;
+	}
+
+	public Couple<SmartFluidTankBehaviour> getTanks() {
+		return tanks;
+	}
+
+	public Couple<SmartInventory> getInvs() {
+		return invs;
+	}
+
+	private void tickVisualizedOutputs() {
+		visualizedOutputFluids.forEach(IntAttached::decrement);
+		visualizedOutputItems.forEach(IntAttached::decrement);
+		visualizedOutputFluids.removeIf(IntAttached::isOrBelowZero);
+		visualizedOutputItems.removeIf(IntAttached::isOrBelowZero);
+	}
+
+	public boolean areFluidsMoving() {
+		return areFluidsMoving;
+	}
+
+	public boolean setAreFluidsMoving(boolean areFluidsMoving) {
+		this.areFluidsMoving = areFluidsMoving;
+		ingredientRotationSpeed.chase(areFluidsMoving ? 20 : 0, .1f, Chaser.EXP);
+		return areFluidsMoving;
+	}
+
+	@Override
+	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
+		CreateLang.translate("gui.goggles.basin_contents")
+			.forGoggles(tooltip);
+
+		boolean isEmpty = true;
+
+		for (SmartInventory inventory : invs) {
+			for (int i = 0; i < inventory.getSlotCount(); i++) {
+				ItemStack stackInSlot = inventory.getStackInSlot(i);
+				if (stackInSlot.isEmpty())
+					continue;
+				CreateLang.text("")
+					.add(Component.translatable(stackInSlot.getDescriptionId())
+						.withStyle(ChatFormatting.GRAY))
+					.add(CreateLang.text(" x" + stackInSlot.getCount())
+						.style(ChatFormatting.GREEN))
+					.forGoggles(tooltip, 1);
+				isEmpty = false;
+			}
+		}
+
+		LangBuilder mb = CreateLang.translate("generic.unit.millibuckets");
+		for (SmartFluidTankBehaviour behaviour : tanks) {
+			if (behaviour == null)
+				continue;
+			for (TankSegment tank : behaviour.getTanks()) {
+				dev.architectury.fluid.FluidStack fluidStack = tank.getRenderedFluid();
+				if (fluidStack == null || fluidStack.isEmpty())
+					continue;
+				CreateLang.text("")
+					.add(CreateLang.fluidName(fluidStack)
+						.add(CreateLang.text(" "))
+						.style(ChatFormatting.GRAY)
+						.add(CreateLang.number(fluidStack.getAmount())
+							.add(mb)
+							.style(ChatFormatting.BLUE)))
+					.forGoggles(tooltip, 1);
+				isEmpty = false;
+			}
+		}
+
+		if (isEmpty)
+			tooltip.remove(0);
+
+		return true;
+	}
+
+	@Nullable
+	@Override
+	public Storage<FluidVariant> getFluidStorage(@Nullable Direction face) {
+		return fluidCapability;
+	}
+
+	@Nullable
+	@Override
+	public Storage<ItemVariant> getItemStorage(@Nullable Direction face) {
+		return itemCapability;
+	}
+
+	static class BasinValueBox extends ValueBoxTransform.Sided {
+
+		@Override
+		protected Vec3 getSouthLocation() {
+			return VecHelper.voxelSpace(8, 12, 16.05);
+		}
+
+		@Override
+		protected boolean isSideActive(BlockState state, Direction direction) {
+			return direction.getAxis().isHorizontal();
+		}
+	}
+}

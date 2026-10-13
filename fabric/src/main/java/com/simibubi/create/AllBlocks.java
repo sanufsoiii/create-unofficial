@@ -44,6 +44,7 @@ import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
 import com.simibubi.create.content.kinetics.press.MechanicalPressBlock;
 import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlock;
 import com.simibubi.create.content.logistics.depot.DepotBlock;
+import com.simibubi.create.content.processing.basin.BasinBlock;
 import com.simibubi.create.content.kinetics.gauge.GaugeBlock;
 import com.simibubi.create.content.kinetics.clock.CuckooClockBlock;
 import com.simibubi.create.content.kinetics.turntable.TurntableBlock;
@@ -448,6 +449,14 @@ public class AllBlocks {
 		.initialProperties(SharedProperties::stone)
 		.properties(p -> p.mapColor(MapColor.COLOR_GRAY))
 		.transform(TagGen.axeOrPickaxe())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<BasinBlock> BASIN = REGISTRATE.block("basin", BasinBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.mapColor(MapColor.COLOR_GRAY)
+			.sound(SoundType.NETHERITE_BLOCK))
+		.transform(TagGen.pickaxeOnly())
 		.simpleItem()
 		.register();
 

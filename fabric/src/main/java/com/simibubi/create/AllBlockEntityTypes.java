@@ -134,6 +134,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.DEPOT)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.processing.basin.BasinBlockEntity> BASIN = REGISTRATE
+		.blockEntity("basin", com.simibubi.create.content.processing.basin.BasinBlockEntity::new)
+		.validBlocks(AllBlocks.BASIN)
+		.register();
+
 	public static void register() {
 	}
 }

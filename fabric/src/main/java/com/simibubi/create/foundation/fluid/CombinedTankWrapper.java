@@ -1,0 +1,56 @@
+package com.simibubi.create.foundation.fluid;
+
+import java.util.List;
+
+import net.createmod.catnip.data.Iterate;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
+
+public class CombinedTankWrapper extends CombinedStorage<FluidVariant, Storage<FluidVariant>> {
+	protected boolean enforceVariety;
+
+	@SafeVarargs
+	public CombinedTankWrapper(Storage<FluidVariant>... fluidHandlers) {
+		super(List.of(fluidHandlers));
+	}
+
+	public CombinedTankWrapper enforceVariety() {
+		enforceVariety = true;
+		return this;
+	}
+
+	@Override
+	public long insert(FluidVariant resource, long maxAmount, TransactionContext transaction) {
+		if (resource.isBlank())
+			return 0;
+
+		long filled = 0;
+
+		boolean fittingHandlerFound = false;
+		Outer: for (boolean searchPass : Iterate.trueAndFalse) {
+			for (Storage<FluidVariant> iFluidHandler : parts) {
+				try (Transaction nested = transaction.openNested()) {
+					if (searchPass && iFluidHandler.extract(resource, 1, nested) == 1) {
+						fittingHandlerFound = true;
+					}
+				}
+				if (searchPass && !fittingHandlerFound)
+					continue;
+
+				long filledIntoCurrent = iFluidHandler.insert(resource, maxAmount, transaction);
+				maxAmount -= filledIntoCurrent;
+				filled += filledIntoCurrent;
+
+				if (maxAmount == 0)
+					break Outer;
+				if (fittingHandlerFound && (enforceVariety || filledIntoCurrent != 0))
+					break Outer;
+			}
+		}
+
+		return filled;
+	}
+}

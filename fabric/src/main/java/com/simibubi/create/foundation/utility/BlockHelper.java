@@ -22,8 +22,22 @@ import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
+import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
+import com.simibubi.create.content.processing.burner.BlazeBurnerBlock.HeatLevel;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.CampfireBlock;
 
 public class BlockHelper extends CommonBlockHelper {
+
+	public static boolean isNotUnheated(BlockState state) {
+		if (state.is(BlockTags.CAMPFIRES) && state.hasProperty(CampfireBlock.LIT)) {
+			return state.getValue(CampfireBlock.LIT);
+		}
+		if (state.hasProperty(BlazeBurnerBlock.HEAT_LEVEL)) {
+			return state.getValue(BlazeBurnerBlock.HEAT_LEVEL) != HeatLevel.NONE;
+		}
+		return true;
+	}
 
 	public static void destroyBlock(Level world, BlockPos pos, float effectChance) {
 		destroyBlock(world, pos, effectChance, stack -> Block.popResource(world, pos, stack));
