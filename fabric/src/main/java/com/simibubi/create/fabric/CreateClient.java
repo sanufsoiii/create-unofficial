@@ -7,5 +7,6 @@ public class CreateClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		Create.LOGGER.info("Create client initializing on Fabric!");
+		com.simibubi.create.AllParticleTypes.registerFactories();
 	}
 }

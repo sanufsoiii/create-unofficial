@@ -29,6 +29,8 @@ public class CreateFabric implements ModInitializer {
 		AllBlocks.register();
 		AllItems.register();
 		com.simibubi.create.AllBlockEntityTypes.register();
+		com.simibubi.create.AllParticleTypes.register();
+		com.simibubi.create.content.kinetics.fan.processing.AllFanProcessingTypes.init();
 		REGISTRATE.register();
 		com.simibubi.create.infrastructure.config.AllConfigs.register();
 

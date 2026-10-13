@@ -17,6 +17,8 @@ import com.simibubi.create.foundation.blockEntity.behaviour.inventory.VersionedI
 import com.simibubi.create.foundation.item.ItemHelper;
 import com.simibubi.create.foundation.item.ItemHelper.ExtractionCountMode;
 import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.Create;
+import com.simibubi.create.foundation.particle.AirParticleData;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
@@ -280,15 +282,44 @@ public class ChuteBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 	private void spawnParticles(float itemMotion) {
 		if (level == null)
 			return;
-		BlockState state = getBlockState();
-		if (!AbstractChuteBlock.isChute(state))
+		BlockState blockState = getBlockState();
+		boolean up = itemMotion > 0;
+		float absMotion = up ? itemMotion : -itemMotion;
+		if (blockState == null || !AbstractChuteBlock.isChute(blockState))
 			return;
-		if (level.random.nextInt(4) != 0)
+		if (push == 0 && pull == 0)
 			return;
-		Direction direction = AbstractChuteBlock.getChuteFacing(state);
-		Vec3 center = VecHelper.getCenterOf(worldPosition);
-		Vec3 offset = VecHelper.offsetRandomly(Vec3.ZERO, level.random, .3f);
-		level.addParticle(ParticleTypes.POOF, center.x + offset.x, center.y + offset.y, center.z + offset.z, 0, itemMotion * 0.5, 0);
+
+		if (up && AbstractChuteBlock.isOpenChute(blockState)
+			&& BlockHelper.noCollisionInSpace(level, worldPosition.above()))
+			spawnAirFlow(1, 2, absMotion, .5f);
+
+		if (AbstractChuteBlock.getChuteFacing(blockState) != Direction.DOWN)
+			return;
+
+		if (AbstractChuteBlock.isTransparentChute(blockState))
+			spawnAirFlow(up ? 0 : 1, up ? 1 : 0, absMotion, 1);
+
+		if (!up && BlockHelper.noCollisionInSpace(level, worldPosition.below()))
+			spawnAirFlow(0, -1, absMotion, .5f);
+
+		if (up && canActivate() && bottomPullDistance > 0) {
+			spawnAirFlow(-bottomPullDistance, 0, absMotion, 2);
+			spawnAirFlow(-bottomPullDistance, 0, absMotion, 2);
+		}
+	}
+
+	private void spawnAirFlow(float verticalStart, float verticalEnd, float motion, float drag) {
+		if (level == null)
+			return;
+		AirParticleData airParticleData = new AirParticleData(drag, motion);
+		Vec3 origin = Vec3.atLowerCornerOf(worldPosition);
+		float xOff = Create.RANDOM.nextFloat() * .5f + .25f;
+		float zOff = Create.RANDOM.nextFloat() * .5f + .25f;
+		Vec3 v = origin.add(xOff, verticalStart, zOff);
+		Vec3 d = origin.add(xOff, verticalEnd, zOff).subtract(v);
+		if (Create.RANDOM.nextFloat() < 2 * motion)
+			level.addAlwaysVisibleParticle(airParticleData, v.x, v.y, v.z, d.x, d.y, d.z);
 	}
 
 	private void handleInputFromAbove() {
@@ -469,6 +500,10 @@ public class ChuteBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 	}
 
 	protected boolean canOutputItems() {
+		return true;
+	}
+
+	protected boolean canActivate() {
 		return true;
 	}
 

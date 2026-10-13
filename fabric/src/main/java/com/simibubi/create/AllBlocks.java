@@ -47,6 +47,7 @@ import com.simibubi.create.content.logistics.depot.DepotBlock;
 import com.simibubi.create.content.processing.basin.BasinBlock;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlockItem;
+import com.simibubi.create.content.kinetics.fan.EncasedFanBlock;
 import com.simibubi.create.content.logistics.chute.ChuteBlock;
 import com.simibubi.create.content.logistics.chute.ChuteItem;
 import com.simibubi.create.content.logistics.chute.SmartChuteBlock;
@@ -514,6 +515,14 @@ public class AllBlocks {
 			.isSuffocating((state, level, pos) -> false)
 			.isRedstoneConductor((state, level, pos) -> false))
 		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<EncasedFanBlock> ENCASED_FAN = REGISTRATE.block("encased_fan", EncasedFanBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.mapColor(MapColor.PODZOL))
+		.transform(TagGen.axeOrPickaxe())
+		.transform(CStress.setImpact(2.0))
 		.simpleItem()
 		.register();
 

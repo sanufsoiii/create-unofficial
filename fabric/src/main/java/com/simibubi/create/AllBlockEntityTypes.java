@@ -154,6 +154,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.SMART_CHUTE)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.fan.EncasedFanBlockEntity> ENCASED_FAN = REGISTRATE
+		.blockEntity("encased_fan", com.simibubi.create.content.kinetics.fan.EncasedFanBlockEntity::new)
+		.validBlocks(AllBlocks.ENCASED_FAN)
+		.register();
+
 	public static void register() {
 	}
 }
