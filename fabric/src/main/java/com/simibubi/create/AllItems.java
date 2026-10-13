@@ -68,6 +68,10 @@ public class AllItems {
 
 	public static final ItemEntry<Item> PRECISION_MECHANISM = ingredient("precision_mechanism");
 
+	public static final ItemEntry<com.simibubi.create.content.kinetics.gearbox.VerticalGearboxItem> VERTICAL_GEARBOX =
+		REGISTRATE.item("vertical_gearbox", com.simibubi.create.content.kinetics.gearbox.VerticalGearboxItem::new)
+			.register();
+
 	public static final ItemEntry<Item> BLAZE_CAKE_BASE = REGISTRATE.item("blaze_cake_base", Item::new)
 		.tag(AllItemTags.UPRIGHT_ON_BELT.tag)
 		.register();

@@ -12,13 +12,19 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
 
+import com.simibubi.create.content.decoration.encasing.EncasedCTBehaviour;
 import com.simibubi.create.content.decoration.encasing.EncasingRegistry;
+import com.simibubi.create.content.kinetics.chainDrive.ChainDriveBlock;
+import com.simibubi.create.content.kinetics.chainDrive.ChainGearshiftBlock;
+import com.simibubi.create.content.kinetics.gearbox.GearboxBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.CogWheelBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.CogwheelBlockItem;
 import com.simibubi.create.content.kinetics.simpleRelays.ShaftBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.encased.EncasedCogCTBehaviour;
 import com.simibubi.create.content.kinetics.simpleRelays.encased.EncasedCogwheelBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.encased.EncasedShaftBlock;
+import com.simibubi.create.content.kinetics.transmission.ClutchBlock;
+import com.simibubi.create.content.kinetics.transmission.GearshiftBlock;
 import com.simibubi.create.foundation.data.BuilderTransformers;
 import com.simibubi.create.foundation.data.SharedProperties;
 import com.simibubi.create.foundation.data.TagGen;
@@ -204,6 +210,51 @@ public class AllBlocks {
 		.transform(EncasingRegistry.addVariantTo(AllBlocks.LARGE_COGWHEEL))
 		.transform(TagGen.axeOrPickaxe())
 		.register();
+
+	public static final BlockEntry<GearboxBlock> GEARBOX = REGISTRATE.block("gearbox", GearboxBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.noOcclusion().mapColor(MapColor.PODZOL))
+		.transform(CStress.setNoImpact())
+		.transform(TagGen.axeOrPickaxe())
+		.onRegister(CreateRegistrate.connectedTextures(() -> new EncasedCTBehaviour(AllSpriteShifts.ANDESITE_CASING)))
+		.onRegister(CreateRegistrate.casingConnectivity((block, cc) -> cc.make(block, AllSpriteShifts.ANDESITE_CASING,
+			(s, f) -> f.getAxis() == s.getValue(GearboxBlock.AXIS))))
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<ClutchBlock> CLUTCH = REGISTRATE.block("clutch", ClutchBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.noOcclusion().mapColor(MapColor.PODZOL))
+		.transform(CStress.setNoImpact())
+		.transform(TagGen.axeOrPickaxe())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<GearshiftBlock> GEARSHIFT = REGISTRATE.block("gearshift", GearshiftBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.noOcclusion().mapColor(MapColor.PODZOL))
+		.transform(CStress.setNoImpact())
+		.transform(TagGen.axeOrPickaxe())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<ChainDriveBlock> ENCASED_CHAIN_DRIVE =
+		REGISTRATE.block("encased_chain_drive", ChainDriveBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.PODZOL))
+			.transform(CStress.setNoImpact())
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<ChainGearshiftBlock> ADJUSTABLE_CHAIN_GEARSHIFT =
+		REGISTRATE.block("adjustable_chain_gearshift", ChainGearshiftBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.NETHER))
+			.transform(CStress.setNoImpact())
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
 
 	public static void register() {
 	}

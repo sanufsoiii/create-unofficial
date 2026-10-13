@@ -68,4 +68,18 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 	public int getRotationAngleOffset(Axis axis) {
 		return 0;
 	}
+
+	public boolean hasSource() {
+		return source != null;
+	}
+
+	public void removeSource() {
+		source = null;
+	}
+
+	public void detachKinetics() {
+	}
+
+	public void attachKinetics() {
+	}
 }
