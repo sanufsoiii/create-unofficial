@@ -170,6 +170,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.MECHANICAL_ARM)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.deployer.DeployerBlockEntity> DEPLOYER = REGISTRATE
+		.blockEntity("deployer", com.simibubi.create.content.kinetics.deployer.DeployerBlockEntity::new)
+		.validBlocks(AllBlocks.DEPLOYER)
+		.register();
+
 	public static void register() {
 	}
 }

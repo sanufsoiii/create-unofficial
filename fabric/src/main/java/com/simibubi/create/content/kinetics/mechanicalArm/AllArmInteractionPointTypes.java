@@ -13,6 +13,7 @@ import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.BeltHelper;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour.TransportedResult;
+import com.simibubi.create.content.kinetics.deployer.DeployerBlock;
 import com.simibubi.create.content.kinetics.saw.SawBlock;
 import com.simibubi.create.content.logistics.chute.AbstractChuteBlock;
 import com.simibubi.create.content.logistics.funnel.AbstractFunnelBlock;
@@ -57,6 +58,7 @@ public class AllArmInteractionPointTypes {
 		register("blaze_burner", new BlazeBurnerType());
 		register("chute", new ChuteType());
 		register("crushing_wheels", new CrushingWheelsType());
+		register("deployer", new DeployerType());
 		register("depot", new DepotType());
 		register("funnel", new FunnelType());
 		register("millstone", new MillstoneType());
@@ -520,6 +522,43 @@ public class AllArmInteractionPointTypes {
 			ItemStack remainder = stack.copy();
 			remainder.shrink(1);
 			return remainder;
+		}
+	}
+
+	public static class DeployerType extends ArmInteractionPointType {
+		@Override
+		public boolean canCreatePoint(Level level, BlockPos pos, BlockState state) {
+			return AllBlocks.DEPLOYER.has(state);
+		}
+
+		@Override
+		public ArmInteractionPoint createPoint(Level level, BlockPos pos, BlockState state) {
+			return new DeployerPoint(this, level, pos, state);
+		}
+	}
+
+	public static class DeployerPoint extends ArmInteractionPoint {
+		public DeployerPoint(ArmInteractionPointType type, Level level, BlockPos pos, BlockState state) {
+			super(type, level, pos, state);
+		}
+
+		@Override
+		protected Direction getInteractionDirection() {
+			return cachedState.getOptionalValue(DeployerBlock.FACING).orElse(Direction.UP).getOpposite();
+		}
+
+		@Override
+		protected Vec3 getInteractionPositionVector() {
+			return super.getInteractionPositionVector()
+				.add(Vec3.atLowerCornerOf(getInteractionDirection().getNormal()).scale(.65f));
+		}
+
+		@Override
+		public void updateCachedState() {
+			BlockState oldState = cachedState;
+			super.updateCachedState();
+			if (oldState != cachedState)
+				cachedAngles = null;
 		}
 	}
 

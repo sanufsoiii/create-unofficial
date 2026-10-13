@@ -588,6 +588,17 @@ public class AllBlocks {
 			.build()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.kinetics.deployer.DeployerBlock> DEPLOYER =
+		REGISTRATE.block("deployer", com.simibubi.create.content.kinetics.deployer.DeployerBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(4.0))
+			.item(com.simibubi.create.content.processing.AssemblyOperatorBlockItem::new)
+			.tag(AllItemTags.CONTRAPTION_CONTROLLED.tag)
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }
