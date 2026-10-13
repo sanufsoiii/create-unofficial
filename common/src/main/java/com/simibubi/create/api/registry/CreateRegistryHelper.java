@@ -9,9 +9,21 @@ import net.minecraft.resources.ResourceKey;
  */
 public class CreateRegistryHelper {
 
-	@ExpectPlatform
+	@SuppressWarnings("unchecked")
 	public static <T> Registry<T> register(ResourceKey<Registry<T>> key, boolean hasIntrusiveHolders, Runnable onBakeCallback) {
-		throw new AssertionError();
+		try {
+			Class<?> impl = Class.forName("com.simibubi.create.api.registry.neoforge.CreateRegistryHelperImpl");
+			return (Registry<T>) impl.getMethod("register", ResourceKey.class, boolean.class, Runnable.class).invoke(null, key, hasIntrusiveHolders, onBakeCallback);
+		} catch (ClassNotFoundException e) {
+			try {
+				Class<?> impl = Class.forName("com.simibubi.create.api.registry.fabric.CreateRegistryHelperImpl");
+				return (Registry<T>) impl.getMethod("register", ResourceKey.class, boolean.class, Runnable.class).invoke(null, key, hasIntrusiveHolders, onBakeCallback);
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public static <T> Registry<T> simple(ResourceKey<Registry<T>> key) {

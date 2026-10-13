@@ -4,12 +4,16 @@ import java.util.Map;
 
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-
-import dev.architectury.injectables.annotations.ExpectPlatform;
+import com.simibubi.create.foundation.utility.PlatformDispatch;
 
 public class SmartBlockEntityHooks {
-	@ExpectPlatform
 	public static void postBehaviourEvent(SmartBlockEntity blockEntity, Map<BehaviourType<?>, BlockEntityBehaviour> behaviours) {
-		throw new AssertionError("@ExpectPlatform");
+		PlatformDispatch.call(
+			"com.simibubi.create.foundation.blockEntity.SmartBlockEntityHooksImpl",
+			"com.simibubi.create.foundation.blockEntity.SmartBlockEntityHooksImpl",
+			"postBehaviourEvent",
+			new Class<?>[]{SmartBlockEntity.class, Map.class},
+			blockEntity, behaviours
+		);
 	}
 }

@@ -233,9 +233,14 @@ public class CommonBlockHelper {
 		return InteractionResult.PASS;
 	}
 
-	@ExpectPlatform
 	public static BlockState getAppearance(BlockState state, BlockAndTintGetter level, BlockPos pos, Direction side,
 		@Nullable BlockState querySource, @Nullable BlockPos queryPos) {
-		throw new AssertionError("@ExpectPlatform");
+		return (BlockState) PlatformDispatch.call(
+			"com.simibubi.create.foundation.utility.neoforge.CommonBlockHelperImpl",
+			"com.simibubi.create.foundation.utility.fabric.CommonBlockHelperImpl",
+			"getAppearance",
+			new Class<?>[]{BlockState.class, BlockAndTintGetter.class, BlockPos.class, Direction.class, BlockState.class, BlockPos.class},
+			state, level, pos, side, querySource, queryPos
+		);
 	}
 }

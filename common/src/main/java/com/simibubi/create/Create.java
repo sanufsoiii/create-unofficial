@@ -45,5 +45,6 @@ public class Create {
 		AllMapDecorationTypes.register();
 		AllDataComponents.register();
 		com.simibubi.create.infrastructure.worldgen.AllFeatures.register();
+		com.simibubi.create.infrastructure.worldgen.AllPlacementModifiers.register();
 	}
 }

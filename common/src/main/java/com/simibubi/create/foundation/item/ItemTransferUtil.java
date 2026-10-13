@@ -26,32 +26,52 @@ public final class ItemTransferUtil {
      * @param simulate    whether to simulate insertion
      * @return remaining item stack that could not be inserted
      */
-    @ExpectPlatform
     public static ItemStack insertItem(Object target, ItemStack stack, boolean simulate) {
-        throw new AssertionError("@ExpectPlatform");
+        return (ItemStack) com.simibubi.create.foundation.utility.PlatformDispatch.call(
+            "com.simibubi.create.foundation.item.neoforge.ItemTransferUtilImpl",
+            "com.simibubi.create.foundation.item.fabric.ItemTransferUtilImpl",
+            "insertItem",
+            new Class<?>[]{Object.class, ItemStack.class, boolean.class},
+            target, stack, simulate
+        );
     }
 
     /**
      * Extracts an item stack from an inventory or handler object.
      */
-    @ExpectPlatform
     public static ItemStack extractItem(Object target, int slot, int amount, boolean simulate) {
-        throw new AssertionError("@ExpectPlatform");
+        return (ItemStack) com.simibubi.create.foundation.utility.PlatformDispatch.call(
+            "com.simibubi.create.foundation.item.neoforge.ItemTransferUtilImpl",
+            "com.simibubi.create.foundation.item.fabric.ItemTransferUtilImpl",
+            "extractItem",
+            new Class<?>[]{Object.class, int.class, int.class, boolean.class},
+            target, slot, amount, simulate
+        );
     }
 
     /**
      * Gets the inventory / item storage capability or API lookup at the given position and side.
      */
-    @ExpectPlatform
     public static Object getInventory(Level level, BlockPos pos, @Nullable Direction side) {
-        throw new AssertionError("@ExpectPlatform");
+        return com.simibubi.create.foundation.utility.PlatformDispatch.call(
+            "com.simibubi.create.foundation.item.neoforge.ItemTransferUtilImpl",
+            "com.simibubi.create.foundation.item.fabric.ItemTransferUtilImpl",
+            "getInventory",
+            new Class<?>[]{Level.class, BlockPos.class, Direction.class},
+            level, pos, side
+        );
     }
 
     /**
      * Extracts items matching the given predicate from the inventory or handler object.
      */
-    @ExpectPlatform
     public static ItemStack extract(Object target, Predicate<ItemStack> test, CommonItemHelper.ExtractionCountMode mode, int amount, boolean simulate) {
-        throw new AssertionError("@ExpectPlatform");
+        return (ItemStack) com.simibubi.create.foundation.utility.PlatformDispatch.call(
+            "com.simibubi.create.foundation.item.neoforge.ItemTransferUtilImpl",
+            "com.simibubi.create.foundation.item.fabric.ItemTransferUtilImpl",
+            "extract",
+            new Class<?>[]{Object.class, Predicate.class, CommonItemHelper.ExtractionCountMode.class, int.class, boolean.class},
+            target, test, mode, amount, simulate
+        );
     }
 }

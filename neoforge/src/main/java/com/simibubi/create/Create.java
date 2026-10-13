@@ -129,11 +129,13 @@ public class Create {
 		AllStructureProcessorTypes.register(modEventBus);
 		AllEntityDataSerializers.register(modEventBus);
 		AllPackets.register();
-		AllPlacementModifiers.register(modEventBus);
+		AllPlacementModifiers.register();
 		AllIngredients.register(modEventBus);
 		AllAttachmentTypes.register(modEventBus);
 		AllDataComponents.register();
 		AllMountedStorageTypes.register();
+		AllMapDecorationTypes.register();
+		AllFeatures.register();
 
 		AllConfigs.register(modLoadingContext, modContainer);
 

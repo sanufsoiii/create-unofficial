@@ -28,14 +28,38 @@ public interface ItemAttribute {
 	Codec<ItemAttribute> CODEC = getItemAttributeTypeRegistry().byNameCodec().dispatch(ItemAttribute::getType, ItemAttributeType::codec);
 	StreamCodec<RegistryFriendlyByteBuf, ItemAttribute> STREAM_CODEC = ByteBufCodecs.registry(getItemAttributeTypeRegistryKey()).dispatch(ItemAttribute::getType, ItemAttributeType::streamCodec);
 
-	@ExpectPlatform
+	@SuppressWarnings("unchecked")
 	static Registry<ItemAttributeType> getItemAttributeTypeRegistry() {
-		throw new AssertionError();
+		try {
+			Class<?> impl = Class.forName("com.simibubi.create.content.logistics.item.filter.attribute.neoforge.ItemAttributeImpl");
+			return (Registry<ItemAttributeType>) impl.getMethod("getItemAttributeTypeRegistry").invoke(null);
+		} catch (ClassNotFoundException e) {
+			try {
+				Class<?> impl = Class.forName("com.simibubi.create.content.logistics.item.filter.attribute.fabric.ItemAttributeImpl");
+				return (Registry<ItemAttributeType>) impl.getMethod("getItemAttributeTypeRegistry").invoke(null);
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
-	@ExpectPlatform
+	@SuppressWarnings("unchecked")
 	static ResourceKey<Registry<ItemAttributeType>> getItemAttributeTypeRegistryKey() {
-		throw new AssertionError();
+		try {
+			Class<?> impl = Class.forName("com.simibubi.create.content.logistics.item.filter.attribute.neoforge.ItemAttributeImpl");
+			return (ResourceKey<Registry<ItemAttributeType>>) impl.getMethod("getItemAttributeTypeRegistryKey").invoke(null);
+		} catch (ClassNotFoundException e) {
+			try {
+				Class<?> impl = Class.forName("com.simibubi.create.content.logistics.item.filter.attribute.fabric.ItemAttributeImpl");
+				return (ResourceKey<Registry<ItemAttributeType>>) impl.getMethod("getItemAttributeTypeRegistryKey").invoke(null);
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	static CompoundTag saveStatic(ItemAttribute attribute, HolderLookup.Provider registries) {

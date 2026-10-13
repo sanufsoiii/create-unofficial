@@ -13,8 +13,6 @@ configurations {
         canBeConsumed = false
     }
     compileClasspath.extendsFrom common
-    runtimeClasspath.extendsFrom common
-    developmentNeoForge.extendsFrom common
 
     shadowBundle {
         canBeResolved = true
@@ -77,6 +75,9 @@ processResources {
     filesMatching("META-INF/neoforge.mods.toml") {
         expand replaceProperties
     }
+
+    from project(":common").sourceSets.main.resources
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 shadowJar {
@@ -86,4 +87,31 @@ shadowJar {
 
 remapJar {
     inputFile.set shadowJar.archiveFile
+}
+
+tasks.named("classes") {
+    dependsOn(":common:classes")
+    doLast {
+        def destClasses = sourceSets.main.java.classesDirectory.get().asFile
+        def neoforgeSrcDir = file("src/main/java")
+        project(":common").sourceSets.main.output.classesDirs.each { srcDir ->
+            if (srcDir.exists()) {
+                srcDir.eachFileRecurse(groovy.io.FileType.FILES) { file ->
+                    def relPath = srcDir.toPath().relativize(file.toPath()).toString()
+                    def javaRelPath = relPath.replaceFirst(/(\$.*)?\.class$/, ".java")
+                    def neoforgeJavaSrc = new File(neoforgeSrcDir, javaRelPath)
+                    if (!neoforgeJavaSrc.exists()) {
+                        def targetFile = new File(destClasses, relPath)
+                        targetFile.parentFile.mkdirs()
+                        java.nio.file.Files.copy(file.toPath(), targetFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                    }
+                }
+            }
+        }
+        copy {
+            from project(":common").sourceSets.main.output.resourcesDir
+            into sourceSets.main.output.resourcesDir
+            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        }
+    }
 }

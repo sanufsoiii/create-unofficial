@@ -11,8 +11,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
 
-import dev.architectury.platform.Platform;
-
 /**
  * For compatibility with and without another mod present, we have to define load conditions of the specific code
  */
@@ -43,11 +41,9 @@ public enum Mods {
 	FARMERSDELIGHT;
 
 	private final String id;
-	private final boolean isLoaded;
 
 	Mods() {
 		id = Lang.asId(name());
-		isLoaded = Platform.isModLoaded(id);
 	}
 
 	/**
@@ -82,7 +78,7 @@ public enum Mods {
 	 * @return a boolean of whether the mod is loaded or not based on mod id
 	 */
 	public boolean isLoaded() {
-		return isLoaded;
+		return ModCheckHelper.isModLoaded(id);
 	}
 
 	/**

@@ -374,9 +374,13 @@ public class AllDataComponents {
 		return register(name, builder);
 	}
 
-	@ExpectPlatform
 	public static DataComponentType<?> registerToolboxInventory() {
-		throw new AssertionError();
+		return (DataComponentType<?>) com.simibubi.create.foundation.utility.PlatformDispatch.call(
+			"com.simibubi.create.neoforge.AllDataComponentsImpl",
+			"com.simibubi.create.fabric.AllDataComponentsImpl",
+			"registerToolboxInventory",
+			new Class<?>[0]
+		);
 	}
 
 	@SuppressWarnings("unchecked")

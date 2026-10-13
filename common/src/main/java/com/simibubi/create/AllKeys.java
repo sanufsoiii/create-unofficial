@@ -90,14 +90,24 @@ public enum AllKeys {
 		return doesModifierAndCodeMatch(getKeybind(), code);
 	}
 
-	@ExpectPlatform
 	public static boolean doesModifierAndCodeMatch(KeyMapping keyMapping, int code) {
-		throw new AssertionError();
+		return (boolean) com.simibubi.create.foundation.utility.PlatformDispatch.call(
+			"com.simibubi.create.neoforge.AllKeysImpl",
+			"com.simibubi.create.fabric.AllKeysImpl",
+			"doesModifierAndCodeMatch",
+			new Class<?>[]{KeyMapping.class, int.class},
+			keyMapping, code
+		);
 	}
 
-	@ExpectPlatform
 	public static InputConstants.Key getBoundKey(KeyMapping keyMapping) {
-		throw new AssertionError();
+		return (InputConstants.Key) com.simibubi.create.foundation.utility.PlatformDispatch.call(
+			"com.simibubi.create.neoforge.AllKeysImpl",
+			"com.simibubi.create.fabric.AllKeysImpl",
+			"getBoundKey",
+			new Class<?>[]{KeyMapping.class},
+			keyMapping
+		);
 	}
 
 	public static boolean isKeyDown(int key) {

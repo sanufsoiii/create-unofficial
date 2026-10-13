@@ -1,22 +1,34 @@
 package com.simibubi.create.content.kinetics;
 
-import dev.architectury.injectables.annotations.ExpectPlatform;
+import com.simibubi.create.foundation.utility.PlatformDispatch;
 
 public class CommonKineticsConfig {
 
-	@ExpectPlatform
 	public static float fastSpeed() {
-		throw new AssertionError("@ExpectPlatform");
+		return (float) PlatformDispatch.call(
+			"com.simibubi.create.content.kinetics.neoforge.CommonKineticsConfigImpl",
+			"com.simibubi.create.content.kinetics.fabric.CommonKineticsConfigImpl",
+			"fastSpeed",
+			new Class<?>[0]
+		);
 	}
 
-	@ExpectPlatform
 	public static float mediumSpeed() {
-		throw new AssertionError("@ExpectPlatform");
+		return (float) PlatformDispatch.call(
+			"com.simibubi.create.content.kinetics.neoforge.CommonKineticsConfigImpl",
+			"com.simibubi.create.content.kinetics.fabric.CommonKineticsConfigImpl",
+			"mediumSpeed",
+			new Class<?>[0]
+		);
 	}
 
-	@ExpectPlatform
 	public static boolean disableStress() {
-		throw new AssertionError("@ExpectPlatform");
+		return (boolean) PlatformDispatch.call(
+			"com.simibubi.create.content.kinetics.neoforge.CommonKineticsConfigImpl",
+			"com.simibubi.create.content.kinetics.fabric.CommonKineticsConfigImpl",
+			"disableStress",
+			new Class<?>[0]
+		);
 	}
 
 }

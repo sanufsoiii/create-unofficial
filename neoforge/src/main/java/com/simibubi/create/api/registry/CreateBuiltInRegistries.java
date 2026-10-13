@@ -52,7 +52,7 @@ public class CreateBuiltInRegistries {
 	}
 
 	private static <T> Registry<T> register(ResourceKey<Registry<T>> key, boolean hasIntrusiveHolders, Runnable onBakeCallback) {
-		return CreateRegistryHelper.register(key, hasIntrusiveHolders, onBakeCallback);
+		return com.simibubi.create.api.registry.neoforge.CreateRegistryHelperImpl.register(key, hasIntrusiveHolders, onBakeCallback);
 	}
 
 	@Internal

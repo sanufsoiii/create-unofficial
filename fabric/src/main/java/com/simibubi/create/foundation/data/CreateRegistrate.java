@@ -20,6 +20,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 
 public class CreateRegistrate extends AbstractRegistrate<CreateRegistrate> {
 	private static final Map<RegistryEntry<?, ?>, ResourceKey<CreativeModeTab>> TAB_LOOKUP = Collections.synchronizedMap(new IdentityHashMap<>());
@@ -56,6 +57,11 @@ public class CreateRegistrate extends AbstractRegistrate<CreateRegistrate> {
 		return self();
 	}
 
+	public CreateRegistrate setCreativeTab(com.simibubi.create.AllCreativeModeTabs.TabInfo tab) {
+		this.currentTab = tab.key();
+		return self();
+	}
+
 	@Override
 	protected <R, T extends R> RegistryEntry<R, T> accept(String name, ResourceKey<? extends Registry<R>> type,
 			Builder<R, T, ?, ?> builder, NonNullSupplier<? extends T> creator,
@@ -78,5 +84,25 @@ public class CreateRegistrate extends AbstractRegistrate<CreateRegistrate> {
 			TAB_LOOKUP.put(entry, currentTab);
 		}
 		return entry;
+	}
+
+	public static <T extends Block> com.tterrag.registrate.util.nullness.NonNullConsumer<? super T> casingConnectivity(
+			java.util.function.BiConsumer<T, com.simibubi.create.content.decoration.encasing.CasingConnectivity> consumer) {
+		return entry -> {};
+	}
+
+	public static <T extends Block> com.tterrag.registrate.util.nullness.NonNullConsumer<? super T> blockModel(
+			java.util.function.Supplier<NonNullFunction<net.minecraft.client.resources.model.BakedModel, ? extends net.minecraft.client.resources.model.BakedModel>> func) {
+		return entry -> {};
+	}
+
+	public static <T extends Item> com.tterrag.registrate.util.nullness.NonNullConsumer<? super T> itemModel(
+			java.util.function.Supplier<NonNullFunction<net.minecraft.client.resources.model.BakedModel, ? extends net.minecraft.client.resources.model.BakedModel>> func) {
+		return entry -> {};
+	}
+
+	public static com.tterrag.registrate.util.nullness.NonNullConsumer<? super Block> connectedTextures(
+			java.util.function.Supplier<com.simibubi.create.foundation.block.connected.ConnectedTextureBehaviour> behavior) {
+		return entry -> {};
 	}
 }

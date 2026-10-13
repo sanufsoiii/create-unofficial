@@ -1,23 +1,37 @@
 package com.simibubi.create.foundation.blockEntity.behaviour.fluid;
 
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
-
-import dev.architectury.injectables.annotations.ExpectPlatform;
+import com.simibubi.create.foundation.utility.PlatformDispatch;
 
 public class SmartFluidTankHooks {
 
-	@ExpectPlatform
 	public static SmartFluidTankBehaviour.TankSegment createTankSegment(SmartFluidTankBehaviour behaviour, int tankCapacity) {
-		throw new AssertionError("@ExpectPlatform");
+		return (SmartFluidTankBehaviour.TankSegment) PlatformDispatch.call(
+			"com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankHooksImpl",
+			"com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankHooksImpl",
+			"createTankSegment",
+			new Class<?>[]{SmartFluidTankBehaviour.class, int.class},
+			behaviour, tankCapacity
+		);
 	}
 
-	@ExpectPlatform
 	public static Object createHandler(SmartFluidTankBehaviour behaviour, SmartFluidTankBehaviour.TankSegment[] tanks, boolean enforceVariety) {
-		throw new AssertionError("@ExpectPlatform");
+		return PlatformDispatch.call(
+			"com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankHooksImpl",
+			"com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankHooksImpl",
+			"createHandler",
+			new Class<?>[]{SmartFluidTankBehaviour.class, SmartFluidTankBehaviour.TankSegment[].class, boolean.class},
+			behaviour, tanks, enforceVariety
+		);
 	}
 
-	@ExpectPlatform
 	public static void invalidateCapabilities(SmartBlockEntity blockEntity) {
-		throw new AssertionError("@ExpectPlatform");
+		PlatformDispatch.call(
+			"com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankHooksImpl",
+			"com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankHooksImpl",
+			"invalidateCapabilities",
+			new Class<?>[]{SmartBlockEntity.class},
+			blockEntity
+		);
 	}
 }
