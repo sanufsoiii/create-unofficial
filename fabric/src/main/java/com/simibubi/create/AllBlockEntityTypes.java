@@ -49,6 +49,21 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.ADJUSTABLE_CHAIN_GEARSHIFT)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.waterwheel.WaterWheelBlockEntity> WATER_WHEEL = REGISTRATE
+		.blockEntity("water_wheel", com.simibubi.create.content.kinetics.waterwheel.WaterWheelBlockEntity::new)
+		.validBlocks(AllBlocks.WATER_WHEEL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.waterwheel.LargeWaterWheelBlockEntity> LARGE_WATER_WHEEL = REGISTRATE
+		.blockEntity("large_water_wheel", com.simibubi.create.content.kinetics.waterwheel.LargeWaterWheelBlockEntity::new)
+		.validBlocks(AllBlocks.LARGE_WATER_WHEEL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crank.HandCrankBlockEntity> HAND_CRANK = REGISTRATE
+		.blockEntity("hand_crank", com.simibubi.create.content.kinetics.crank.HandCrankBlockEntity::new)
+		.validBlocks(AllBlocks.HAND_CRANK)
+		.register();
+
 	public static void register() {
 	}
 }

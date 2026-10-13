@@ -82,4 +82,12 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 
 	public void attachKinetics() {
 	}
+
+	public static float convertToDirection(float axisSpeed, net.minecraft.core.Direction d) {
+		return IRotate.convertToDirection(axisSpeed, d);
+	}
+
+	public static float convertToAngular(float speed) {
+		return IRotate.convertToAngular(speed);
+	}
 }

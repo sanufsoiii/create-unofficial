@@ -25,6 +25,13 @@ import com.simibubi.create.content.kinetics.simpleRelays.encased.EncasedCogwheel
 import com.simibubi.create.content.kinetics.simpleRelays.encased.EncasedShaftBlock;
 import com.simibubi.create.content.kinetics.transmission.ClutchBlock;
 import com.simibubi.create.content.kinetics.transmission.GearshiftBlock;
+import com.simibubi.create.AllTags.AllBlockTags;
+import com.simibubi.create.api.stress.BlockStressValues;
+import com.simibubi.create.content.kinetics.crank.HandCrankBlock;
+import com.simibubi.create.content.kinetics.waterwheel.LargeWaterWheelBlock;
+import com.simibubi.create.content.kinetics.waterwheel.LargeWaterWheelBlockItem;
+import com.simibubi.create.content.kinetics.waterwheel.WaterWheelBlock;
+import com.simibubi.create.content.kinetics.waterwheel.WaterWheelStructuralBlock;
 import com.simibubi.create.foundation.data.BuilderTransformers;
 import com.simibubi.create.foundation.data.SharedProperties;
 import com.simibubi.create.foundation.data.TagGen;
@@ -255,6 +262,44 @@ public class AllBlocks {
 			.transform(TagGen.axeOrPickaxe())
 			.simpleItem()
 			.register();
+
+	public static final BlockEntry<WaterWheelBlock> WATER_WHEEL = REGISTRATE.block("water_wheel", WaterWheelBlock::new)
+		.initialProperties(SharedProperties::wooden)
+		.properties(p -> p.noOcclusion().mapColor(MapColor.DIRT))
+		.transform(TagGen.axeOrPickaxe())
+		.transform(CStress.setCapacity(32))
+		.onRegister(BlockStressValues.setGeneratorSpeed(8))
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<LargeWaterWheelBlock> LARGE_WATER_WHEEL =
+		REGISTRATE.block("large_water_wheel", LargeWaterWheelBlock::new)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.DIRT))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setCapacity(128.0))
+			.onRegister(BlockStressValues.setGeneratorSpeed(4))
+			.item(LargeWaterWheelBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<WaterWheelStructuralBlock> WATER_WHEEL_STRUCTURAL =
+		REGISTRATE.block("water_wheel_structure", WaterWheelStructuralBlock::new)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.DIRT))
+			.transform(TagGen.axeOrPickaxe())
+			.lang("Large Water Wheel")
+			.register();
+
+	public static final BlockEntry<HandCrankBlock> HAND_CRANK = REGISTRATE.block("hand_crank", HandCrankBlock::new)
+		.initialProperties(SharedProperties::wooden)
+		.properties(p -> p.mapColor(MapColor.PODZOL))
+		.transform(TagGen.axeOrPickaxe())
+		.transform(CStress.setCapacity(8.0))
+		.onRegister(BlockStressValues.setGeneratorSpeed(32))
+		.tag(AllBlockTags.BRITTLE.tag)
+		.simpleItem()
+		.register();
 
 	public static void register() {
 	}
