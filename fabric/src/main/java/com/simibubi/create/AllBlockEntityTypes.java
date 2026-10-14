@@ -488,6 +488,29 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.COPYCAT_PANEL, AllBlocks.COPYCAT_STEP)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.tunnel.BeltTunnelBlockEntity> ANDESITE_TUNNEL = REGISTRATE
+		.blockEntity("andesite_tunnel", com.simibubi.create.content.logistics.tunnel.BeltTunnelBlockEntity::new)
+		.validBlocks(AllBlocks.ANDESITE_TUNNEL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.tunnel.BrassTunnelBlockEntity> BRASS_TUNNEL = REGISTRATE
+		.blockEntity("brass_tunnel", com.simibubi.create.content.logistics.tunnel.BrassTunnelBlockEntity::new)
+		.validBlocks(AllBlocks.BRASS_TUNNEL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.tableCloth.TableClothBlockEntity> TABLE_CLOTH = REGISTRATE
+		.blockEntity("table_cloth", com.simibubi.create.content.logistics.tableCloth.TableClothBlockEntity::new)
+		.validBlocks(AllBlocks.TABLE_CLOTHS.toArray())
+		.validBlock(AllBlocks.ANDESITE_TABLE_CLOTH)
+		.validBlock(AllBlocks.BRASS_TABLE_CLOTH)
+		.validBlock(AllBlocks.COPPER_TABLE_CLOTH)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.equipment.toolbox.ToolboxBlockEntity> TOOLBOX = REGISTRATE
+		.blockEntity("toolbox", com.simibubi.create.content.equipment.toolbox.ToolboxBlockEntity::new)
+		.validBlocks(AllBlocks.TOOLBOXES.toArray())
+		.register();
+
 	public static void register() {
 	}
 }

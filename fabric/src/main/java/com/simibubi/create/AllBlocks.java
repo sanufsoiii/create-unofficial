@@ -1587,6 +1587,79 @@ public class AllBlocks {
 		REGISTRATE.block("copycat_bars", com.simibubi.create.foundation.block.WrenchableDirectionalBlock::new)
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.logistics.tunnel.BeltTunnelBlock> ANDESITE_TUNNEL =
+		REGISTRATE.block("andesite_tunnel", com.simibubi.create.content.logistics.tunnel.BeltTunnelBlock::new)
+			.properties(p -> p.mapColor(MapColor.STONE))
+			.transform(BuilderTransformers.beltTunnel("andesite", net.minecraft.resources.ResourceLocation.withDefaultNamespace("block/polished_andesite")))
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.tunnel.BrassTunnelBlock> BRASS_TUNNEL =
+		REGISTRATE.block("brass_tunnel", com.simibubi.create.content.logistics.tunnel.BrassTunnelBlock::new)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(BuilderTransformers.beltTunnel("brass", Create.asResource("block/brass_block")))
+			.register();
+
+	public static final com.simibubi.create.foundation.block.DyedBlockList<com.simibubi.create.content.logistics.tableCloth.TableClothBlock> TABLE_CLOTHS = new com.simibubi.create.foundation.block.DyedBlockList<>(colour -> {
+		String colourName = colour.getSerializedName();
+		return REGISTRATE.block(colourName + "_table_cloth", p -> new com.simibubi.create.content.logistics.tableCloth.TableClothBlock(p, colour))
+			.transform(BuilderTransformers.tableCloth(colourName, () -> net.minecraft.world.level.block.Blocks.BLACK_CARPET, true))
+			.properties(p -> p.mapColor(colour))
+			.register();
+	});
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.tableCloth.TableClothBlock> ANDESITE_TABLE_CLOTH =
+		REGISTRATE.block("andesite_table_cloth", p -> new com.simibubi.create.content.logistics.tableCloth.TableClothBlock(p, "andesite"))
+			.transform(BuilderTransformers.tableCloth("andesite", SharedProperties::stone, false))
+			.properties(p -> p.mapColor(MapColor.STONE)
+				.requiresCorrectToolForDrops())
+			.transform(TagGen.pickaxeOnly())
+			.lang("Andesite Table Cover")
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.tableCloth.TableClothBlock> BRASS_TABLE_CLOTH =
+		REGISTRATE.block("brass_table_cloth", p -> new com.simibubi.create.content.logistics.tableCloth.TableClothBlock(p, "brass"))
+			.transform(BuilderTransformers.tableCloth("brass", SharedProperties::softMetal, false))
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW)
+				.requiresCorrectToolForDrops())
+			.transform(TagGen.pickaxeOnly())
+			.lang("Brass Table Cover")
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.tableCloth.TableClothBlock> COPPER_TABLE_CLOTH =
+		REGISTRATE.block("copper_table_cloth", p -> new com.simibubi.create.content.logistics.tableCloth.TableClothBlock(p, "copper"))
+			.transform(BuilderTransformers.tableCloth("copper", SharedProperties::copperMetal, false))
+			.properties(p -> p.requiresCorrectToolForDrops())
+			.transform(TagGen.pickaxeOnly())
+			.lang("Copper Table Cover")
+			.register();
+
+	public static final com.simibubi.create.foundation.block.DyedBlockList<com.simibubi.create.content.equipment.toolbox.ToolboxBlock> TOOLBOXES = new com.simibubi.create.foundation.block.DyedBlockList<>(colour -> {
+		String colourName = colour.getSerializedName();
+		return REGISTRATE.block(colourName + "_toolbox", p -> new com.simibubi.create.content.equipment.toolbox.ToolboxBlock(p, colour))
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.sound(SoundType.WOOD)
+				.mapColor(colour)
+				.forceSolidOn())
+			.tag(com.simibubi.create.AllTags.AllBlockTags.TOOLBOXES.tag)
+			.item(com.simibubi.create.foundation.item.UncontainableBlockItem::new)
+			.tag(com.simibubi.create.AllTags.AllItemTags.TOOLBOXES.tag)
+			.build()
+			.register();
+	});
+
+	public static final com.simibubi.create.foundation.block.DyedBlockList<com.simibubi.create.content.contraptions.actors.seat.SeatBlock> SEATS = new com.simibubi.create.foundation.block.DyedBlockList<>(colour -> {
+		String colourName = colour.getSerializedName();
+		return REGISTRATE.block(colourName + "_seat", p -> new com.simibubi.create.content.contraptions.actors.seat.SeatBlock(p, colour))
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.mapColor(colour))
+			.transform(TagGen.axeOnly())
+			.tag(com.simibubi.create.AllTags.AllBlockTags.SEATS.tag)
+			.item()
+			.tag(com.simibubi.create.AllTags.AllItemTags.SEATS.tag)
+			.build()
+			.register();
+	});
+
 	public static void register() {
 	}
 }

@@ -29,6 +29,7 @@ import com.simibubi.create.fabric.CreateFabric;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.data.recipe.CommonMetal;
 import com.simibubi.create.foundation.item.TagDependentIngredientItem;
+import com.simibubi.create.content.logistics.tableCloth.ShoppingListItem;
 import com.tterrag.registrate.util.entry.ItemEntry;
 
 import net.minecraft.tags.ItemTags;
@@ -177,6 +178,11 @@ public class AllItems {
 	public static final ItemEntry<Item> POTATO_CANNON =
 		REGISTRATE.item("potato_cannon", Item::new)
 			.properties(p -> p.durability(100))
+			.register();
+
+	public static final ItemEntry<ShoppingListItem> SHOPPING_LIST =
+		REGISTRATE.item("shopping_list", ShoppingListItem::new)
+			.properties(p -> p.stacksTo(1))
 			.register();
 
 	// Shortcuts

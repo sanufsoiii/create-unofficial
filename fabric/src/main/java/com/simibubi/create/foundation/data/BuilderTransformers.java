@@ -140,5 +140,29 @@ public class BuilderTransformers {
 				.isValidSpawn((state, level, pos, type) -> false))
 			.transform(TagGen.axeOrPickaxe());
 	}
+
+	public static <B extends com.simibubi.create.content.logistics.tunnel.BeltTunnelBlock> NonNullUnaryOperator<BlockBuilder<B, CreateRegistrate>> beltTunnel(
+		String type, net.minecraft.resources.ResourceLocation particleTexture) {
+		return b -> b.initialProperties(SharedProperties::stone)
+			.properties(net.minecraft.world.level.block.state.BlockBehaviour.Properties::noOcclusion)
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.logistics.tunnel.BeltTunnelItem::new)
+			.build();
+	}
+
+	public static <B extends net.minecraft.world.level.block.Block, P> NonNullUnaryOperator<BlockBuilder<B, P>> tableCloth(String name,
+		com.tterrag.registrate.util.nullness.NonNullSupplier<? extends net.minecraft.world.level.block.Block> initialProps, boolean dyed) {
+		return b -> {
+			var item = b.initialProperties(initialProps)
+				.tag(com.simibubi.create.AllTags.AllBlockTags.TABLE_CLOTHS.tag)
+				.item(com.simibubi.create.content.logistics.tableCloth.TableClothBlockItem::new);
+
+			if (dyed)
+				item.tag(com.simibubi.create.AllTags.AllItemTags.DYED_TABLE_CLOTHS.tag);
+
+			return item.tag(com.simibubi.create.AllTags.AllItemTags.TABLE_CLOTHS.tag)
+				.build();
+		};
+	}
 }
 
