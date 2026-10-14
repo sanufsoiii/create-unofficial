@@ -110,5 +110,27 @@ public class BuilderTransformers {
 			.tag(com.simibubi.create.AllTags.AllItemTags.CONTRAPTION_CONTROLLED.tag)
 			.build();
 	}
+
+	public static <B extends com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock, P> NonNullUnaryOperator<BlockBuilder<B, P>> slidingDoor(String type) {
+		return b -> b.initialProperties(() -> net.minecraft.world.level.block.Blocks.IRON_DOOR)
+			.properties(p -> p.requiresCorrectToolForDrops()
+				.strength(3.0F, 6.0F))
+			.transform(TagGen.pickaxeOnly())
+			.tag(net.minecraft.tags.BlockTags.DOORS)
+			.tag(net.minecraft.tags.BlockTags.WOODEN_DOORS)
+			.tag(com.simibubi.create.AllTags.AllBlockTags.NON_DOUBLE_DOOR.tag)
+			.item()
+			.tag(net.minecraft.tags.ItemTags.DOORS)
+			.tag(com.simibubi.create.AllTags.AllItemTags.CONTRAPTION_CONTROLLED.tag)
+			.build();
+	}
+
+	public static <B extends net.minecraft.world.level.block.TrapDoorBlock, P> NonNullUnaryOperator<BlockBuilder<B, P>> trapdoor(boolean orientable) {
+		return b -> b.transform(TagGen.pickaxeOnly())
+			.tag(net.minecraft.tags.BlockTags.TRAPDOORS)
+			.item()
+			.tag(net.minecraft.tags.ItemTags.TRAPDOORS)
+			.build();
+	}
 }
 

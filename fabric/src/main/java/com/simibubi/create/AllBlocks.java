@@ -1075,6 +1075,56 @@ public class AllBlocks {
 			.build()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock> ANDESITE_DOOR =
+		REGISTRATE.block("andesite_door", p -> com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock.stone(p, true))
+			.transform(BuilderTransformers.slidingDoor("andesite"))
+			.properties(p -> p.mapColor(MapColor.STONE)
+				.noOcclusion())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock> BRASS_DOOR =
+		REGISTRATE.block("brass_door", p -> com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock.stone(p, false))
+			.transform(BuilderTransformers.slidingDoor("brass"))
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW)
+				.noOcclusion())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock> COPPER_DOOR =
+		REGISTRATE.block("copper_door", p -> com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock.stone(p, true))
+			.transform(BuilderTransformers.slidingDoor("copper"))
+			.properties(p -> p.mapColor(MapColor.COLOR_ORANGE)
+				.noOcclusion())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock> TRAIN_DOOR =
+		REGISTRATE.block("train_door", p -> com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock.metal(p, false))
+			.transform(BuilderTransformers.slidingDoor("train"))
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_CYAN)
+				.noOcclusion())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.TrainTrapdoorBlock> TRAIN_TRAPDOOR =
+		REGISTRATE.block("train_trapdoor", com.simibubi.create.content.decoration.TrainTrapdoorBlock::metal)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_CYAN))
+			.transform(BuilderTransformers.trapdoor(true))
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock> FRAMED_GLASS_DOOR =
+		REGISTRATE.block("framed_glass_door", p -> com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlock.glass(p, false))
+			.transform(BuilderTransformers.slidingDoor("glass"))
+			.properties(p -> p.mapColor(MapColor.NONE)
+				.noOcclusion())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.TrainTrapdoorBlock> FRAMED_GLASS_TRAPDOOR =
+		REGISTRATE.block("framed_glass_trapdoor", com.simibubi.create.content.decoration.TrainTrapdoorBlock::glass)
+			.initialProperties(SharedProperties::softMetal)
+			.transform(BuilderTransformers.trapdoor(false))
+			.properties(p -> p.mapColor(MapColor.NONE)
+				.noOcclusion())
+			.register();
+
 	public static void register() {
 	}
 }

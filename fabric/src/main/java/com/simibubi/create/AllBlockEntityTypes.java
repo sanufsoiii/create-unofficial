@@ -316,6 +316,12 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.HAUNTED_BELL)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlockEntity> SLIDING_DOOR =
+		REGISTRATE.blockEntity("sliding_door", com.simibubi.create.content.decoration.slidingDoor.SlidingDoorBlockEntity::new)
+			.validBlocks(AllBlocks.TRAIN_DOOR, AllBlocks.FRAMED_GLASS_DOOR, AllBlocks.ANDESITE_DOOR,
+				AllBlocks.BRASS_DOOR, AllBlocks.COPPER_DOOR)
+			.register();
+
 	public static void register() {
 	}
 }
