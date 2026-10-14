@@ -7,10 +7,15 @@ import com.simibubi.create.fabric.CreateFabric;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.tterrag.registrate.util.entry.BlockEntry;
 
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.IronBarsBlock;
+import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
+import com.simibubi.create.content.decoration.MetalScaffoldingBlock;
+import com.simibubi.create.AllSpriteShifts;
 
 import com.simibubi.create.content.decoration.encasing.EncasedCTBehaviour;
 import com.simibubi.create.content.decoration.encasing.EncasingRegistry;
@@ -713,6 +718,106 @@ public class AllBlocks {
 				.forceSolidOn())
 			.transform(TagGen.pickaxeOnly())
 			.register();
+
+	public static final BlockEntry<Block> RAW_ZINC_BLOCK = REGISTRATE.block("raw_zinc_block", Block::new)
+		.initialProperties(() -> Blocks.RAW_GOLD_BLOCK)
+		.properties(p -> p.mapColor(MapColor.GLOW_LICHEN).requiresCorrectToolForDrops())
+		.transform(TagGen.pickaxeOnly())
+		.tag(BlockTags.NEEDS_IRON_TOOL)
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<Block> ZINC_BLOCK = REGISTRATE.block("zinc_block", Block::new)
+		.initialProperties(() -> Blocks.IRON_BLOCK)
+		.properties(p -> p.mapColor(MapColor.GLOW_LICHEN).requiresCorrectToolForDrops())
+		.transform(TagGen.pickaxeOnly())
+		.tag(BlockTags.NEEDS_IRON_TOOL)
+		.tag(BlockTags.BEACON_BASE_BLOCKS)
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<Block> ANDESITE_ALLOY_BLOCK = REGISTRATE.block("andesite_alloy_block", Block::new)
+		.initialProperties(() -> Blocks.ANDESITE)
+		.properties(p -> p.mapColor(MapColor.STONE).requiresCorrectToolForDrops())
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<Block> WEATHERED_IRON_BLOCK = REGISTRATE.block("weathered_iron_block", Block::new)
+		.transform(BuilderTransformers.palettesIronBlock())
+		.register();
+
+	public static final BlockEntry<Block> BRASS_BLOCK = REGISTRATE.block("brass_block", Block::new)
+		.initialProperties(() -> Blocks.IRON_BLOCK)
+		.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW).requiresCorrectToolForDrops())
+		.transform(TagGen.pickaxeOnly())
+		.tag(BlockTags.NEEDS_IRON_TOOL)
+		.tag(BlockTags.BEACON_BASE_BLOCKS)
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<RotatedPillarBlock> ROSE_QUARTZ_BLOCK = REGISTRATE.block("rose_quartz_block", RotatedPillarBlock::new)
+		.initialProperties(() -> Blocks.AMETHYST_BLOCK)
+		.properties(p -> p.mapColor(MapColor.TERRACOTTA_PINK).requiresCorrectToolForDrops().sound(SoundType.DEEPSLATE))
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<Block> ROSE_QUARTZ_TILES = REGISTRATE.block("rose_quartz_tiles", Block::new)
+		.initialProperties(() -> Blocks.DEEPSLATE)
+		.properties(p -> p.mapColor(MapColor.TERRACOTTA_PINK).requiresCorrectToolForDrops())
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<Block> SMALL_ROSE_QUARTZ_TILES = REGISTRATE.block("small_rose_quartz_tiles", Block::new)
+		.initialProperties(() -> Blocks.DEEPSLATE)
+		.properties(p -> p.mapColor(MapColor.TERRACOTTA_PINK).requiresCorrectToolForDrops())
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<IronBarsBlock> ANDESITE_BARS = REGISTRATE.block("andesite_bars", IronBarsBlock::new)
+		.transform(BuilderTransformers.metalBars(MapColor.STONE))
+		.register();
+
+	public static final BlockEntry<IronBarsBlock> BRASS_BARS = REGISTRATE.block("brass_bars", IronBarsBlock::new)
+		.transform(BuilderTransformers.metalBars(MapColor.TERRACOTTA_YELLOW))
+		.register();
+
+	public static final BlockEntry<IronBarsBlock> COPPER_BARS = REGISTRATE.block("copper_bars", IronBarsBlock::new)
+		.transform(BuilderTransformers.metalBars(MapColor.COLOR_ORANGE))
+		.register();
+
+	public static final BlockEntry<MetalScaffoldingBlock> ANDESITE_SCAFFOLD = REGISTRATE
+		.block("andesite_scaffolding", MetalScaffoldingBlock::new)
+		.transform(BuilderTransformers.scaffold(MapColor.STONE, AllSpriteShifts.ANDESITE_SCAFFOLD,
+			AllSpriteShifts.ANDESITE_SCAFFOLD_INSIDE, AllSpriteShifts.ANDESITE_CASING))
+		.register();
+
+	public static final BlockEntry<MetalScaffoldingBlock> BRASS_SCAFFOLD = REGISTRATE
+		.block("brass_scaffolding", MetalScaffoldingBlock::new)
+		.transform(BuilderTransformers.scaffold(MapColor.TERRACOTTA_YELLOW, AllSpriteShifts.BRASS_SCAFFOLD,
+			AllSpriteShifts.BRASS_SCAFFOLD_INSIDE, AllSpriteShifts.BRASS_CASING))
+		.register();
+
+	public static final BlockEntry<MetalScaffoldingBlock> COPPER_SCAFFOLD = REGISTRATE
+		.block("copper_scaffolding", MetalScaffoldingBlock::new)
+		.transform(BuilderTransformers.scaffold(MapColor.COLOR_ORANGE, AllSpriteShifts.COPPER_SCAFFOLD,
+			AllSpriteShifts.COPPER_SCAFFOLD_INSIDE, AllSpriteShifts.COPPER_CASING))
+		.register();
+
+	public static final BlockEntry<CasingBlock> SHADOW_STEEL_CASING = REGISTRATE
+		.block("shadow_steel_casing", CasingBlock::new)
+		.properties(p -> p.mapColor(MapColor.COLOR_BLACK))
+		.transform(BuilderTransformers.casing(() -> AllSpriteShifts.SHADOW_STEEL_CASING))
+		.register();
+
+	public static final BlockEntry<CasingBlock> REFINED_RADIANCE_CASING = REGISTRATE
+		.block("refined_radiance_casing", CasingBlock::new)
+		.properties(p -> p.mapColor(MapColor.SNOW).lightLevel($ -> 12))
+		.transform(BuilderTransformers.casing(() -> AllSpriteShifts.REFINED_RADIANCE_CASING))
+		.register();
 
 	public static void register() {
 	}

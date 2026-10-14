@@ -44,4 +44,50 @@ public class BuilderTransformers {
 		return builder -> BuilderTransformers.<B, P>encasedCogwheel(casing, casingShift).apply(builder)
 			.onRegister(CreateRegistrate.connectedTextures(() -> new EncasedCogCTBehaviour(casingShift.get())));
 	}
+
+	public static <B extends com.simibubi.create.content.decoration.encasing.CasingBlock> NonNullUnaryOperator<BlockBuilder<B, CreateRegistrate>> casing(
+		Supplier<CTSpriteShiftEntry> ct) {
+		return b -> b.initialProperties(SharedProperties::stone)
+			.properties(p -> p.sound(net.minecraft.world.level.block.SoundType.WOOD))
+			.transform(TagGen.axeOrPickaxe())
+			.onRegister(CreateRegistrate.connectedTextures(() -> new EncasedCTBehaviour(ct.get())))
+			.onRegister(CreateRegistrate.casingConnectivity((block, cc) -> cc.makeCasing(block, ct.get())))
+			.tag(com.simibubi.create.AllTags.AllBlockTags.CASING.tag)
+			.item()
+			.tag(com.simibubi.create.AllTags.AllItemTags.CASING.tag)
+			.build();
+	}
+
+	public static <B extends com.simibubi.create.content.decoration.MetalScaffoldingBlock, P> NonNullUnaryOperator<BlockBuilder<B, P>> scaffold(
+		net.minecraft.world.level.material.MapColor color, CTSpriteShiftEntry scaffoldShift,
+		CTSpriteShiftEntry scaffoldInsideShift, CTSpriteShiftEntry casingShift) {
+		return b -> b.initialProperties(() -> net.minecraft.world.level.block.Blocks.SCAFFOLDING)
+			.properties(p -> p.sound(net.minecraft.world.level.block.SoundType.COPPER).mapColor(color))
+			.onRegister(CreateRegistrate.connectedTextures(
+				() -> new com.simibubi.create.content.decoration.MetalScaffoldingCTBehaviour(scaffoldShift, scaffoldInsideShift, casingShift)))
+			.transform(TagGen.pickaxeOnly())
+			.tag(net.minecraft.tags.BlockTags.CLIMBABLE)
+			.item(com.simibubi.create.content.decoration.MetalScaffoldingBlockItem::new)
+			.build();
+	}
+
+	public static <B extends net.minecraft.world.level.block.IronBarsBlock, P> NonNullUnaryOperator<BlockBuilder<B, P>> metalBars(
+		net.minecraft.world.level.material.MapColor color) {
+		return b -> b.initialProperties(() -> net.minecraft.world.level.block.Blocks.IRON_BARS)
+			.properties(p -> p.sound(net.minecraft.world.level.block.SoundType.COPPER).mapColor(color))
+			.tag(com.simibubi.create.AllTags.AllBlockTags.WRENCH_PICKUP.tag)
+			.tag(com.simibubi.create.AllTags.AllBlockTags.FAN_TRANSPARENT.tag)
+			.transform(TagGen.pickaxeOnly())
+			.simpleItem();
+	}
+
+	public static <B extends net.minecraft.world.level.block.Block, P> NonNullUnaryOperator<BlockBuilder<B, P>> palettesIronBlock() {
+		return b -> b.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(net.minecraft.world.level.material.MapColor.COLOR_GRAY)
+				.sound(net.minecraft.world.level.block.SoundType.NETHERITE_BLOCK)
+				.requiresCorrectToolForDrops())
+			.transform(TagGen.pickaxeOnly())
+			.tag(com.simibubi.create.AllTags.AllBlockTags.WRENCH_PICKUP.tag)
+			.simpleItem();
+	}
 }
