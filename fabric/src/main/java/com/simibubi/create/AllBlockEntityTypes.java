@@ -185,6 +185,26 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.CREATIVE_FLUID_TANK)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.pump.PumpBlockEntity> MECHANICAL_PUMP = REGISTRATE
+		.blockEntity("mechanical_pump", com.simibubi.create.content.fluids.pump.PumpBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_PUMP)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.pipes.FluidPipeBlockEntity> FLUID_PIPE = REGISTRATE
+		.blockEntity("fluid_pipe", com.simibubi.create.content.fluids.pipes.FluidPipeBlockEntity::new)
+		.validBlocks(AllBlocks.FLUID_PIPE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.pipes.FluidPipeBlockEntity> ENCASED_FLUID_PIPE = REGISTRATE
+		.blockEntity("encased_fluid_pipe", com.simibubi.create.content.fluids.pipes.FluidPipeBlockEntity::new)
+		.validBlocks(AllBlocks.ENCASED_FLUID_PIPE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.pipes.StraightPipeBlockEntity> GLASS_FLUID_PIPE = REGISTRATE
+		.blockEntity("glass_fluid_pipe", com.simibubi.create.content.fluids.pipes.StraightPipeBlockEntity::new)
+		.validBlocks(AllBlocks.GLASS_FLUID_PIPE)
+		.register();
+
 	public static void register() {
 	}
 }

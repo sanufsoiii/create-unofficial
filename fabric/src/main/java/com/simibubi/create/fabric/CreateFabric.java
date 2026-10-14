@@ -40,5 +40,7 @@ public class CreateFabric implements ModInitializer {
 			TagKey.create(BuiltInRegistries.BLOCK.key(), Create.asResource("passive_boiler_heaters"));
 		BoilerHeater.REGISTRY.registerProvider(SimpleRegistry.Provider.forBlockTag(passiveBoilerHeatersTag, BoilerHeater.PASSIVE));
 		com.simibubi.create.content.fluids.tank.BoilerHeaters.registerDefaults();
+		com.simibubi.create.api.event.PipeCollisionEvent.FLOW.register(com.simibubi.create.content.fluids.FluidReactions::handlePipeFlowCollisionFallback);
+		com.simibubi.create.api.event.PipeCollisionEvent.SPILL.register(com.simibubi.create.content.fluids.FluidReactions::handlePipeSpillCollisionFallback);
 	}
 }

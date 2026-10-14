@@ -619,6 +619,42 @@ public class AllBlocks {
 		.build()
 		.register();
 
+	public static final BlockEntry<com.simibubi.create.content.fluids.pipes.FluidPipeBlock> FLUID_PIPE = REGISTRATE
+		.block("fluid_pipe", com.simibubi.create.content.fluids.pipes.FluidPipeBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.properties(p -> p.forceSolidOff())
+		.transform(TagGen.pickaxeOnly())
+		.item()
+		.build()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.fluids.pipes.EncasedPipeBlock> ENCASED_FLUID_PIPE =
+		REGISTRATE.block("encased_fluid_pipe", p -> new com.simibubi.create.content.fluids.pipes.EncasedPipeBlock(p, AllBlocks.COPPER_CASING::get))
+			.initialProperties(SharedProperties::copperMetal)
+			.properties(p -> p.noOcclusion()
+				.mapColor(MapColor.TERRACOTTA_LIGHT_GRAY))
+			.transform(TagGen.axeOrPickaxe())
+			.loot((p, b) -> p.dropOther(b, FLUID_PIPE.get()))
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.fluids.pipes.GlassFluidPipeBlock> GLASS_FLUID_PIPE =
+		REGISTRATE.block("glass_fluid_pipe", com.simibubi.create.content.fluids.pipes.GlassFluidPipeBlock::new)
+			.initialProperties(SharedProperties::copperMetal)
+			.properties(p -> p.noOcclusion())
+			.transform(TagGen.pickaxeOnly())
+			.loot((p, b) -> p.dropOther(b, FLUID_PIPE.get()))
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.fluids.pump.PumpBlock> MECHANICAL_PUMP = REGISTRATE
+		.block("mechanical_pump", com.simibubi.create.content.fluids.pump.PumpBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.properties(p -> p.mapColor(MapColor.STONE))
+		.transform(TagGen.pickaxeOnly())
+		.transform(CStress.setImpact(4.0))
+		.item()
+		.build()
+		.register();
+
 	public static void register() {
 	}
 }
