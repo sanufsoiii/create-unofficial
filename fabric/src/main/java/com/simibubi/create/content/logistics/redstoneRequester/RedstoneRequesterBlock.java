@@ -79,4 +79,26 @@ public class RedstoneRequesterBlock extends Block implements IBE<RedstoneRequest
 		return false;
 	}
 
+	public static void appendRequesterTooltip(ItemStack pStack, java.util.List<net.minecraft.network.chat.Component> pTooltip) {
+		if (!pStack.has(com.simibubi.create.AllDataComponents.AUTO_REQUEST_DATA))
+			return;
+
+		AutoRequestData data = pStack.get(com.simibubi.create.AllDataComponents.AUTO_REQUEST_DATA);
+
+		if (data == null)
+			return;
+
+		for (com.simibubi.create.content.logistics.BigItemStack entry : data.encodedRequest().stacks()) {
+			pTooltip.add(entry.stack.getHoverName()
+				.copy()
+				.append(" x")
+				.append(String.valueOf(entry.count))
+				.withStyle(net.minecraft.ChatFormatting.GRAY));
+		}
+
+		com.simibubi.create.foundation.utility.CreateLang.translate("logistically_linked.tooltip_clear")
+			.style(net.minecraft.ChatFormatting.DARK_GRAY)
+			.addTo(pTooltip);
+	}
+
 }

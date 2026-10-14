@@ -40,4 +40,24 @@ public class StockTickerBlockEntity extends StockCheckingBlockEntity implements 
 		activeLinks = tag.getInt("ActiveLinks");
 	}
 
+	public boolean isKeeperPresent() {
+		return false;
+	}
+
+	public int getTicksSinceLastUpdate() {
+		return ticksSinceLastUpdate;
+	}
+
+	public void refreshClientStockSnapshot() {
+		ticksSinceLastUpdate = 0;
+	}
+
+	public com.simibubi.create.content.logistics.packager.InventorySummary getLastClientsideStockSnapshotAsSummary() {
+		return null;
+	}
+
+	public com.simibubi.create.content.logistics.packager.InventorySummary getRecentSummary() {
+		return null;
+	}
+
 }
