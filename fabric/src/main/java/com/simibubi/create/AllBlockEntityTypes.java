@@ -358,6 +358,21 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.MECHANICAL_PISTON, AllBlocks.STICKY_MECHANICAL_PISTON)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEntity> WINDMILL_BEARING = REGISTRATE
+		.blockEntity("windmill_bearing", com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEntity::new)
+		.validBlocks(AllBlocks.WINDMILL_BEARING)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.bearing.MechanicalBearingBlockEntity> MECHANICAL_BEARING = REGISTRATE
+		.blockEntity("mechanical_bearing", com.simibubi.create.content.contraptions.bearing.MechanicalBearingBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_BEARING)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.bearing.ClockworkBearingBlockEntity> CLOCKWORK_BEARING = REGISTRATE
+		.blockEntity("clockwork_bearing", com.simibubi.create.content.contraptions.bearing.ClockworkBearingBlockEntity::new)
+		.validBlocks(AllBlocks.CLOCKWORK_BEARING)
+		.register();
+
 	public static void register() {
 	}
 }

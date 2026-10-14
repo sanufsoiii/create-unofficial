@@ -1293,6 +1293,36 @@ public class AllBlocks {
 			.loot((p, b) -> p.dropOther(b, PISTON_EXTENSION_POLE.get()))
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.contraptions.bearing.WindmillBearingBlock> WINDMILL_BEARING =
+		REGISTRATE.block("windmill_bearing", com.simibubi.create.content.contraptions.bearing.WindmillBearingBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.PODZOL).noOcclusion())
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setCapacity(512.0))
+			.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.bearing.MechanicalBearingBlock> MECHANICAL_BEARING =
+		REGISTRATE.block("mechanical_bearing", com.simibubi.create.content.contraptions.bearing.MechanicalBearingBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.PODZOL).noOcclusion())
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(4.0))
+			.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.bearing.ClockworkBearingBlock> CLOCKWORK_BEARING =
+		REGISTRATE.block("clockwork_bearing", com.simibubi.create.content.contraptions.bearing.ClockworkBearingBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN).noOcclusion())
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(4.0))
+			.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+			.simpleItem()
+			.register();
+
 	public static void register() {
 	}
 }
