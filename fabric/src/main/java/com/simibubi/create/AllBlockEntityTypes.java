@@ -541,6 +541,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.SCHEMATIC_TABLE)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crafter.MechanicalCrafterBlockEntity> MECHANICAL_CRAFTER = REGISTRATE
+		.blockEntity("mechanical_crafter", com.simibubi.create.content.kinetics.crafter.MechanicalCrafterBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_CRAFTER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.depot.EjectorBlockEntity> WEIGHTED_EJECTOR = REGISTRATE
+		.blockEntity("weighted_ejector", com.simibubi.create.content.logistics.depot.EjectorBlockEntity::new)
+		.validBlocks(AllBlocks.WEIGHTED_EJECTOR)
+		.register();
+
 	public static void register() {
 	}
 }

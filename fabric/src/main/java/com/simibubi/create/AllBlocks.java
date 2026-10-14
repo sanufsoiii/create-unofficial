@@ -1720,6 +1720,28 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.kinetics.crafter.MechanicalCrafterBlock> MECHANICAL_CRAFTER =
+		REGISTRATE.block("mechanical_crafter", com.simibubi.create.content.kinetics.crafter.MechanicalCrafterBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.noOcclusion()
+				.mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(2.0))
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.depot.EjectorBlock> WEIGHTED_EJECTOR =
+		REGISTRATE.block("weighted_ejector", com.simibubi.create.content.logistics.depot.EjectorBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.noOcclusion()
+				.mapColor(MapColor.COLOR_GRAY))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(2.0))
+			.item(com.simibubi.create.content.logistics.depot.EjectorItem::new)
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }
