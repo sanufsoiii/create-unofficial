@@ -1125,6 +1125,45 @@ public class AllBlocks {
 				.noOcclusion())
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.contraptions.bearing.SailBlock> SAIL_FRAME = REGISTRATE.block("sail_frame", p -> com.simibubi.create.content.contraptions.bearing.SailBlock.frame(p))
+		.initialProperties(SharedProperties::wooden)
+		.properties(p -> p.mapColor(MapColor.DIRT)
+			.sound(SoundType.SCAFFOLDING)
+			.noOcclusion())
+		.transform(TagGen.axeOnly())
+		.tag(AllTags.AllBlockTags.WINDMILL_SAILS.tag)
+		.tag(AllTags.AllBlockTags.FAN_TRANSPARENT.tag)
+		.item()
+		.build()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.bearing.SailBlock> SAIL =
+		REGISTRATE.block("white_sail", p -> com.simibubi.create.content.contraptions.bearing.SailBlock.withCanvas(p, net.minecraft.world.item.DyeColor.WHITE))
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.mapColor(MapColor.SNOW)
+				.sound(SoundType.SCAFFOLDING)
+				.noOcclusion())
+			.transform(TagGen.axeOnly())
+			.tag(AllTags.AllBlockTags.WINDMILL_SAILS.tag)
+			.item(com.simibubi.create.content.contraptions.bearing.BlankSailBlockItem::new)
+			.build()
+			.register();
+
+	public static final com.simibubi.create.foundation.block.DyedBlockList<com.simibubi.create.content.contraptions.bearing.SailBlock> DYED_SAILS = new com.simibubi.create.foundation.block.DyedBlockList<>(colour -> {
+		if (colour == net.minecraft.world.item.DyeColor.WHITE) {
+			return SAIL;
+		}
+		String colourName = colour.getSerializedName();
+		return REGISTRATE.block(colourName + "_sail", p -> com.simibubi.create.content.contraptions.bearing.SailBlock.withCanvas(p, colour))
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.mapColor(colour.getMapColor())
+				.sound(SoundType.SCAFFOLDING)
+				.noOcclusion())
+			.transform(TagGen.axeOnly())
+			.tag(AllTags.AllBlockTags.WINDMILL_SAILS.tag)
+			.register();
+	});
+
 	public static void register() {
 	}
 }
