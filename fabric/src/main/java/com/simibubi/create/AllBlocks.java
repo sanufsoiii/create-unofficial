@@ -599,6 +599,26 @@ public class AllBlocks {
 			.build()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.fluids.tank.FluidTankBlock> FLUID_TANK = REGISTRATE
+		.block("fluid_tank", com.simibubi.create.content.fluids.tank.FluidTankBlock::regular)
+		.initialProperties(SharedProperties::copperMetal)
+		.properties(p -> p.noOcclusion().isRedstoneConductor((p1, p2, p3) -> true))
+		.transform(TagGen.pickaxeOnly())
+		.item(com.simibubi.create.content.fluids.tank.FluidTankItem::new)
+		.build()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.fluids.tank.FluidTankBlock> CREATIVE_FLUID_TANK = REGISTRATE
+		.block("creative_fluid_tank", com.simibubi.create.content.fluids.tank.FluidTankBlock::creative)
+		.initialProperties(SharedProperties::copperMetal)
+		.properties(p -> p.noOcclusion().mapColor(MapColor.COLOR_PURPLE))
+		.transform(TagGen.pickaxeOnly())
+		.tag(AllBlockTags.SAFE_NBT.tag)
+		.item(com.simibubi.create.content.fluids.tank.FluidTankItem::new)
+		.properties(p -> p.rarity(net.minecraft.world.item.Rarity.EPIC))
+		.build()
+		.register();
+
 	public static void register() {
 	}
 }

@@ -175,6 +175,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.DEPLOYER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.tank.FluidTankBlockEntity> FLUID_TANK = REGISTRATE
+		.blockEntity("fluid_tank", com.simibubi.create.content.fluids.tank.FluidTankBlockEntity::new)
+		.validBlocks(AllBlocks.FLUID_TANK)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.tank.CreativeFluidTankBlockEntity> CREATIVE_FLUID_TANK = REGISTRATE
+		.blockEntity("creative_fluid_tank", com.simibubi.create.content.fluids.tank.CreativeFluidTankBlockEntity::new)
+		.validBlocks(AllBlocks.CREATIVE_FLUID_TANK)
+		.register();
+
 	public static void register() {
 	}
 }

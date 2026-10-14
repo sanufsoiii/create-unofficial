@@ -39,5 +39,6 @@ public class CreateFabric implements ModInitializer {
 		TagKey<net.minecraft.world.level.block.Block> passiveBoilerHeatersTag =
 			TagKey.create(BuiltInRegistries.BLOCK.key(), Create.asResource("passive_boiler_heaters"));
 		BoilerHeater.REGISTRY.registerProvider(SimpleRegistry.Provider.forBlockTag(passiveBoilerHeatersTag, BoilerHeater.PASSIVE));
+		com.simibubi.create.content.fluids.tank.BoilerHeaters.registerDefaults();
 	}
 }
