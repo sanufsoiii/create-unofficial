@@ -1492,6 +1492,50 @@ public class AllBlocks {
 				.register();
 		});
 
+	public static final BlockEntry<com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlock> CHAIN_CONVEYOR =
+		REGISTRATE.block("chain_conveyor", com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.noOcclusion().mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.packagerLink.PackagerLinkBlock> STOCK_LINK =
+		REGISTRATE.block("stock_link", com.simibubi.create.content.logistics.packagerLink.PackagerLinkBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE).sound(net.minecraft.world.level.block.SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.stockTicker.StockTickerBlock> STOCK_TICKER =
+		REGISTRATE.block("stock_ticker", com.simibubi.create.content.logistics.stockTicker.StockTickerBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.sound(net.minecraft.world.level.block.SoundType.GLASS))
+			.transform(TagGen.axeOrPickaxe())
+			.item(com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterBlock> REDSTONE_REQUESTER =
+		REGISTRATE.block("redstone_requester", com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.sound(net.minecraft.world.level.block.SoundType.NETHERITE_BLOCK).noOcclusion())
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlock> FACTORY_GAUGE =
+		REGISTRATE.block("factory_gauge", com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlock::new)
+			.initialProperties(SharedProperties::copperMetal)
+			.properties(p -> p.noOcclusion())
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockItem::new)
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }

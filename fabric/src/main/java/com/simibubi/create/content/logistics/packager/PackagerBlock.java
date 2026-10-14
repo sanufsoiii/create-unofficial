@@ -77,9 +77,9 @@ public class PackagerBlock extends WrenchableDirectionalBlock implements IBE<Pac
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
 		if (AllItems.WRENCH.isIn(stack))
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		if (stack.getItem().getDescriptionId().contains("factory_gauge"))
+		if (AllBlocks.FACTORY_GAUGE.isIn(stack))
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		if (stack.getItem().getDescriptionId().contains("stock_link") && !(state.hasProperty(LINKED) && state.getValue(LINKED)))
+		if (AllBlocks.STOCK_LINK.isIn(stack) && !(state.hasProperty(LINKED) && state.getValue(LINKED)))
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 		if (AllBlocks.PACKAGE_FROGPORT.isIn(stack))
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;

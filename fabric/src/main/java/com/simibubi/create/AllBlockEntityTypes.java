@@ -443,6 +443,31 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.PACKAGE_POSTBOXES.toArray())
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity> CHAIN_CONVEYOR = REGISTRATE
+		.blockEntity("chain_conveyor", com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity::new)
+		.validBlocks(AllBlocks.CHAIN_CONVEYOR)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.packagerLink.PackagerLinkBlockEntity> PACKAGER_LINK = REGISTRATE
+		.blockEntity("packager_link", com.simibubi.create.content.logistics.packagerLink.PackagerLinkBlockEntity::new)
+		.validBlocks(AllBlocks.STOCK_LINK)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity> STOCK_TICKER = REGISTRATE
+		.blockEntity("stock_ticker", com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity::new)
+		.validBlocks(AllBlocks.STOCK_TICKER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterBlockEntity> REDSTONE_REQUESTER = REGISTRATE
+		.blockEntity("redstone_requester", com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterBlockEntity::new)
+		.validBlocks(AllBlocks.REDSTONE_REQUESTER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity> FACTORY_PANEL = REGISTRATE
+		.blockEntity("factory_panel", com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity::new)
+		.validBlocks(AllBlocks.FACTORY_GAUGE)
+		.register();
+
 	public static void register() {
 	}
 }
