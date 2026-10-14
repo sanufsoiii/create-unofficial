@@ -1211,6 +1211,30 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.redstone.nixieTube.NixieTubeBlock> ORANGE_NIXIE_TUBE =
+		REGISTRATE.block("nixie_tube", p -> new com.simibubi.create.content.redstone.nixieTube.NixieTubeBlock(p, net.minecraft.world.item.DyeColor.ORANGE))
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.lightLevel($ -> 5)
+				.mapColor(net.minecraft.world.item.DyeColor.ORANGE)
+				.forceSolidOn())
+			.transform(TagGen.pickaxeOnly())
+			.simpleItem()
+			.register();
+
+	public static final com.simibubi.create.foundation.block.DyedBlockList<com.simibubi.create.content.redstone.nixieTube.NixieTubeBlock> NIXIE_TUBES = new com.simibubi.create.foundation.block.DyedBlockList<>(colour -> {
+		if (colour == net.minecraft.world.item.DyeColor.ORANGE)
+			return ORANGE_NIXIE_TUBE;
+		String colourName = colour.getSerializedName();
+		return REGISTRATE.block(colourName + "_nixie_tube", p -> new com.simibubi.create.content.redstone.nixieTube.NixieTubeBlock(p, colour))
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.lightLevel($ -> 5)
+				.mapColor(colour)
+				.forceSolidOn())
+			.transform(TagGen.pickaxeOnly())
+			.loot((p, b) -> p.dropOther(b, ORANGE_NIXIE_TUBE.get()))
+			.register();
+	});
+
 	public static void register() {
 	}
 }

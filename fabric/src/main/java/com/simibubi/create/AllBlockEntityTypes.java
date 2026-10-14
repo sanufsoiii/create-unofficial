@@ -332,6 +332,12 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.STICKER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.nixieTube.NixieTubeBlockEntity> NIXIE_TUBE = REGISTRATE
+		.blockEntity("nixie_tube", com.simibubi.create.content.redstone.nixieTube.NixieTubeBlockEntity::new)
+		.validBlocks(AllBlocks.ORANGE_NIXIE_TUBE)
+		.validBlocks(AllBlocks.NIXIE_TUBES.toArray())
+		.register();
+
 	public static void register() {
 	}
 }
