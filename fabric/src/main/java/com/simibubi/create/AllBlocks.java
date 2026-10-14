@@ -1355,6 +1355,49 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.contraptions.gantry.GantryCarriageBlock> GANTRY_CARRIAGE =
+		REGISTRATE.block("gantry_carriage", com.simibubi.create.content.contraptions.gantry.GantryCarriageBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.noOcclusion()
+				.mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.kinetics.gantry.GantryShaftBlock> GANTRY_SHAFT =
+		REGISTRATE.block("gantry_shaft", com.simibubi.create.content.kinetics.gantry.GantryShaftBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.NETHER)
+				.forceSolidOn())
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setNoImpact())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.mounted.CartAssemblerBlock> CART_ASSEMBLER =
+		REGISTRATE.block("cart_assembler", com.simibubi.create.content.contraptions.mounted.CartAssemblerBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.noOcclusion()
+				.mapColor(MapColor.COLOR_GRAY))
+			.transform(TagGen.axeOrPickaxe())
+			.tag(net.minecraft.tags.BlockTags.RAILS, AllTags.AllBlockTags.SAFE_NBT.tag)
+			.item(com.simibubi.create.content.contraptions.mounted.CartAssemblerBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.rail.ControllerRailBlock> CONTROLLER_RAIL =
+		REGISTRATE.block("controller_rail", com.simibubi.create.content.redstone.rail.ControllerRailBlock::new)
+			.initialProperties(() -> net.minecraft.world.level.block.Blocks.POWERED_RAIL)
+			.transform(TagGen.pickaxeOnly())
+			.tag(net.minecraft.tags.BlockTags.RAILS)
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.mounted.CartAssemblerBlock.MinecartAnchorBlock> MINECART_ANCHOR =
+		REGISTRATE.block("minecart_anchor", com.simibubi.create.content.contraptions.mounted.CartAssemblerBlock.MinecartAnchorBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.register();
+
 	public static void register() {
 	}
 }

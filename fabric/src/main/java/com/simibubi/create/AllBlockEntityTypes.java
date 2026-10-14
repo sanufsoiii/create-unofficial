@@ -383,6 +383,21 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.ELEVATOR_PULLEY)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.gantry.GantryShaftBlockEntity> GANTRY_SHAFT = REGISTRATE
+		.blockEntity("gantry_shaft", com.simibubi.create.content.kinetics.gantry.GantryShaftBlockEntity::new)
+		.validBlocks(AllBlocks.GANTRY_SHAFT)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.gantry.GantryCarriageBlockEntity> GANTRY_PINION = REGISTRATE
+		.blockEntity("gantry_pinion", com.simibubi.create.content.contraptions.gantry.GantryCarriageBlockEntity::new)
+		.validBlocks(AllBlocks.GANTRY_CARRIAGE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.mounted.CartAssemblerBlockEntity> CART_ASSEMBLER = REGISTRATE
+		.blockEntity("cart_assembler", com.simibubi.create.content.contraptions.mounted.CartAssemblerBlockEntity::new)
+		.validBlocks(AllBlocks.CART_ASSEMBLER)
+		.register();
+
 	public static void register() {
 	}
 }

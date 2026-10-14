@@ -265,6 +265,10 @@ public class BlockMovementChecksImpl {
 	private static boolean isNotSupportiveFallback(BlockState state, Direction facing) {
 		if (AllBlocks.MECHANICAL_DRILL.has(state))
 			return state.getValue(BlockStateProperties.FACING) == facing;
+		if (AllBlocks.MECHANICAL_BEARING.has(state))
+			return state.getValue(BlockStateProperties.FACING) == facing;
+		if (AllBlocks.CART_ASSEMBLER.has(state))
+			return facing == Direction.DOWN;
 		if (AllBlocks.MECHANICAL_SAW.has(state))
 			return state.getValue(BlockStateProperties.FACING) == facing;
 		if (state.getBlock() instanceof WoolCarpetBlock)
@@ -277,6 +281,6 @@ public class BlockMovementChecksImpl {
 				.getAxis();
 		if (AllBlocks.ROPE_PULLEY.has(state))
 			return facing == Direction.DOWN;
-		return false;
+		return BlockMovementChecks.isBrittle(state);
 	}
 }
