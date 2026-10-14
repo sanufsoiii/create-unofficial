@@ -1265,6 +1265,34 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock> MECHANICAL_PISTON =
+		REGISTRATE.block("mechanical_piston", com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock::normal)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.PODZOL).noOcclusion())
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(4.0))
+			.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock> STICKY_MECHANICAL_PISTON =
+		REGISTRATE.block("sticky_mechanical_piston", com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock::sticky)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.PODZOL).noOcclusion())
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(4.0))
+			.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.piston.MechanicalPistonHeadBlock> MECHANICAL_PISTON_HEAD =
+		REGISTRATE.block("mechanical_piston_head", com.simibubi.create.content.contraptions.piston.MechanicalPistonHeadBlock::new)
+			.initialProperties(() -> net.minecraft.world.level.block.Blocks.PISTON_HEAD)
+			.properties(p -> p.mapColor(MapColor.DIRT))
+			.transform(TagGen.axeOrPickaxe())
+			.loot((p, b) -> p.dropOther(b, PISTON_EXTENSION_POLE.get()))
+			.register();
+
 	public static void register() {
 	}
 }

@@ -353,6 +353,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.SMART_OBSERVER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.piston.MechanicalPistonBlockEntity> MECHANICAL_PISTON = REGISTRATE
+		.blockEntity("mechanical_piston", com.simibubi.create.content.contraptions.piston.MechanicalPistonBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_PISTON, AllBlocks.STICKY_MECHANICAL_PISTON)
+		.register();
+
 	public static void register() {
 	}
 }

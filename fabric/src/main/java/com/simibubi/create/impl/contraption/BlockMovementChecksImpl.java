@@ -269,6 +269,12 @@ public class BlockMovementChecksImpl {
 			return state.getValue(BlockStateProperties.FACING) == facing;
 		if (state.getBlock() instanceof WoolCarpetBlock)
 			return facing == Direction.UP;
+		if (AllBlocks.PISTON_EXTENSION_POLE.has(state))
+			return facing.getAxis() != state.getValue(BlockStateProperties.FACING)
+				.getAxis();
+		if (AllBlocks.MECHANICAL_PISTON_HEAD.has(state))
+			return facing.getAxis() != state.getValue(BlockStateProperties.FACING)
+				.getAxis();
 		return false;
 	}
 }
