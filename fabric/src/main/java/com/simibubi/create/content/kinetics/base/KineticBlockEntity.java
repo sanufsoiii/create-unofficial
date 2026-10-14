@@ -123,4 +123,7 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 
 	public void onSpeedChanged(float previousSpeed) {
 	}
+
+	public void warnOfMovement() {
+	}
 }

@@ -7,8 +7,10 @@ import org.jetbrains.annotations.Nullable;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.stats.Stats;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -102,4 +104,122 @@ public class BlockHelper extends CommonBlockHelper {
 		if (player != null)
 			PlayerBlockBreakEvents.AFTER.invoker().afterBlockBreak(level, player, pos, state, be);
 	}
+
+	public static CompoundTag prepareBlockEntityData(Level level, BlockState blockState, BlockEntity blockEntity) {
+		CompoundTag data = null;
+		if (blockEntity == null)
+			return null;
+		net.minecraft.core.RegistryAccess access = level.registryAccess();
+		com.simibubi.create.api.schematic.nbt.SafeNbtWriterRegistry.SafeNbtWriter writer = com.simibubi.create.api.schematic.nbt.SafeNbtWriterRegistry.REGISTRY.get(blockEntity.getType());
+		if (com.simibubi.create.AllTags.AllBlockTags.SAFE_NBT.matches(blockState)) {
+			data = blockEntity.saveWithFullMetadata(access);
+		} else if (writer != null) {
+			data = new CompoundTag();
+			writer.writeSafe(blockEntity, data, access);
+		} else if (blockEntity instanceof com.simibubi.create.api.schematic.nbt.PartialSafeNBT safeNbtBE) {
+			data = new CompoundTag();
+			safeNbtBE.writeSafe(data, access);
+		}
+
+		return net.createmod.catnip.nbt.NBTProcessors.process(blockState, blockEntity, data, true);
+	}
+
+	public static void placeSchematicBlock(Level world, BlockState state, BlockPos target, ItemStack stack,
+										   @Nullable CompoundTag data) {
+		Block block = state.getBlock();
+		BlockEntity existingBlockEntity = world.getBlockEntity(target);
+		boolean alreadyPlaced = false;
+
+		com.simibubi.create.api.schematic.state.SchematicStateFilterRegistry.StateFilter filter = com.simibubi.create.api.schematic.state.SchematicStateFilterRegistry.REGISTRY.get(state);
+		if (filter != null) {
+			state = filter.filterStates(existingBlockEntity, state);
+		} else if (block instanceof com.simibubi.create.api.schematic.state.SchematicStateFilter schematicStateFilter) {
+			state = schematicStateFilter.filterStates(existingBlockEntity, state);
+		}
+
+		// Piston
+		if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.EXTENDED))
+			state = state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.EXTENDED, Boolean.FALSE);
+		if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED))
+			state = state.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED, Boolean.FALSE);
+
+		if (block == Blocks.COMPOSTER) {
+			state = Blocks.COMPOSTER.defaultBlockState();
+		} else if (state.is(BlockTags.CAULDRONS)) {
+			state = Blocks.CAULDRON.defaultBlockState();
+		}
+
+		if (world.dimensionType().ultraWarm() && state.getFluidState().is(net.minecraft.tags.FluidTags.WATER)) {
+			int i = target.getX();
+			int j = target.getY();
+			int k = target.getZ();
+			world.playSound(null, target, SoundEvents.FIRE_EXTINGUISH, net.minecraft.sounds.SoundSource.BLOCKS, 0.5F,
+				2.6F + (world.random.nextFloat() - world.random.nextFloat()) * 0.8F);
+
+			for (int l = 0; l < 8; ++l) {
+				world.addParticle(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, i + Math.random(), j + Math.random(), k + Math.random(),
+					0.0D, 0.0D, 0.0D);
+			}
+			Block.dropResources(state, world, target);
+			return;
+		}
+
+		if (alreadyPlaced) {
+			// pass
+		} else if (state.getBlock() instanceof net.minecraft.world.level.block.BaseRailBlock) {
+			placeRailWithoutUpdate(world, state, target);
+		} else if (com.simibubi.create.AllBlocks.BELT.has(state)) {
+			world.setBlock(target, state, Block.UPDATE_CLIENTS);
+		} else {
+			world.setBlock(target, state, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+		}
+
+		if (data != null) {
+			if (existingBlockEntity instanceof com.simibubi.create.foundation.blockEntity.IMergeableBE mergeable) {
+				BlockEntity loaded = BlockEntity.loadStatic(target, state, data, world.registryAccess());
+				if (loaded != null) {
+					if (existingBlockEntity.getType().equals(loaded.getType())) {
+						mergeable.accept(loaded);
+						return;
+					}
+				}
+			}
+			BlockEntity blockEntity = world.getBlockEntity(target);
+			if (blockEntity != null) {
+				data.putInt("x", target.getX());
+				data.putInt("y", target.getY());
+				data.putInt("z", target.getZ());
+				if (blockEntity instanceof com.simibubi.create.content.kinetics.base.KineticBlockEntity kbe)
+					kbe.warnOfMovement();
+				if (blockEntity instanceof com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer imbe)
+					if (!imbe.isController())
+						data.put("Controller", net.minecraft.nbt.NbtUtils.writeBlockPos(imbe.getController()));
+				blockEntity.loadWithComponents(data, world.registryAccess());
+			}
+		}
+
+		try {
+			state.getBlock().setPlacedBy(world, target, state, null, stack);
+		} catch (Exception ignored) {
+		}
+	}
+
+	private static void placeRailWithoutUpdate(Level world, BlockState state, BlockPos target) {
+		net.minecraft.world.level.chunk.LevelChunk chunk = world.getChunkAt(target);
+		int idx = chunk.getSectionIndex(target.getY());
+		net.minecraft.world.level.chunk.LevelChunkSection chunksection = chunk.getSection(idx);
+		if (chunksection == null) {
+			chunksection = new net.minecraft.world.level.chunk.LevelChunkSection(world.registryAccess()
+				.registryOrThrow(Registries.BIOME));
+			chunk.getSections()[idx] = chunksection;
+		}
+		BlockState old = chunksection.setBlockState(net.minecraft.core.SectionPos.sectionRelative(target.getX()),
+			net.minecraft.core.SectionPos.sectionRelative(target.getY()), net.minecraft.core.SectionPos.sectionRelative(target.getZ()), state);
+		chunk.setUnsaved(true);
+		world.markAndNotifyBlock(target, chunk, old, state, 82, 512);
+
+		world.setBlock(target, state, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_MOVE_BY_PISTON);
+		world.neighborChanged(target, world.getBlockState(target.below()).getBlock(), target.below());
+	}
 }
+

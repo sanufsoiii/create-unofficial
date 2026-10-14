@@ -211,6 +211,19 @@ public class AllItems {
 			.register();
 	}
 
+	public static final ItemEntry<Item> EMPTY_SCHEMATIC = REGISTRATE.item("empty_schematic", Item::new)
+		.properties(p -> p.stacksTo(1))
+		.register();
+
+	public static final ItemEntry<com.simibubi.create.content.schematics.SchematicItem> SCHEMATIC = REGISTRATE.item("schematic", com.simibubi.create.content.schematics.SchematicItem::new)
+		.properties(p -> p.stacksTo(1))
+		.register();
+
+	public static final ItemEntry<com.simibubi.create.content.kinetics.belt.item.BeltConnectorItem> BELT_CONNECTOR =
+		REGISTRATE.item("belt_connector", com.simibubi.create.content.kinetics.belt.item.BeltConnectorItem::new)
+			.register();
+
 	public static void register() {
 	}
 }
+
