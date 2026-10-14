@@ -947,6 +947,62 @@ public class AllBlocks {
 		.build()
 		.register();
 
+	public static final BlockEntry<com.simibubi.create.content.redstone.RoseQuartzLampBlock> ROSE_QUARTZ_LAMP =
+		REGISTRATE.block("rose_quartz_lamp", com.simibubi.create.content.redstone.RoseQuartzLampBlock::new)
+			.initialProperties(() -> Blocks.REDSTONE_LAMP)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_PINK)
+				.lightLevel(s -> s.getValue(com.simibubi.create.content.redstone.RoseQuartzLampBlock.POWERING) ? 15 : 0))
+			.transform(TagGen.pickaxeOnly())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.analogLever.AnalogLeverBlock> ANALOG_LEVER =
+		REGISTRATE.block("analog_lever", com.simibubi.create.content.redstone.analogLever.AnalogLeverBlock::new)
+			.initialProperties(() -> Blocks.LEVER)
+			.transform(TagGen.axeOrPickaxe())
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.onRegister(com.simibubi.create.foundation.block.ItemUseOverrides::addBlock)
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.diodes.BrassDiodeBlock> PULSE_REPEATER =
+		REGISTRATE.block("pulse_repeater", com.simibubi.create.content.redstone.diodes.BrassDiodeBlock::new)
+			.initialProperties(() -> Blocks.REPEATER)
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.diodes.BrassDiodeBlock> PULSE_EXTENDER =
+		REGISTRATE.block("pulse_extender", com.simibubi.create.content.redstone.diodes.BrassDiodeBlock::new)
+			.initialProperties(() -> Blocks.REPEATER)
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.diodes.BrassDiodeBlock> PULSE_TIMER =
+		REGISTRATE.block("pulse_timer", com.simibubi.create.content.redstone.diodes.BrassDiodeBlock::new)
+			.initialProperties(() -> Blocks.REPEATER)
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.diodes.PoweredLatchBlock> POWERED_LATCH =
+		REGISTRATE.block("powered_latch", com.simibubi.create.content.redstone.diodes.PoweredLatchBlock::new)
+			.initialProperties(() -> Blocks.REPEATER)
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.diodes.ToggleLatchBlock> POWERED_TOGGLE_LATCH =
+		REGISTRATE.block("powered_toggle_latch", com.simibubi.create.content.redstone.diodes.ToggleLatchBlock::new)
+			.initialProperties(() -> Blocks.REPEATER)
+			.item()
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }

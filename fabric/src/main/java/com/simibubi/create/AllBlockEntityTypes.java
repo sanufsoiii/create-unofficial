@@ -266,6 +266,26 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.ITEM_VAULT)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.analogLever.AnalogLeverBlockEntity> ANALOG_LEVER = REGISTRATE
+		.blockEntity("analog_lever", com.simibubi.create.content.redstone.analogLever.AnalogLeverBlockEntity::new)
+		.validBlocks(AllBlocks.ANALOG_LEVER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.diodes.PulseRepeaterBlockEntity> PULSE_REPEATER = REGISTRATE
+		.blockEntity("pulse_repeater", com.simibubi.create.content.redstone.diodes.PulseRepeaterBlockEntity::new)
+		.validBlocks(AllBlocks.PULSE_REPEATER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.diodes.PulseExtenderBlockEntity> PULSE_EXTENDER = REGISTRATE
+		.blockEntity("pulse_extender", com.simibubi.create.content.redstone.diodes.PulseExtenderBlockEntity::new)
+		.validBlocks(AllBlocks.PULSE_EXTENDER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.diodes.PulseTimerBlockEntity> PULSE_TIMER = REGISTRATE
+		.blockEntity("pulse_timer", com.simibubi.create.content.redstone.diodes.PulseTimerBlockEntity::new)
+		.validBlocks(AllBlocks.PULSE_TIMER)
+		.register();
+
 	public static void register() {
 	}
 }
