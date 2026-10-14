@@ -159,6 +159,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.ENCASED_FAN)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.fan.NozzleBlockEntity> NOZZLE = REGISTRATE
+		.blockEntity("nozzle", com.simibubi.create.content.kinetics.fan.NozzleBlockEntity::new)
+		.validBlocks(AllBlocks.NOZZLE)
+		.register();
+
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.funnel.FunnelBlockEntity> FUNNEL = REGISTRATE
 		.blockEntity("funnel", com.simibubi.create.content.logistics.funnel.FunnelBlockEntity::new)
 		.validBlocks(AllBlocks.BRASS_FUNNEL, AllBlocks.BRASS_BELT_FUNNEL, AllBlocks.ANDESITE_FUNNEL,
@@ -238,6 +243,16 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.decoration.placard.PlacardBlockEntity> PLACARD = REGISTRATE
 		.blockEntity("placard", com.simibubi.create.content.decoration.placard.PlacardBlockEntity::new)
 		.validBlocks(AllBlocks.PLACARD)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.crate.CreativeCrateBlockEntity> CREATIVE_CRATE = REGISTRATE
+		.blockEntity("creative_crate", com.simibubi.create.content.logistics.crate.CreativeCrateBlockEntity::new)
+		.validBlocks(AllBlocks.CREATIVE_CRATE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.vault.ItemVaultBlockEntity> ITEM_VAULT = REGISTRATE
+		.blockEntity("item_vault", com.simibubi.create.content.logistics.vault.ItemVaultBlockEntity::new)
+		.validBlocks(AllBlocks.ITEM_VAULT)
 		.register();
 
 	public static void register() {

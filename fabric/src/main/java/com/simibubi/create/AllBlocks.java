@@ -538,6 +538,16 @@ public class AllBlocks {
 		.simpleItem()
 		.register();
 
+	public static final BlockEntry<com.simibubi.create.content.kinetics.fan.NozzleBlock> NOZZLE = REGISTRATE
+		.block("nozzle", com.simibubi.create.content.kinetics.fan.NozzleBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.mapColor(MapColor.COLOR_LIGHT_GRAY))
+		.tag(AllBlockTags.BRITTLE.tag)
+		.transform(TagGen.axeOrPickaxe())
+		.item()
+		.build()
+		.register();
+
 	public static final BlockEntry<BeltBlock> BELT = REGISTRATE.block("belt", BeltBlock::new)
 		.properties(p -> p.sound(SoundType.WOOL)
 			.strength(0.8f)
@@ -872,6 +882,28 @@ public class AllBlocks {
 		.properties(p -> p.forceSolidOn())
 		.transform(TagGen.pickaxeOnly())
 		.simpleItem()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.crate.CreativeCrateBlock> CREATIVE_CRATE = REGISTRATE
+		.block("creative_crate", com.simibubi.create.content.logistics.crate.CreativeCrateBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.transform(TagGen.axeOrPickaxe())
+		.properties(p -> p.mapColor(MapColor.COLOR_PURPLE))
+		.item()
+		.properties(p -> p.rarity(net.minecraft.world.item.Rarity.EPIC))
+		.build()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.vault.ItemVaultBlock> ITEM_VAULT = REGISTRATE
+		.block("item_vault", com.simibubi.create.content.logistics.vault.ItemVaultBlock::new)
+		.initialProperties(SharedProperties::softMetal)
+		.properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE)
+			.sound(SoundType.NETHERITE_BLOCK)
+			.explosionResistance(1200))
+		.transform(TagGen.pickaxeOnly())
+		.onRegister(CreateRegistrate.connectedTextures(com.simibubi.create.content.logistics.vault.ItemVaultCTBehaviour::new))
+		.item(com.simibubi.create.content.logistics.vault.ItemVaultItem::new)
+		.build()
 		.register();
 
 	public static void register() {
