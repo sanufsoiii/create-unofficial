@@ -398,6 +398,31 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.CART_ASSEMBLER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.actors.harvester.HarvesterBlockEntity> HARVESTER = REGISTRATE
+		.blockEntity("harvester", com.simibubi.create.content.contraptions.actors.harvester.HarvesterBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_HARVESTER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.actors.roller.RollerBlockEntity> MECHANICAL_ROLLER = REGISTRATE
+		.blockEntity("mechanical_roller", com.simibubi.create.content.contraptions.actors.roller.RollerBlockEntity::new)
+		.validBlocks(AllBlocks.MECHANICAL_ROLLER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.actors.contraptionControls.ContraptionControlsBlockEntity> CONTRAPTION_CONTROLS = REGISTRATE
+		.blockEntity("contraption_controls", com.simibubi.create.content.contraptions.actors.contraptionControls.ContraptionControlsBlockEntity::new)
+		.validBlocks(AllBlocks.CONTRAPTION_CONTROLS)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.actors.psi.PortableItemInterfaceBlockEntity> PORTABLE_STORAGE_INTERFACE = REGISTRATE
+		.blockEntity("portable_storage_interface", com.simibubi.create.content.contraptions.actors.psi.PortableItemInterfaceBlockEntity::new)
+		.validBlocks(AllBlocks.PORTABLE_STORAGE_INTERFACE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.actors.psi.PortableFluidInterfaceBlockEntity> PORTABLE_FLUID_INTERFACE = REGISTRATE
+		.blockEntity("portable_fluid_interface", com.simibubi.create.content.contraptions.actors.psi.PortableFluidInterfaceBlockEntity::new)
+		.validBlocks(AllBlocks.PORTABLE_FLUID_INTERFACE)
+		.register();
+
 	public static void register() {
 	}
 }

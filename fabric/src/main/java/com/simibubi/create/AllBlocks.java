@@ -1398,6 +1398,58 @@ public class AllBlocks {
 			.initialProperties(SharedProperties::stone)
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.contraptions.actors.harvester.HarvesterBlock> MECHANICAL_HARVESTER =
+		REGISTRATE.block("mechanical_harvester", com.simibubi.create.content.contraptions.actors.harvester.HarvesterBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.METAL)
+				.forceSolidOn())
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.actors.plough.PloughBlock> MECHANICAL_PLOUGH =
+		REGISTRATE.block("mechanical_plough", com.simibubi.create.content.contraptions.actors.plough.PloughBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.COLOR_GRAY)
+				.forceSolidOn())
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.actors.roller.RollerBlock> MECHANICAL_ROLLER =
+		REGISTRATE.block("mechanical_roller", com.simibubi.create.content.contraptions.actors.roller.RollerBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.COLOR_GRAY)
+				.noOcclusion())
+			.transform(TagGen.axeOrPickaxe())
+			.item(com.simibubi.create.content.contraptions.actors.roller.RollerBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.actors.contraptionControls.ContraptionControlsBlock> CONTRAPTION_CONTROLS =
+		REGISTRATE.block("contraption_controls", com.simibubi.create.content.contraptions.actors.contraptionControls.ContraptionControlsBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.actors.psi.PortableStorageInterfaceBlock> PORTABLE_STORAGE_INTERFACE =
+		REGISTRATE.block("portable_storage_interface", com.simibubi.create.content.contraptions.actors.psi.PortableStorageInterfaceBlock::forItems)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.actors.psi.PortableStorageInterfaceBlock> PORTABLE_FLUID_INTERFACE =
+		REGISTRATE.block("portable_fluid_interface", com.simibubi.create.content.contraptions.actors.psi.PortableStorageInterfaceBlock::forFluids)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
 	public static void register() {
 	}
 }

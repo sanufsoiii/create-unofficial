@@ -251,6 +251,8 @@ public class BlockMovementChecksImpl {
 		}
 		if (state.getBlock() instanceof SailBlock)
 			return direction.getAxis() != state.getValue(SailBlock.FACING).getAxis();
+		if (block instanceof com.simibubi.create.content.contraptions.actors.AttachedActorBlock)
+			return direction == state.getValue(com.simibubi.create.content.contraptions.actors.harvester.HarvesterBlock.FACING).getOpposite();
 		if (state.getBlock() instanceof FluidTankBlock)
 			return ConnectivityHandler.isConnected(world, pos, pos.relative(direction));
 		if (state.getBlock() instanceof ItemVaultBlock)
@@ -271,6 +273,10 @@ public class BlockMovementChecksImpl {
 			return facing == Direction.DOWN;
 		if (AllBlocks.MECHANICAL_SAW.has(state))
 			return state.getValue(BlockStateProperties.FACING) == facing;
+		if (AllBlocks.PORTABLE_STORAGE_INTERFACE.has(state) || AllBlocks.PORTABLE_FLUID_INTERFACE.has(state))
+			return state.getValue(com.simibubi.create.content.contraptions.actors.psi.PortableStorageInterfaceBlock.FACING) == facing;
+		if (state.getBlock() instanceof com.simibubi.create.content.contraptions.actors.AttachedActorBlock && !AllBlocks.MECHANICAL_ROLLER.has(state))
+			return state.getValue(BlockStateProperties.HORIZONTAL_FACING) == facing;
 		if (state.getBlock() instanceof WoolCarpetBlock)
 			return facing == Direction.UP;
 		if (AllBlocks.PISTON_EXTENSION_POLE.has(state))
