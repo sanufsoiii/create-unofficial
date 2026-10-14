@@ -1450,6 +1450,48 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.logistics.packager.PackagerBlock> PACKAGER =
+		REGISTRATE.block("packager", com.simibubi.create.content.logistics.packager.PackagerBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.noOcclusion())
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE).sound(net.minecraft.world.level.block.SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.packager.repackager.RepackagerBlock> REPACKAGER =
+		REGISTRATE.block("repackager", com.simibubi.create.content.logistics.packager.repackager.RepackagerBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.noOcclusion())
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE).sound(net.minecraft.world.level.block.SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlock> PACKAGE_FROGPORT =
+		REGISTRATE.block("package_frogport", com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.noOcclusion())
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE).sound(net.minecraft.world.level.block.SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.logistics.packagePort.PackagePortItem::new)
+			.build()
+			.register();
+
+	public static final com.simibubi.create.foundation.block.DyedBlockList<com.simibubi.create.content.logistics.packagePort.postbox.PostboxBlock> PACKAGE_POSTBOXES =
+		new com.simibubi.create.foundation.block.DyedBlockList<>(colour -> {
+			String colourName = colour.getSerializedName();
+			return REGISTRATE.block(colourName + "_postbox", p -> new com.simibubi.create.content.logistics.packagePort.postbox.PostboxBlock(p, colour))
+				.initialProperties(SharedProperties::wooden)
+				.properties(p -> p.mapColor(colour))
+				.transform(TagGen.axeOnly())
+				.tag(AllTags.AllBlockTags.POSTBOXES.tag)
+				.item(com.simibubi.create.content.logistics.packagePort.PackagePortItem::new)
+				.tag(AllTags.AllItemTags.POSTBOXES.tag)
+				.build()
+				.register();
+		});
+
 	public static void register() {
 	}
 }

@@ -423,6 +423,26 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.PORTABLE_FLUID_INTERFACE)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.packager.PackagerBlockEntity> PACKAGER = REGISTRATE
+		.blockEntity("packager", com.simibubi.create.content.logistics.packager.PackagerBlockEntity::new)
+		.validBlocks(AllBlocks.PACKAGER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity> REPACKAGER = REGISTRATE
+		.blockEntity("repackager", com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity::new)
+		.validBlocks(AllBlocks.REPACKAGER)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity> PACKAGE_FROGPORT = REGISTRATE
+		.blockEntity("package_frogport", com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity::new)
+		.validBlocks(AllBlocks.PACKAGE_FROGPORT)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.packagePort.postbox.PostboxBlockEntity> PACKAGE_POSTBOX = REGISTRATE
+		.blockEntity("package_postbox", com.simibubi.create.content.logistics.packagePort.postbox.PostboxBlockEntity::new)
+		.validBlocks(AllBlocks.PACKAGE_POSTBOXES.toArray())
+		.register();
+
 	public static void register() {
 	}
 }
