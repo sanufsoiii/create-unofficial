@@ -1536,6 +1536,57 @@ public class AllBlocks {
 			.build()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.redstone.displayLink.DisplayLinkBlock> DISPLAY_LINK =
+		REGISTRATE.block("display_link", com.simibubi.create.content.redstone.displayLink.DisplayLinkBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN))
+			.transform(TagGen.axeOrPickaxe())
+			.item(com.simibubi.create.content.redstone.displayLink.DisplayLinkBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.trains.display.FlapDisplayBlock> DISPLAY_BOARD =
+		REGISTRATE.block("display_board", com.simibubi.create.content.trains.display.FlapDisplayBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.COLOR_GRAY))
+			.transform(TagGen.pickaxeOnly())
+			.transform(CStress.setNoImpact())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.elevator.ElevatorContactBlock> ELEVATOR_CONTACT =
+		REGISTRATE.block("elevator_contact", com.simibubi.create.content.contraptions.elevator.ElevatorContactBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW)
+				.lightLevel(com.simibubi.create.content.contraptions.elevator.ElevatorContactBlock::getLight))
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<net.minecraft.world.level.block.Block> COPYCAT_BASE = REGISTRATE.block("copycat_base", net.minecraft.world.level.block.Block::new)
+		.initialProperties(SharedProperties::softMetal)
+		.properties(p -> p.mapColor(MapColor.GLOW_LICHEN))
+		.tag(com.simibubi.create.AllTags.AllBlockTags.FAN_TRANSPARENT.tag)
+		.transform(TagGen.pickaxeOnly())
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.copycat.CopycatStepBlock> COPYCAT_STEP =
+		REGISTRATE.block("copycat_step", com.simibubi.create.content.decoration.copycat.CopycatStepBlock::new)
+			.properties(p -> p.forceSolidOn())
+			.transform(BuilderTransformers.copycat())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.copycat.CopycatPanelBlock> COPYCAT_PANEL =
+		REGISTRATE.block("copycat_panel", com.simibubi.create.content.decoration.copycat.CopycatPanelBlock::new)
+			.transform(BuilderTransformers.copycat())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.foundation.block.WrenchableDirectionalBlock> COPYCAT_BARS =
+		REGISTRATE.block("copycat_bars", com.simibubi.create.foundation.block.WrenchableDirectionalBlock::new)
+			.register();
+
 	public static void register() {
 	}
 }

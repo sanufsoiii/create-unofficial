@@ -64,7 +64,16 @@ public class RedstoneContactBlock extends WrenchableDirectionalBlock {
 		if (level.isClientSide())
 			return onWrenched;
 
-		// TODO: Support converting to ELEVATOR_CONTACT when elevator system is ported
+		BlockPos pos = context.getClickedPos();
+		state = level.getBlockState(pos);
+		Direction facing = state.getValue(RedstoneContactBlock.FACING);
+		if (facing.getAxis() == Direction.Axis.Y)
+			return onWrenched;
+		if (com.simibubi.create.content.contraptions.elevator.ElevatorColumn.get(level, new com.simibubi.create.content.contraptions.elevator.ElevatorColumn.ColumnCoords(pos.getX(), pos.getZ(), facing)) == null)
+			return onWrenched;
+
+		level.setBlockAndUpdate(pos, com.simibubi.create.foundation.utility.BlockHelper.copyProperties(state, AllBlocks.ELEVATOR_CONTACT.getDefaultState()));
+
 		return onWrenched;
 	}
 
@@ -97,7 +106,7 @@ public class RedstoneContactBlock extends WrenchableDirectionalBlock {
 
 	public static boolean hasValidContact(LevelAccessor world, BlockPos pos, Direction direction) {
 		BlockState blockState = world.getBlockState(pos.relative(direction));
-		return (AllBlocks.REDSTONE_CONTACT.has(blockState))
+		return (AllBlocks.REDSTONE_CONTACT.has(blockState) || AllBlocks.ELEVATOR_CONTACT.has(blockState))
 			&& blockState.getValue(FACING) == direction.getOpposite();
 	}
 

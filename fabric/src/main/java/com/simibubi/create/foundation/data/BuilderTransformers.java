@@ -132,5 +132,13 @@ public class BuilderTransformers {
 			.tag(net.minecraft.tags.ItemTags.TRAPDOORS)
 			.build();
 	}
+
+	public static <B extends com.simibubi.create.content.decoration.copycat.CopycatBlock, P> NonNullUnaryOperator<BlockBuilder<B, P>> copycat() {
+		return b -> b.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.noOcclusion()
+				.mapColor(net.minecraft.world.level.material.MapColor.NONE)
+				.isValidSpawn((state, level, pos, type) -> false))
+			.transform(TagGen.axeOrPickaxe());
+	}
 }
 

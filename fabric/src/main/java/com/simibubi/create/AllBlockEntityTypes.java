@@ -468,6 +468,26 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.FACTORY_GAUGE)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.displayLink.DisplayLinkBlockEntity> DISPLAY_LINK = REGISTRATE
+		.blockEntity("display_link", com.simibubi.create.content.redstone.displayLink.DisplayLinkBlockEntity::new)
+		.validBlocks(AllBlocks.DISPLAY_LINK)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.trains.display.FlapDisplayBlockEntity> FLAP_DISPLAY = REGISTRATE
+		.blockEntity("flap_display", com.simibubi.create.content.trains.display.FlapDisplayBlockEntity::new)
+		.validBlocks(AllBlocks.DISPLAY_BOARD)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.elevator.ElevatorContactBlockEntity> ELEVATOR_CONTACT = REGISTRATE
+		.blockEntity("elevator_contact", com.simibubi.create.content.contraptions.elevator.ElevatorContactBlockEntity::new)
+		.validBlocks(AllBlocks.ELEVATOR_CONTACT)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.decoration.copycat.CopycatBlockEntity> COPYCAT = REGISTRATE
+		.blockEntity("copycat", com.simibubi.create.content.decoration.copycat.CopycatBlockEntity::new)
+		.validBlocks(AllBlocks.COPYCAT_PANEL, AllBlocks.COPYCAT_STEP)
+		.register();
+
 	public static void register() {
 	}
 }

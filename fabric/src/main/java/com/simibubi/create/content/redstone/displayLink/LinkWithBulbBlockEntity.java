@@ -58,4 +58,12 @@ public abstract class LinkWithBulbBlockEntity extends SmartBlockEntity {
 			pulse();
 	}
 
+	public net.minecraft.world.phys.Vec3 getBulbOffset(BlockState state) {
+		return net.minecraft.world.phys.Vec3.ZERO;
+	}
+
+	public net.minecraft.core.Direction getBulbFacing(BlockState state) {
+		return state.getValue(DisplayLinkBlock.FACING);
+	}
+
 }
