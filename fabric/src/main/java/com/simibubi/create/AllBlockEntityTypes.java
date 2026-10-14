@@ -225,6 +225,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.FLUID_VALVE)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.hosePulley.HosePulleyBlockEntity> HOSE_PULLEY = REGISTRATE
+		.blockEntity("hose_pulley", com.simibubi.create.content.fluids.hosePulley.HosePulleyBlockEntity::new)
+		.validBlocks(AllBlocks.HOSE_PULLEY)
+		.register();
+
 	public static void register() {
 	}
 }

@@ -687,6 +687,16 @@ public class AllBlocks {
 		.build()
 		.register();
 
+	public static final BlockEntry<com.simibubi.create.content.fluids.hosePulley.HosePulleyBlock> HOSE_PULLEY = REGISTRATE
+		.block("hose_pulley", com.simibubi.create.content.fluids.hosePulley.HosePulleyBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.properties(p -> p.noOcclusion())
+		.transform(TagGen.pickaxeOnly())
+		.transform(CStress.setImpact(4.0))
+		.item()
+		.build()
+		.register();
+
 	public static void register() {
 	}
 }
