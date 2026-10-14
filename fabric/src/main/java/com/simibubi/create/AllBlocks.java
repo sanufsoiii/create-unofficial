@@ -1003,6 +1003,54 @@ public class AllBlocks {
 			.build()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.kinetics.steamEngine.SteamEngineBlock> STEAM_ENGINE =
+		REGISTRATE.block("steam_engine", com.simibubi.create.content.kinetics.steamEngine.SteamEngineBlock::new)
+			.initialProperties(SharedProperties::copperMetal)
+			.transform(TagGen.pickaxeOnly())
+			.transform(CStress.setCapacity(1024.0))
+			.onRegister(BlockStressValues.setGeneratorSpeed(64, true))
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.kinetics.steamEngine.PoweredShaftBlock> POWERED_SHAFT =
+		REGISTRATE.block("powered_shaft", com.simibubi.create.content.kinetics.steamEngine.PoweredShaftBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.METAL)
+				.forceSolidOn())
+			.transform(TagGen.pickaxeOnly())
+			.loot((lt, block) -> lt.dropOther(block, AllBlocks.SHAFT.get()))
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.kinetics.flywheel.FlywheelBlock> FLYWHEEL =
+		REGISTRATE.block("flywheel", com.simibubi.create.content.kinetics.flywheel.FlywheelBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.noOcclusion()
+				.mapColor(MapColor.TERRACOTTA_YELLOW))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setNoImpact())
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.deskBell.DeskBellBlock> DESK_BELL =
+		REGISTRATE.block("desk_bell", com.simibubi.create.content.redstone.deskBell.DeskBellBlock::new)
+			.properties(p -> p.mapColor(MapColor.SAND))
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.CardboardBlock> BOUND_CARDBOARD_BLOCK =
+		REGISTRATE.block("bound_cardboard_block", com.simibubi.create.content.decoration.CardboardBlock::new)
+			.initialProperties(() -> Blocks.MUSHROOM_STEM)
+			.properties(p -> p.mapColor(MapColor.COLOR_BROWN)
+				.sound(SoundType.CHISELED_BOOKSHELF)
+				.ignitedByLava())
+			.transform(TagGen.axeOnly())
+			.item()
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }

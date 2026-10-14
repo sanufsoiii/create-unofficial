@@ -286,6 +286,26 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.PULSE_TIMER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.steamEngine.SteamEngineBlockEntity> STEAM_ENGINE = REGISTRATE
+		.blockEntity("steam_engine", com.simibubi.create.content.kinetics.steamEngine.SteamEngineBlockEntity::new)
+		.validBlocks(AllBlocks.STEAM_ENGINE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.steamEngine.PoweredShaftBlockEntity> POWERED_SHAFT = REGISTRATE
+		.blockEntity("powered_shaft", com.simibubi.create.content.kinetics.steamEngine.PoweredShaftBlockEntity::new)
+		.validBlocks(AllBlocks.POWERED_SHAFT)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.flywheel.FlywheelBlockEntity> FLYWHEEL = REGISTRATE
+		.blockEntity("flywheel", com.simibubi.create.content.kinetics.flywheel.FlywheelBlockEntity::new)
+		.validBlocks(AllBlocks.FLYWHEEL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.deskBell.DeskBellBlockEntity> DESK_BELL = REGISTRATE
+		.blockEntity("desk_bell", com.simibubi.create.content.redstone.deskBell.DeskBellBlockEntity::new)
+		.validBlocks(AllBlocks.DESK_BELL)
+		.register();
+
 	public static void register() {
 	}
 }

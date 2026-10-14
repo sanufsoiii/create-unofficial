@@ -12,6 +12,7 @@ public abstract class GeneratingKineticBlockEntity extends KineticBlockEntity {
 		super(type, pos, state);
 	}
 
+	@Override
 	public float getGeneratedSpeed() {
 		return 0;
 	}

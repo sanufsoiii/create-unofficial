@@ -14,7 +14,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 
 public enum AllParticleTypes {
 	AIR_FLOW(AirFlowParticleData::new),
-	AIR(AirParticleData::new);
+	AIR(AirParticleData::new),
+	STEAM_JET(com.simibubi.create.content.kinetics.steamEngine.SteamJetParticleData::new);
 
 	private final ParticleEntry<?> entry;
 

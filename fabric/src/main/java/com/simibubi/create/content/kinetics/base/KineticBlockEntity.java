@@ -30,6 +30,7 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 	protected float capacity;
 	protected float stress;
 	protected boolean overStressed;
+	protected float lastCapacityProvided;
 
 	public KineticBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -49,6 +50,14 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 
 	public float getTheoreticalSpeed() {
 		return speed;
+	}
+
+	public float getGeneratedSpeed() {
+		return 0;
+	}
+
+	public float calculateAddedStressCapacity() {
+		return 0;
 	}
 
 	public boolean hasNetwork() {
