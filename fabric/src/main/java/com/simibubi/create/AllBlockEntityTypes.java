@@ -306,6 +306,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.DESK_BELL)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.equipment.bell.PeculiarBellBlockEntity> PECULIAR_BELL = REGISTRATE
+		.blockEntity("peculiar_bell", com.simibubi.create.content.equipment.bell.PeculiarBellBlockEntity::new)
+		.validBlocks(AllBlocks.PECULIAR_BELL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.equipment.bell.HauntedBellBlockEntity> HAUNTED_BELL = REGISTRATE
+		.blockEntity("haunted_bell", com.simibubi.create.content.equipment.bell.HauntedBellBlockEntity::new)
+		.validBlocks(AllBlocks.HAUNTED_BELL)
+		.register();
+
 	public static void register() {
 	}
 }

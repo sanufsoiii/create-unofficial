@@ -1051,6 +1051,30 @@ public class AllBlocks {
 			.build()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.equipment.bell.PeculiarBellBlock> PECULIAR_BELL =
+		REGISTRATE.block("peculiar_bell", com.simibubi.create.content.equipment.bell.PeculiarBellBlock::new)
+			.properties(p -> p.mapColor(MapColor.GOLD)
+				.forceSolidOn())
+			.transform(BuilderTransformers.bell())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.equipment.bell.HauntedBellBlock> HAUNTED_BELL =
+		REGISTRATE.block("haunted_bell", com.simibubi.create.content.equipment.bell.HauntedBellBlock::new)
+			.properties(p -> p.mapColor(MapColor.SAND)
+				.forceSolidOn())
+			.transform(BuilderTransformers.bell())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.contact.RedstoneContactBlock> REDSTONE_CONTACT =
+		REGISTRATE.block("redstone_contact", com.simibubi.create.content.redstone.contact.RedstoneContactBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.COLOR_GRAY))
+			.transform(TagGen.axeOrPickaxe())
+			.item(com.simibubi.create.content.redstone.contact.RedstoneContactItem::new)
+			.tag(AllTags.AllItemTags.CONTRAPTION_CONTROLLED.tag)
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }

@@ -99,4 +99,16 @@ public class BuilderTransformers {
 			.tag(net.minecraft.tags.BlockTags.CLIMBABLE)
 			.simpleItem();
 	}
+
+	public static <B extends net.minecraft.world.level.block.Block, P> NonNullUnaryOperator<BlockBuilder<B, P>> bell() {
+		return b -> b.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.noOcclusion()
+				.sound(net.minecraft.world.level.block.SoundType.ANVIL))
+			.transform(TagGen.pickaxeOnly())
+			.tag(com.simibubi.create.AllTags.AllBlockTags.BRITTLE.tag)
+			.item()
+			.tag(com.simibubi.create.AllTags.AllItemTags.CONTRAPTION_CONTROLLED.tag)
+			.build();
+	}
 }
+
