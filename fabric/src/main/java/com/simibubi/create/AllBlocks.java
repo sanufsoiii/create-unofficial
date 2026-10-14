@@ -1245,6 +1245,26 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.redstone.smartObserver.SmartObserverBlock> SMART_OBSERVER =
+		REGISTRATE.block("content_observer", com.simibubi.create.content.redstone.smartObserver.SmartObserverBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN)
+				.noOcclusion())
+			.properties(p -> p.isRedstoneConductor(($1, $2, $3) -> false))
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.thresholdSwitch.ThresholdSwitchBlock> THRESHOLD_SWITCH =
+		REGISTRATE.block("stockpile_switch", com.simibubi.create.content.redstone.thresholdSwitch.ThresholdSwitchBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN)
+				.noOcclusion())
+			.properties(p -> p.isRedstoneConductor(($1, $2, $3) -> false))
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
 	public static void register() {
 	}
 }

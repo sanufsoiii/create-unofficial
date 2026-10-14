@@ -172,4 +172,8 @@ public class FluidHelper {
 
 		return false;
 	}
+
+	public static boolean test(com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour filtering, FluidStack stack) {
+		return filtering.test(dev.architectury.hooks.fluid.fabric.FluidStackHooksFabric.fromFabric(stack.getVariant(), stack.getAmount()));
+	}
 }

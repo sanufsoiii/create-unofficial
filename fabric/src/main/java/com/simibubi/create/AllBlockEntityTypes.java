@@ -343,6 +343,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.REDSTONE_LINK)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.thresholdSwitch.ThresholdSwitchBlockEntity> THRESHOLD_SWITCH = REGISTRATE
+		.blockEntity("stockpile_switch", com.simibubi.create.content.redstone.thresholdSwitch.ThresholdSwitchBlockEntity::new)
+		.validBlocks(AllBlocks.THRESHOLD_SWITCH)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.smartObserver.SmartObserverBlockEntity> SMART_OBSERVER = REGISTRATE
+		.blockEntity("content_observer", com.simibubi.create.content.redstone.smartObserver.SmartObserverBlockEntity::new)
+		.validBlocks(AllBlocks.SMART_OBSERVER)
+		.register();
+
 	public static void register() {
 	}
 }
