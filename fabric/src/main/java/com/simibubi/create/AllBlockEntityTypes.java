@@ -327,6 +327,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.RADIAL_CHASSIS, AllBlocks.LINEAR_CHASSIS, AllBlocks.SECONDARY_LINEAR_CHASSIS)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.chassis.StickerBlockEntity> STICKER = REGISTRATE
+		.blockEntity("sticker", com.simibubi.create.content.contraptions.chassis.StickerBlockEntity::new)
+		.validBlocks(AllBlocks.STICKER)
+		.register();
+
 	public static void register() {
 	}
 }

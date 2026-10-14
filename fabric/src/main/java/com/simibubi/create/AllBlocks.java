@@ -1193,6 +1193,24 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.contraptions.chassis.StickerBlock> STICKER = REGISTRATE
+		.block("sticker", com.simibubi.create.content.contraptions.chassis.StickerBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.transform(TagGen.pickaxeOnly())
+		.properties(BlockBehaviour.Properties::noOcclusion)
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.piston.PistonExtensionPoleBlock> PISTON_EXTENSION_POLE =
+		REGISTRATE.block("piston_extension_pole", com.simibubi.create.content.contraptions.piston.PistonExtensionPoleBlock::new)
+			.initialProperties(() -> net.minecraft.world.level.block.Blocks.PISTON_HEAD)
+			.properties(p -> p.sound(SoundType.SCAFFOLDING)
+				.mapColor(MapColor.DIRT)
+				.forceSolidOn())
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
 	public static void register() {
 	}
 }

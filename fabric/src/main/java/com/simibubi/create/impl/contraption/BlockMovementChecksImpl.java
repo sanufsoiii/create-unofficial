@@ -253,6 +253,10 @@ public class BlockMovementChecksImpl {
 			return ConnectivityHandler.isConnected(world, pos, pos.relative(direction));
 		if (state.getBlock() instanceof ItemVaultBlock)
 			return ConnectivityHandler.isConnected(world, pos, pos.relative(direction));
+		if (AllBlocks.STICKER.has(state) && state.getValue(com.simibubi.create.content.contraptions.chassis.StickerBlock.EXTENDED)) {
+			return direction == state.getValue(com.simibubi.create.content.contraptions.chassis.StickerBlock.FACING)
+				&& !BlockMovementChecks.isNotSupportive(world.getBlockState(pos.relative(direction)), direction.getOpposite());
+		}
 		return false;
 	}
 
