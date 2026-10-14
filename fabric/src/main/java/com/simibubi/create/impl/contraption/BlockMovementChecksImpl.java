@@ -275,6 +275,8 @@ public class BlockMovementChecksImpl {
 		if (AllBlocks.MECHANICAL_PISTON_HEAD.has(state))
 			return facing.getAxis() != state.getValue(BlockStateProperties.FACING)
 				.getAxis();
+		if (AllBlocks.ROPE_PULLEY.has(state))
+			return facing == Direction.DOWN;
 		return false;
 	}
 }

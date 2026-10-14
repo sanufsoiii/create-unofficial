@@ -373,6 +373,16 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.CLOCKWORK_BEARING)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.pulley.PulleyBlockEntity> ROPE_PULLEY = REGISTRATE
+		.blockEntity("rope_pulley", com.simibubi.create.content.contraptions.pulley.PulleyBlockEntity::new)
+		.validBlocks(AllBlocks.ROPE_PULLEY)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.elevator.ElevatorPulleyBlockEntity> ELEVATOR_PULLEY = REGISTRATE
+		.blockEntity("elevator_pulley", com.simibubi.create.content.contraptions.elevator.ElevatorPulleyBlockEntity::new)
+		.validBlocks(AllBlocks.ELEVATOR_PULLEY)
+		.register();
+
 	public static void register() {
 	}
 }

@@ -1323,6 +1323,38 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.contraptions.pulley.PulleyBlock> ROPE_PULLEY = REGISTRATE.block("rope_pulley", com.simibubi.create.content.contraptions.pulley.PulleyBlock::new)
+		.initialProperties(SharedProperties::stone)
+		.properties(p -> p.mapColor(MapColor.PODZOL).noOcclusion())
+		.transform(TagGen.axeOrPickaxe())
+		.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+		.transform(CStress.setImpact(4.0))
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.pulley.PulleyBlock.RopeBlock> ROPE = REGISTRATE.block("rope", com.simibubi.create.content.contraptions.pulley.PulleyBlock.RopeBlock::new)
+		.properties(p -> p.sound(net.minecraft.world.level.block.SoundType.WOOL)
+			.mapColor(MapColor.COLOR_BROWN))
+		.tag(AllTags.AllBlockTags.BRITTLE.tag)
+		.tag(net.minecraft.tags.BlockTags.CLIMBABLE)
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.pulley.PulleyBlock.MagnetBlock> PULLEY_MAGNET =
+		REGISTRATE.block("pulley_magnet", com.simibubi.create.content.contraptions.pulley.PulleyBlock.MagnetBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.tag(AllTags.AllBlockTags.BRITTLE.tag)
+			.tag(net.minecraft.tags.BlockTags.CLIMBABLE)
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.elevator.ElevatorPulleyBlock> ELEVATOR_PULLEY =
+		REGISTRATE.block("elevator_pulley", com.simibubi.create.content.contraptions.elevator.ElevatorPulleyBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN))
+			.transform(TagGen.axeOrPickaxe())
+			.transform(CStress.setImpact(4.0))
+			.simpleItem()
+			.register();
+
 	public static void register() {
 	}
 }
