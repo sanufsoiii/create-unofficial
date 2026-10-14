@@ -24,6 +24,8 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 	public boolean updateSpeed;
 	public int preventSpeedUpdate;
 
+	public com.simibubi.create.content.kinetics.transmission.sequencer.SequencedGearshiftBlockEntity.SequenceContext sequenceContext;
+
 	protected float speed;
 	protected float capacity;
 	protected float stress;
@@ -75,6 +77,11 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 
 	public void removeSource() {
 		source = null;
+		sequenceContext = null;
+	}
+
+	protected void copySequenceContextFrom(KineticBlockEntity sourceBE) {
+		sequenceContext = sourceBE.sequenceContext;
 	}
 
 	public void detachKinetics() {

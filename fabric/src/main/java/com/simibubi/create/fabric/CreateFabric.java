@@ -42,5 +42,7 @@ public class CreateFabric implements ModInitializer {
 		com.simibubi.create.content.fluids.tank.BoilerHeaters.registerDefaults();
 		com.simibubi.create.api.event.PipeCollisionEvent.FLOW.register(com.simibubi.create.content.fluids.FluidReactions::handlePipeFlowCollisionFallback);
 		com.simibubi.create.api.event.PipeCollisionEvent.SPILL.register(com.simibubi.create.content.fluids.FluidReactions::handlePipeSpillCollisionFallback);
+		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register(com.simibubi.create.content.kinetics.crank.ValveHandleBlock::onBlockActivated);
+		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register(com.simibubi.create.foundation.block.ItemUseOverrides::onBlockActivated);
 	}
 }

@@ -299,6 +299,18 @@ public class AllBlocks {
 			.simpleItem()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.kinetics.transmission.sequencer.SequencedGearshiftBlock> SEQUENCED_GEARSHIFT =
+		REGISTRATE.block("sequenced_gearshift", com.simibubi.create.content.kinetics.transmission.sequencer.SequencedGearshiftBlock::new)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN))
+			.transform(TagGen.axeOrPickaxe())
+			.tag(AllBlockTags.SAFE_NBT.tag)
+			.properties(net.minecraft.world.level.block.state.BlockBehaviour.Properties::noOcclusion)
+			.transform(CStress.setNoImpact())
+			.item()
+			.build()
+			.register();
+
 	public static final BlockEntry<WaterWheelBlock> WATER_WHEEL = REGISTRATE.block("water_wheel", WaterWheelBlock::new)
 		.initialProperties(SharedProperties::wooden)
 		.properties(p -> p.noOcclusion().mapColor(MapColor.DIRT))
@@ -336,6 +348,35 @@ public class AllBlocks {
 		.tag(AllBlockTags.BRITTLE.tag)
 		.simpleItem()
 		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.kinetics.crank.ValveHandleBlock> COPPER_VALVE_HANDLE =
+		REGISTRATE.block("copper_valve_handle", com.simibubi.create.content.kinetics.crank.ValveHandleBlock::copper)
+			.initialProperties(SharedProperties::copperMetal)
+			.transform(TagGen.pickaxeOnly())
+			.tag(AllBlockTags.BRITTLE.tag, AllBlockTags.VALVE_HANDLES.tag)
+			.transform(CStress.setCapacity(8.0))
+			.onRegister(BlockStressValues.setGeneratorSpeed(32))
+			.onRegister(com.simibubi.create.foundation.block.ItemUseOverrides::addBlock)
+			.item()
+			.tag(AllItemTags.VALVE_HANDLES.tag)
+			.build()
+			.register();
+
+	public static final com.simibubi.create.foundation.block.DyedBlockList<com.simibubi.create.content.kinetics.crank.ValveHandleBlock> DYED_VALVE_HANDLES = new com.simibubi.create.foundation.block.DyedBlockList<>(colour -> {
+		String colourName = colour.getSerializedName();
+		return REGISTRATE.block(colourName + "_valve_handle", p -> com.simibubi.create.content.kinetics.crank.ValveHandleBlock.dyed(p, colour))
+			.initialProperties(SharedProperties::copperMetal)
+			.properties(p -> p.mapColor(colour.getMapColor()))
+			.transform(TagGen.pickaxeOnly())
+			.tag(AllBlockTags.BRITTLE.tag, AllBlockTags.VALVE_HANDLES.tag)
+			.transform(CStress.setCapacity(8.0))
+			.onRegister(BlockStressValues.setGeneratorSpeed(32))
+			.onRegister(com.simibubi.create.foundation.block.ItemUseOverrides::addBlock)
+			.item()
+			.tag(AllItemTags.VALVE_HANDLES.tag)
+			.build()
+			.register();
+	});
 
 	public static final BlockEntry<DrillBlock> MECHANICAL_DRILL = REGISTRATE.block("mechanical_drill", DrillBlock::new)
 		.initialProperties(SharedProperties::stone)

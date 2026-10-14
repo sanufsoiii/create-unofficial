@@ -49,6 +49,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.ADJUSTABLE_CHAIN_GEARSHIFT)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.transmission.sequencer.SequencedGearshiftBlockEntity> SEQUENCED_GEARSHIFT = REGISTRATE
+		.blockEntity("sequenced_gearshift", com.simibubi.create.content.kinetics.transmission.sequencer.SequencedGearshiftBlockEntity::new)
+		.validBlocks(AllBlocks.SEQUENCED_GEARSHIFT)
+		.register();
+
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.waterwheel.WaterWheelBlockEntity> WATER_WHEEL = REGISTRATE
 		.blockEntity("water_wheel", com.simibubi.create.content.kinetics.waterwheel.WaterWheelBlockEntity::new)
 		.validBlocks(AllBlocks.WATER_WHEEL)
@@ -62,6 +67,12 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crank.HandCrankBlockEntity> HAND_CRANK = REGISTRATE
 		.blockEntity("hand_crank", com.simibubi.create.content.kinetics.crank.HandCrankBlockEntity::new)
 		.validBlocks(AllBlocks.HAND_CRANK)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crank.ValveHandleBlockEntity> VALVE_HANDLE = REGISTRATE
+		.blockEntity("valve_handle", com.simibubi.create.content.kinetics.crank.ValveHandleBlockEntity::new)
+		.validBlocks(AllBlocks.COPPER_VALVE_HANDLE)
+		.validBlocks(AllBlocks.DYED_VALVE_HANDLES.toArray())
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.drill.DrillBlockEntity> DRILL = REGISTRATE
