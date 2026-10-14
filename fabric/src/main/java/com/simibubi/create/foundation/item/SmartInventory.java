@@ -17,6 +17,7 @@ public class SmartInventory extends ItemStackHandlerContainer {
 	protected int stackSize;
 	private SyncedBlockEntity blockEntity;
 	private Runnable updateCallback;
+	private java.util.function.Consumer<Integer> slotCallback;
 
 	public SmartInventory(int slots, SyncedBlockEntity be) {
 		this(slots, be, 64, false);
@@ -38,6 +39,11 @@ public class SmartInventory extends ItemStackHandlerContainer {
 
 	public SmartInventory whenContentsChanged(Runnable updateCallback) {
 		this.updateCallback = updateCallback;
+		return this;
+	}
+
+	public SmartInventory whenContentsChanged(java.util.function.Consumer<Integer> slotCallback) {
+		this.slotCallback = slotCallback;
 		return this;
 	}
 
@@ -88,6 +94,8 @@ public class SmartInventory extends ItemStackHandlerContainer {
 		super.onContentsChanged(slot);
 		if (updateCallback != null)
 			updateCallback.run();
+		if (slotCallback != null)
+			slotCallback.accept(slot);
 		if (blockEntity != null)
 			blockEntity.notifyUpdate();
 	}
@@ -108,6 +116,52 @@ public class SmartInventory extends ItemStackHandlerContainer {
 	public void clear() {
 		for (int i = 0; i < getSlotCount(); i++) {
 			setStackInSlot(i, net.minecraft.world.item.ItemStack.EMPTY);
+		}
+	}
+
+	public net.minecraft.world.item.ItemStack insertItem(int slot, net.minecraft.world.item.ItemStack stack, boolean simulate) {
+		if (stack.isEmpty())
+			return net.minecraft.world.item.ItemStack.EMPTY;
+		if (!insertionAllowed)
+			return stack;
+		net.minecraft.world.item.ItemStack existing = getStackInSlot(slot);
+		int limit = Math.min(getSlotLimit(slot), stack.getMaxStackSize());
+		if (!existing.isEmpty()) {
+			if (!net.minecraft.world.item.ItemStack.isSameItemSameComponents(stack, existing))
+				return stack;
+			limit -= existing.getCount();
+		}
+		if (limit <= 0)
+			return stack;
+		boolean reachedLimit = stack.getCount() > limit;
+		if (!simulate) {
+			if (existing.isEmpty()) {
+				setStackInSlot(slot, reachedLimit ? stack.copyWithCount(limit) : stack.copy());
+			} else {
+				existing.grow(reachedLimit ? limit : stack.getCount());
+				onContentsChanged(slot);
+			}
+		}
+		return reachedLimit ? stack.copyWithCount(stack.getCount() - limit) : net.minecraft.world.item.ItemStack.EMPTY;
+	}
+
+	public net.minecraft.world.item.ItemStack extractItem(int slot, int amount, boolean simulate) {
+		if (amount <= 0 || !extractionAllowed)
+			return net.minecraft.world.item.ItemStack.EMPTY;
+		net.minecraft.world.item.ItemStack existing = getStackInSlot(slot);
+		if (existing.isEmpty())
+			return net.minecraft.world.item.ItemStack.EMPTY;
+		int toExtract = Math.min(amount, existing.getCount());
+		if (existing.getCount() <= amount) {
+			if (!simulate) {
+				setStackInSlot(slot, net.minecraft.world.item.ItemStack.EMPTY);
+			}
+			return simulate ? existing.copy() : existing;
+		} else {
+			if (!simulate) {
+				setStackInSlot(slot, existing.copyWithCount(existing.getCount() - toExtract));
+			}
+			return existing.copyWithCount(toExtract);
 		}
 	}
 }

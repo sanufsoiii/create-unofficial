@@ -11,6 +11,7 @@ import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
@@ -282,6 +283,29 @@ public class AllTags {
 
 		public boolean matches(Entity entity) {
 			return matches(entity.getType());
+		}
+	}
+
+	public enum AllRecipeSerializerTags {
+		AUTOMATION_IGNORE;
+
+		public final TagKey<RecipeSerializer<?>> tag;
+
+		AllRecipeSerializerTags() {
+			this(MOD);
+		}
+
+		AllRecipeSerializerTags(NameSpace namespace) {
+			this(namespace, null);
+		}
+
+		AllRecipeSerializerTags(NameSpace namespace, @Nullable String pathOverride) {
+			this.tag = TagKey.create(Registries.RECIPE_SERIALIZER, namespace.id(this, pathOverride));
+		}
+
+		public boolean matches(RecipeSerializer<?> recipeSerializer) {
+			ResourceKey<RecipeSerializer<?>> key = BuiltInRegistries.RECIPE_SERIALIZER.getResourceKey(recipeSerializer).orElseThrow();
+			return BuiltInRegistries.RECIPE_SERIALIZER.getHolder(key).orElseThrow().is(tag);
 		}
 	}
 

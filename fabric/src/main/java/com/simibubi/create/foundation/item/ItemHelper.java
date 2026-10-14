@@ -291,4 +291,10 @@ public class ItemHelper {
 			return (int) l;
 		}
 	}
+
+	public static ItemStack fromItemEntity(net.minecraft.world.entity.Entity entityIn) {
+		if (entityIn == null || !entityIn.isAlive())
+			return ItemStack.EMPTY;
+		return entityIn instanceof net.minecraft.world.entity.item.ItemEntity itemEntity ? itemEntity.getItem() : ItemStack.EMPTY;
+	}
 }
