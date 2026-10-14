@@ -679,6 +679,14 @@ public class AllBlocks {
 		.build()
 		.register();
 
+	public static final BlockEntry<com.simibubi.create.content.fluids.pipes.valve.FluidValveBlock> FLUID_VALVE = REGISTRATE
+		.block("fluid_valve", com.simibubi.create.content.fluids.pipes.valve.FluidValveBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.transform(TagGen.pickaxeOnly())
+		.item()
+		.build()
+		.register();
+
 	public static void register() {
 	}
 }

@@ -220,6 +220,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.SPOUT)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.pipes.valve.FluidValveBlockEntity> FLUID_VALVE = REGISTRATE
+		.blockEntity("fluid_valve", com.simibubi.create.content.fluids.pipes.valve.FluidValveBlockEntity::new)
+		.validBlocks(AllBlocks.FLUID_VALVE)
+		.register();
+
 	public static void register() {
 	}
 }
