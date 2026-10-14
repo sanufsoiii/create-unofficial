@@ -1742,6 +1742,57 @@ public class AllBlocks {
 			.build()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.trains.track.FakeTrackBlock> FAKE_TRACK =
+		REGISTRATE.block("fake_track", com.simibubi.create.content.trains.track.FakeTrackBlock::new)
+			.properties(p -> p.mapColor(MapColor.METAL)
+				.noCollission()
+				.noOcclusion()
+				.replaceable())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.actors.trainControls.ControlsBlock> TRAIN_CONTROLS =
+		REGISTRATE.block("controls", com.simibubi.create.content.contraptions.actors.trainControls.ControlsBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN)
+				.sound(SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.trains.bogey.StandardBogeyBlock> SMALL_BOGEY =
+		REGISTRATE.block("small_bogey", p -> new com.simibubi.create.content.trains.bogey.StandardBogeyBlock(p, com.simibubi.create.content.trains.bogey.BogeySizes.SMALL))
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.PODZOL)
+				.sound(SoundType.NETHERITE_BLOCK)
+				.noOcclusion())
+			.transform(TagGen.pickaxeOnly())
+			.onRegister(block -> com.simibubi.create.content.trains.bogey.AbstractBogeyBlock.registerStandardBogey(net.createmod.catnip.registry.RegisteredObjectsHelper.getKeyOrThrow(block)))
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.trains.bogey.StandardBogeyBlock> LARGE_BOGEY =
+		REGISTRATE.block("large_bogey", p -> new com.simibubi.create.content.trains.bogey.StandardBogeyBlock(p, com.simibubi.create.content.trains.bogey.BogeySizes.LARGE))
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.PODZOL)
+				.sound(SoundType.NETHERITE_BLOCK)
+				.noOcclusion())
+			.transform(TagGen.pickaxeOnly())
+			.onRegister(block -> com.simibubi.create.content.trains.bogey.AbstractBogeyBlock.registerStandardBogey(net.createmod.catnip.registry.RegisteredObjectsHelper.getKeyOrThrow(block)))
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.trains.track.TrackBlock> TRACK =
+		REGISTRATE.block("track", com.simibubi.create.content.trains.track.TrackMaterial.ANDESITE::createBlock)
+			.initialProperties(SharedProperties::stone)
+			.properties(p -> p.mapColor(MapColor.METAL)
+				.strength(0.8F)
+				.sound(SoundType.METAL)
+				.noOcclusion()
+				.forceSolidOn())
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.trains.track.TrackBlockItem::new)
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }

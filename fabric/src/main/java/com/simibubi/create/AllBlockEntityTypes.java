@@ -551,6 +551,26 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.WEIGHTED_EJECTOR)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.belt.BeltBlockEntity> BELT = REGISTRATE
+		.blockEntity("belt", com.simibubi.create.content.kinetics.belt.BeltBlockEntity::new)
+		.validBlocks(AllBlocks.BELT)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.trains.track.FakeTrackBlockEntity> FAKE_TRACK = REGISTRATE
+		.blockEntity("fake_track", com.simibubi.create.content.trains.track.FakeTrackBlockEntity::new)
+		.validBlocks(AllBlocks.FAKE_TRACK)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.trains.bogey.StandardBogeyBlockEntity> BOGEY = REGISTRATE
+		.blockEntity("bogey", com.simibubi.create.content.trains.bogey.StandardBogeyBlockEntity::new)
+		.validBlocks(AllBlocks.SMALL_BOGEY, AllBlocks.LARGE_BOGEY)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.trains.track.TrackBlockEntity> TRACK = REGISTRATE
+		.blockEntity("track", com.simibubi.create.content.trains.track.TrackBlockEntity::new)
+		.validBlocks(AllBlocks.TRACK)
+		.register();
+
 	public static void register() {
 	}
 }
