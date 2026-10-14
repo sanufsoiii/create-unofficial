@@ -322,6 +322,11 @@ public class AllBlockEntityTypes {
 				AllBlocks.BRASS_DOOR, AllBlocks.COPPER_DOOR)
 			.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.contraptions.chassis.ChassisBlockEntity> CHASSIS = REGISTRATE
+		.blockEntity("chassis", com.simibubi.create.content.contraptions.chassis.ChassisBlockEntity::new)
+		.validBlocks(AllBlocks.RADIAL_CHASSIS, AllBlocks.LINEAR_CHASSIS, AllBlocks.SECONDARY_LINEAR_CHASSIS)
+		.register();
+
 	public static void register() {
 	}
 }

@@ -1164,6 +1164,35 @@ public class AllBlocks {
 			.register();
 	});
 
+	public static final BlockEntry<com.simibubi.create.content.contraptions.chassis.LinearChassisBlock> LINEAR_CHASSIS =
+		REGISTRATE.block("linear_chassis", com.simibubi.create.content.contraptions.chassis.LinearChassisBlock::new)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN))
+			.transform(TagGen.axeOrPickaxe())
+			.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+			.onRegister(CreateRegistrate.connectedTextures(com.simibubi.create.content.contraptions.chassis.LinearChassisBlock.ChassisCTBehaviour::new))
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.chassis.LinearChassisBlock> SECONDARY_LINEAR_CHASSIS =
+		REGISTRATE.block("secondary_linear_chassis", com.simibubi.create.content.contraptions.chassis.LinearChassisBlock::new)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.mapColor(MapColor.PODZOL))
+			.transform(TagGen.axeOrPickaxe())
+			.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+			.onRegister(CreateRegistrate.connectedTextures(com.simibubi.create.content.contraptions.chassis.LinearChassisBlock.ChassisCTBehaviour::new))
+			.simpleItem()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.contraptions.chassis.RadialChassisBlock> RADIAL_CHASSIS =
+		REGISTRATE.block("radial_chassis", com.simibubi.create.content.contraptions.chassis.RadialChassisBlock::new)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.mapColor(MapColor.DIRT))
+			.transform(TagGen.axeOrPickaxe())
+			.tag(AllTags.AllBlockTags.SAFE_NBT.tag)
+			.simpleItem()
+			.register();
+
 	public static void register() {
 	}
 }
