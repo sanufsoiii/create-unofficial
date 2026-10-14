@@ -1235,6 +1235,16 @@ public class AllBlocks {
 			.register();
 	});
 
+	public static final BlockEntry<com.simibubi.create.content.redstone.link.RedstoneLinkBlock> REDSTONE_LINK =
+		REGISTRATE.block("redstone_link", com.simibubi.create.content.redstone.link.RedstoneLinkBlock::new)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BROWN)
+				.forceSolidOn())
+			.transform(TagGen.axeOrPickaxe())
+			.tag(AllTags.AllBlockTags.BRITTLE.tag, AllTags.AllBlockTags.SAFE_NBT.tag)
+			.simpleItem()
+			.register();
+
 	public static void register() {
 	}
 }

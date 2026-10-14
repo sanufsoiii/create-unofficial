@@ -214,6 +214,8 @@ public class BlockMovementChecksImpl {
 				facing = facing.getOpposite();
 			return direction == facing;
 		}
+		if (block instanceof com.simibubi.create.content.redstone.link.RedstoneLinkBlock)
+			return direction.getOpposite() == state.getValue(com.simibubi.create.content.redstone.link.RedstoneLinkBlock.FACING);
 		if (block instanceof FlowerPotBlock)
 			return direction == Direction.DOWN;
 		if (block instanceof DiodeBlock)

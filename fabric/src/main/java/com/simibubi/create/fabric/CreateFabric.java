@@ -18,6 +18,8 @@ import net.minecraft.tags.TagKey;
 
 public class CreateFabric implements ModInitializer {
 	public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(Create.ID);
+	public static final com.simibubi.create.content.redstone.link.RedstoneLinkNetworkHandler REDSTONE_LINK_NETWORK_HANDLER =
+		new com.simibubi.create.content.redstone.link.RedstoneLinkNetworkHandler();
 
 	@Override
 	public void onInitialize() {
@@ -44,5 +46,7 @@ public class CreateFabric implements ModInitializer {
 		com.simibubi.create.api.event.PipeCollisionEvent.SPILL.register(com.simibubi.create.content.fluids.FluidReactions::handlePipeSpillCollisionFallback);
 		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register(com.simibubi.create.content.kinetics.crank.ValveHandleBlock::onBlockActivated);
 		net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register(com.simibubi.create.foundation.block.ItemUseOverrides::onBlockActivated);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents.LOAD.register((server, world) -> REDSTONE_LINK_NETWORK_HANDLER.onLoadWorld(world));
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents.UNLOAD.register((server, world) -> REDSTONE_LINK_NETWORK_HANDLER.onUnloadWorld(world));
 	}
 }

@@ -338,6 +338,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.NIXIE_TUBES.toArray())
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.link.RedstoneLinkBlockEntity> REDSTONE_LINK = REGISTRATE
+		.blockEntity("redstone_link", com.simibubi.create.content.redstone.link.RedstoneLinkBlockEntity::new)
+		.validBlocks(AllBlocks.REDSTONE_LINK)
+		.register();
+
 	public static void register() {
 	}
 }
