@@ -230,6 +230,11 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.HOSE_PULLEY)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.decoration.steamWhistle.WhistleBlockEntity> STEAM_WHISTLE = REGISTRATE
+		.blockEntity("steam_whistle", com.simibubi.create.content.decoration.steamWhistle.WhistleBlockEntity::new)
+		.validBlocks(AllBlocks.STEAM_WHISTLE)
+		.register();
+
 	public static void register() {
 	}
 }

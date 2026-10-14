@@ -697,6 +697,23 @@ public class AllBlocks {
 		.build()
 		.register();
 
+	public static final BlockEntry<com.simibubi.create.content.decoration.steamWhistle.WhistleBlock> STEAM_WHISTLE = REGISTRATE
+		.block("steam_whistle", com.simibubi.create.content.decoration.steamWhistle.WhistleBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.properties(p -> p.mapColor(MapColor.GOLD))
+		.transform(TagGen.pickaxeOnly())
+		.item()
+		.build()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.steamWhistle.WhistleExtenderBlock> STEAM_WHISTLE_EXTENSION =
+		REGISTRATE.block("steam_whistle_extension", com.simibubi.create.content.decoration.steamWhistle.WhistleExtenderBlock::new)
+			.initialProperties(SharedProperties::copperMetal)
+			.properties(p -> p.mapColor(MapColor.GOLD)
+				.forceSolidOn())
+			.transform(TagGen.pickaxeOnly())
+			.register();
+
 	public static void register() {
 	}
 }
