@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
 import com.simibubi.create.content.decoration.MetalScaffoldingBlock;
+import com.simibubi.create.content.decoration.MetalLadderBlock;
 import com.simibubi.create.AllSpriteShifts;
 
 import com.simibubi.create.content.decoration.encasing.EncasedCTBehaviour;
@@ -817,6 +818,60 @@ public class AllBlocks {
 		.block("refined_radiance_casing", CasingBlock::new)
 		.properties(p -> p.mapColor(MapColor.SNOW).lightLevel($ -> 12))
 		.transform(BuilderTransformers.casing(() -> AllSpriteShifts.REFINED_RADIANCE_CASING))
+		.register();
+
+	public static final BlockEntry<MetalLadderBlock> ANDESITE_LADDER = REGISTRATE
+		.block("andesite_ladder", MetalLadderBlock::new)
+		.transform(BuilderTransformers.ladder(MapColor.STONE))
+		.register();
+
+	public static final BlockEntry<MetalLadderBlock> BRASS_LADDER = REGISTRATE
+		.block("brass_ladder", MetalLadderBlock::new)
+		.transform(BuilderTransformers.ladder(MapColor.TERRACOTTA_YELLOW))
+		.register();
+
+	public static final BlockEntry<MetalLadderBlock> COPPER_LADDER = REGISTRATE
+		.block("copper_ladder", MetalLadderBlock::new)
+		.transform(BuilderTransformers.ladder(MapColor.COLOR_ORANGE))
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.bracket.BracketBlock> WOODEN_BRACKET = REGISTRATE
+		.block("wooden_bracket", com.simibubi.create.content.decoration.bracket.BracketBlock::new)
+		.properties(p -> p.sound(SoundType.SCAFFOLDING))
+		.transform(TagGen.axeOrPickaxe())
+		.item(com.simibubi.create.content.decoration.bracket.BracketBlockItem::new)
+		.build()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.bracket.BracketBlock> METAL_BRACKET = REGISTRATE
+		.block("metal_bracket", com.simibubi.create.content.decoration.bracket.BracketBlock::new)
+		.properties(p -> p.sound(SoundType.NETHERITE_BLOCK))
+		.transform(TagGen.pickaxeOnly())
+		.item(com.simibubi.create.content.decoration.bracket.BracketBlockItem::new)
+		.build()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.girder.GirderBlock> METAL_GIRDER = REGISTRATE
+		.block("metal_girder", com.simibubi.create.content.decoration.girder.GirderBlock::new)
+		.initialProperties(SharedProperties::softMetal)
+		.properties(p -> p.mapColor(MapColor.COLOR_GRAY).sound(SoundType.NETHERITE_BLOCK))
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.girder.GirderEncasedShaftBlock> METAL_GIRDER_ENCASED_SHAFT =
+		REGISTRATE.block("metal_girder_encased_shaft", com.simibubi.create.content.decoration.girder.GirderEncasedShaftBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.COLOR_GRAY).sound(SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.decoration.placard.PlacardBlock> PLACARD = REGISTRATE
+		.block("placard", com.simibubi.create.content.decoration.placard.PlacardBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.properties(p -> p.forceSolidOn())
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
 		.register();
 
 	public static void register() {

@@ -90,4 +90,13 @@ public class BuilderTransformers {
 			.tag(com.simibubi.create.AllTags.AllBlockTags.WRENCH_PICKUP.tag)
 			.simpleItem();
 	}
+
+	public static <B extends com.simibubi.create.content.decoration.MetalLadderBlock, P> NonNullUnaryOperator<BlockBuilder<B, P>> ladder(
+		net.minecraft.world.level.material.MapColor color) {
+		return b -> b.initialProperties(() -> net.minecraft.world.level.block.Blocks.LADDER)
+			.properties(p -> p.sound(net.minecraft.world.level.block.SoundType.COPPER).mapColor(color))
+			.transform(TagGen.pickaxeOnly())
+			.tag(net.minecraft.tags.BlockTags.CLIMBABLE)
+			.simpleItem();
+	}
 }

@@ -16,7 +16,7 @@ public class AllBlockEntityTypes {
 
 	public static final BlockEntityEntry<KineticBlockEntity> ENCASED_SHAFT = REGISTRATE
 		.blockEntity("encased_shaft", KineticBlockEntity::new)
-		.validBlocks(AllBlocks.ANDESITE_ENCASED_SHAFT, AllBlocks.BRASS_ENCASED_SHAFT, AllBlocks.ENCASED_CHAIN_DRIVE)
+		.validBlocks(AllBlocks.ANDESITE_ENCASED_SHAFT, AllBlocks.BRASS_ENCASED_SHAFT, AllBlocks.ENCASED_CHAIN_DRIVE, AllBlocks.METAL_GIRDER_ENCASED_SHAFT)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.simpleRelays.SimpleKineticBlockEntity> ENCASED_COGWHEEL = REGISTRATE
@@ -233,6 +233,11 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.decoration.steamWhistle.WhistleBlockEntity> STEAM_WHISTLE = REGISTRATE
 		.blockEntity("steam_whistle", com.simibubi.create.content.decoration.steamWhistle.WhistleBlockEntity::new)
 		.validBlocks(AllBlocks.STEAM_WHISTLE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.decoration.placard.PlacardBlockEntity> PLACARD = REGISTRATE
+		.blockEntity("placard", com.simibubi.create.content.decoration.placard.PlacardBlockEntity::new)
+		.validBlocks(AllBlocks.PLACARD)
 		.register();
 
 	public static void register() {
