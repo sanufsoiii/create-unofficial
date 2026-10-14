@@ -205,6 +205,21 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.GLASS_FLUID_PIPE)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.pipes.SmartFluidPipeBlockEntity> SMART_FLUID_PIPE = REGISTRATE
+		.blockEntity("smart_fluid_pipe", com.simibubi.create.content.fluids.pipes.SmartFluidPipeBlockEntity::new)
+		.validBlocks(AllBlocks.SMART_FLUID_PIPE)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.drain.ItemDrainBlockEntity> ITEM_DRAIN = REGISTRATE
+		.blockEntity("item_drain", com.simibubi.create.content.fluids.drain.ItemDrainBlockEntity::new)
+		.validBlocks(AllBlocks.ITEM_DRAIN)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.fluids.spout.SpoutBlockEntity> SPOUT = REGISTRATE
+		.blockEntity("spout", com.simibubi.create.content.fluids.spout.SpoutBlockEntity::new)
+		.validBlocks(AllBlocks.SPOUT)
+		.register();
+
 	public static void register() {
 	}
 }

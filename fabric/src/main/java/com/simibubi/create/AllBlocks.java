@@ -655,6 +655,30 @@ public class AllBlocks {
 		.build()
 		.register();
 
+	public static final BlockEntry<com.simibubi.create.content.fluids.pipes.SmartFluidPipeBlock> SMART_FLUID_PIPE = REGISTRATE
+		.block("smart_fluid_pipe", com.simibubi.create.content.fluids.pipes.SmartFluidPipeBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW))
+		.transform(TagGen.pickaxeOnly())
+		.item()
+		.build()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.fluids.drain.ItemDrainBlock> ITEM_DRAIN = REGISTRATE
+		.block("item_drain", com.simibubi.create.content.fluids.drain.ItemDrainBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.transform(TagGen.pickaxeOnly())
+		.simpleItem()
+		.register();
+
+	public static final BlockEntry<com.simibubi.create.content.fluids.spout.SpoutBlock> SPOUT = REGISTRATE
+		.block("spout", com.simibubi.create.content.fluids.spout.SpoutBlock::new)
+		.initialProperties(SharedProperties::copperMetal)
+		.transform(TagGen.pickaxeOnly())
+		.item(com.simibubi.create.content.processing.AssemblyOperatorBlockItem::new)
+		.build()
+		.register();
+
 	public static void register() {
 	}
 }
