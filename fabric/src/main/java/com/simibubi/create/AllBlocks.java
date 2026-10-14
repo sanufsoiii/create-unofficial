@@ -1660,6 +1660,48 @@ public class AllBlocks {
 			.register();
 	});
 
+	public static final BlockEntry<com.simibubi.create.content.logistics.itemHatch.ItemHatchBlock> ITEM_HATCH =
+		REGISTRATE.block("item_hatch", com.simibubi.create.content.logistics.itemHatch.ItemHatchBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE)
+				.sound(SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.equipment.armor.BacktankBlock> COPPER_BACKTANK =
+		REGISTRATE.block("copper_backtank", com.simibubi.create.content.equipment.armor.BacktankBlock::new)
+			.initialProperties(SharedProperties::copperMetal)
+			.transform(BuilderTransformers.backtank(AllBlocks.COPPER_BACKTANK::get))
+			.item(com.simibubi.create.content.equipment.armor.BacktankBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.equipment.armor.BacktankBlock> NETHERITE_BACKTANK =
+		REGISTRATE.block("netherite_backtank", com.simibubi.create.content.equipment.armor.BacktankBlock::new)
+			.initialProperties(SharedProperties::netheriteMetal)
+			.transform(BuilderTransformers.backtank(AllBlocks.NETHERITE_BACKTANK::get))
+			.item(com.simibubi.create.content.equipment.armor.BacktankBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.equipment.clipboard.ClipboardBlock> CLIPBOARD =
+		REGISTRATE.block("clipboard", com.simibubi.create.content.equipment.clipboard.ClipboardBlock::new)
+			.initialProperties(SharedProperties::wooden)
+			.properties(p -> p.forceSolidOn())
+			.transform(TagGen.axeOrPickaxe())
+			.tag(com.simibubi.create.AllTags.AllBlockTags.SAFE_NBT.tag)
+			.item(com.simibubi.create.content.equipment.clipboard.ClipboardBlockItem::new)
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.redstone.link.controller.LecternControllerBlock> LECTERN_CONTROLLER =
+		REGISTRATE.block("lectern_controller", com.simibubi.create.content.redstone.link.controller.LecternControllerBlock::new)
+			.initialProperties(() -> Blocks.LECTERN)
+			.transform(TagGen.axeOnly())
+			.register();
+
 	public static void register() {
 	}
 }

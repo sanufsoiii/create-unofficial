@@ -511,6 +511,26 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.TOOLBOXES.toArray())
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.logistics.itemHatch.ItemHatchBlockEntity> ITEM_HATCH = REGISTRATE
+		.blockEntity("item_hatch", com.simibubi.create.content.logistics.itemHatch.ItemHatchBlockEntity::new)
+		.validBlocks(AllBlocks.ITEM_HATCH)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.equipment.armor.BacktankBlockEntity> BACKTANK = REGISTRATE
+		.blockEntity("backtank", com.simibubi.create.content.equipment.armor.BacktankBlockEntity::new)
+		.validBlocks(AllBlocks.COPPER_BACKTANK, AllBlocks.NETHERITE_BACKTANK)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.equipment.clipboard.ClipboardBlockEntity> CLIPBOARD = REGISTRATE
+		.blockEntity("clipboard", com.simibubi.create.content.equipment.clipboard.ClipboardBlockEntity::new)
+		.validBlocks(AllBlocks.CLIPBOARD)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.redstone.link.controller.LecternControllerBlockEntity> LECTERN_CONTROLLER = REGISTRATE
+		.blockEntity("lectern_controller", com.simibubi.create.content.redstone.link.controller.LecternControllerBlockEntity::new)
+		.validBlocks(AllBlocks.LECTERN_CONTROLLER)
+		.register();
+
 	public static void register() {
 	}
 }

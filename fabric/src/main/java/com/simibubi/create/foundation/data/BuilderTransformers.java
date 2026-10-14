@@ -164,5 +164,10 @@ public class BuilderTransformers {
 				.build();
 		};
 	}
+
+	public static <B extends net.minecraft.world.level.block.Block, P> NonNullUnaryOperator<BlockBuilder<B, P>> backtank(java.util.function.Supplier<? extends net.minecraft.world.level.ItemLike> drop) {
+		return b -> b.transform(TagGen.pickaxeOnly())
+			.transform(CStress.setImpact(4.0));
+	}
 }
 
