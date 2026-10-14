@@ -531,6 +531,17 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.LECTERN_CONTROLLER)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.schematics.cannon.SchematicannonBlockEntity> SCHEMATICANNON = REGISTRATE
+		.blockEntity("schematicannon", com.simibubi.create.content.schematics.cannon.SchematicannonBlockEntity::new)
+		.validBlocks(AllBlocks.SCHEMATICANNON)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.schematics.table.SchematicTableBlockEntity> SCHEMATIC_TABLE = REGISTRATE
+		.blockEntity("schematic_table", com.simibubi.create.content.schematics.table.SchematicTableBlockEntity::new)
+		.validBlocks(AllBlocks.SCHEMATIC_TABLE)
+		.register();
+
 	public static void register() {
 	}
 }
+

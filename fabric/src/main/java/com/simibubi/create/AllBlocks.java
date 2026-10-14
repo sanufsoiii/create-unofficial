@@ -1702,6 +1702,26 @@ public class AllBlocks {
 			.transform(TagGen.axeOnly())
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.schematics.cannon.SchematicannonBlock> SCHEMATICANNON =
+		REGISTRATE.block("schematicannon", com.simibubi.create.content.schematics.cannon.SchematicannonBlock::new)
+			.initialProperties(() -> Blocks.DISPENSER)
+			.properties(p -> p.mapColor(MapColor.COLOR_GRAY))
+			.transform(TagGen.pickaxeOnly())
+			.item()
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.schematics.table.SchematicTableBlock> SCHEMATIC_TABLE =
+		REGISTRATE.block("schematic_table", com.simibubi.create.content.schematics.table.SchematicTableBlock::new)
+			.initialProperties(() -> Blocks.LECTERN)
+			.properties(p -> p.mapColor(MapColor.PODZOL)
+				.forceSolidOn())
+			.transform(TagGen.axeOrPickaxe())
+			.simpleItem()
+			.register();
+
 	public static void register() {
 	}
 }
+
+
