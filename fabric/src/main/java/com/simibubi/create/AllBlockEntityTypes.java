@@ -571,6 +571,21 @@ public class AllBlockEntityTypes {
 		.validBlocks(AllBlocks.TRACK)
 		.register();
 
+	public static final BlockEntityEntry<com.simibubi.create.content.trains.station.StationBlockEntity> TRACK_STATION = REGISTRATE
+		.blockEntity("track_station", com.simibubi.create.content.trains.station.StationBlockEntity::new)
+		.validBlocks(AllBlocks.TRACK_STATION)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.trains.signal.SignalBlockEntity> TRACK_SIGNAL = REGISTRATE
+		.blockEntity("track_signal", com.simibubi.create.content.trains.signal.SignalBlockEntity::new)
+		.validBlocks(AllBlocks.TRACK_SIGNAL)
+		.register();
+
+	public static final BlockEntityEntry<com.simibubi.create.content.trains.observer.TrackObserverBlockEntity> TRACK_OBSERVER = REGISTRATE
+		.blockEntity("track_observer", com.simibubi.create.content.trains.observer.TrackObserverBlockEntity::new)
+		.validBlocks(AllBlocks.TRACK_OBSERVER)
+		.register();
+
 	public static void register() {
 	}
 }

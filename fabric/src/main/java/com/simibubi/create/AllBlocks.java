@@ -1793,6 +1793,38 @@ public class AllBlocks {
 			.build()
 			.register();
 
+	public static final BlockEntry<com.simibubi.create.content.trains.station.StationBlock> TRACK_STATION =
+		REGISTRATE.block("track_station", com.simibubi.create.content.trains.station.StationBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.PODZOL)
+				.sound(SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.trains.track.TrackTargetingBlockItem.ofType(com.simibubi.create.content.trains.graph.EdgePointType.STATION))
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.trains.signal.SignalBlock> TRACK_SIGNAL =
+		REGISTRATE.block("track_signal", com.simibubi.create.content.trains.signal.SignalBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.PODZOL)
+				.noOcclusion()
+				.sound(SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.trains.track.TrackTargetingBlockItem.ofType(com.simibubi.create.content.trains.graph.EdgePointType.SIGNAL))
+			.build()
+			.register();
+
+	public static final BlockEntry<com.simibubi.create.content.trains.observer.TrackObserverBlock> TRACK_OBSERVER =
+		REGISTRATE.block("track_observer", com.simibubi.create.content.trains.observer.TrackObserverBlock::new)
+			.initialProperties(SharedProperties::softMetal)
+			.properties(p -> p.mapColor(MapColor.PODZOL)
+				.noOcclusion()
+				.sound(SoundType.NETHERITE_BLOCK))
+			.transform(TagGen.pickaxeOnly())
+			.item(com.simibubi.create.content.trains.track.TrackTargetingBlockItem.ofType(com.simibubi.create.content.trains.graph.EdgePointType.OBSERVER))
+			.build()
+			.register();
+
 	public static void register() {
 	}
 }
