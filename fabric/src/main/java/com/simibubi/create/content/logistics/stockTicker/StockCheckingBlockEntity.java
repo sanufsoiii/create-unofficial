@@ -2,7 +2,12 @@ package com.simibubi.create.content.logistics.stockTicker;
 
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour;
+import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour.RequestType;
+import com.simibubi.create.content.logistics.packagerLink.LogisticsManager;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 
@@ -22,6 +27,22 @@ public abstract class StockCheckingBlockEntity extends SmartBlockEntity {
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		behaviours.add(behaviour = new LogisticallyLinkedBehaviour(this, false));
+	}
+
+	public InventorySummary getRecentSummary() {
+		return LogisticsManager.getSummaryOfNetwork(behaviour.freqId, false);
+	}
+
+	public InventorySummary getAccurateSummary() {
+		return LogisticsManager.getSummaryOfNetwork(behaviour.freqId, true);
+	}
+
+	public boolean broadcastPackageRequest(RequestType type, PackageOrder order, @Nullable Object ignoredHandler, String address) {
+		return broadcastPackageRequest(type, PackageOrderWithCrafts.simple(order.stacks()), ignoredHandler, address);
+	}
+
+	public boolean broadcastPackageRequest(RequestType type, PackageOrderWithCrafts order, @Nullable Object ignoredHandler, String address) {
+		return LogisticsManager.broadcastPackageRequest(behaviour.freqId, type, order, ignoredHandler, address);
 	}
 
 }

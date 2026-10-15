@@ -212,7 +212,8 @@ public class ToolboxBlockEntity extends SmartBlockEntity implements MenuProvider
 	}
 
 	private boolean isOpenInContainer(Player player) {
-		return false;
+		return player.containerMenu instanceof ToolboxMenu
+			&& ((ToolboxMenu) player.containerMenu).contentHolder == this;
 	}
 
 	public void unequipTracked() {
@@ -300,7 +301,7 @@ public class ToolboxBlockEntity extends SmartBlockEntity implements MenuProvider
 
 	@Override
 	public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
-		return null;
+		return ToolboxMenu.create(id, inv, this);
 	}
 
 	@Override

@@ -102,6 +102,7 @@ public class BasinBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 	List<IntAttached<FluidStack>> visualizedOutputFluids;
 
 	private final Map<Direction, Pair<StorageProvider<ItemVariant>, StorageProvider<FluidVariant>>> spoutputOutputs = new HashMap<>();
+	private @Nullable HeatLevel cachedHeatLevel;
 
 	SnapshotParticipant<Data> snapshotParticipant = new SnapshotParticipant<>() {
 		@Override
@@ -349,6 +350,7 @@ public class BasinBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 
 	@Override
 	public void tick() {
+		cachedHeatLevel = null;
 		super.tick();
 		if (needsUpdate) {
 			needsUpdate = false;
@@ -519,6 +521,15 @@ public class BasinBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 		return spoutputBuffer.isEmpty() && spoutputFluidBuffer.isEmpty();
 	}
 
+	public boolean acceptOutputs(List<ItemStack> outputItems, List<FluidStack> outputFluids, boolean simulate) {
+		try (Transaction t = Transaction.openOuter()) {
+			boolean result = acceptOutputs(outputItems, outputFluids, t);
+			if (result && !simulate)
+				t.commit();
+			return result;
+		}
+	}
+
 	public boolean acceptOutputs(List<ItemStack> outputItems, List<FluidStack> outputFluids, TransactionContext ctx) {
 		outputInventory.allowInsertion();
 		outputTank.allowInsertion();
@@ -613,6 +624,16 @@ public class BasinBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 		return AllTags.AllBlockTags.PASSIVE_BOILER_HEATERS.matches(state) && BlockHelper.isNotUnheated(state)
 			? HeatLevel.SMOULDERING
 			: HeatLevel.NONE;
+	}
+
+	public HeatLevel getHeatLevel() {
+		if (cachedHeatLevel == null) {
+			if (level == null)
+				return HeatLevel.NONE;
+
+			cachedHeatLevel = getHeatLevelOf(level.getBlockState(getBlockPos().below(1)));
+		}
+		return cachedHeatLevel;
 	}
 
 	public Couple<SmartFluidTankBehaviour> getTanks() {

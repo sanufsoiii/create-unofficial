@@ -5,10 +5,32 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import com.mojang.serialization.Codec;
+import com.simibubi.create.content.equipment.sandPaper.SandPaperPolishingRecipe;
+import com.simibubi.create.content.equipment.toolbox.ToolboxDyeingRecipe;
+import com.simibubi.create.content.fluids.transfer.EmptyingRecipe;
+import com.simibubi.create.content.fluids.transfer.FillingRecipe;
 import com.simibubi.create.content.kinetics.crafter.MechanicalCraftingRecipe;
+import com.simibubi.create.content.kinetics.crusher.CrushingRecipe;
+import com.simibubi.create.content.kinetics.deployer.DeployerApplicationRecipe;
+import com.simibubi.create.content.kinetics.deployer.ItemApplicationRecipe;
+import com.simibubi.create.content.kinetics.deployer.ManualApplicationRecipe;
+import com.simibubi.create.content.kinetics.fan.processing.HauntingRecipe;
+import com.simibubi.create.content.kinetics.fan.processing.SplashingRecipe;
+import com.simibubi.create.content.kinetics.millstone.MillingRecipe;
+import com.simibubi.create.content.kinetics.mixer.CompactingRecipe;
+import com.simibubi.create.content.kinetics.mixer.MixingRecipe;
+import com.simibubi.create.content.kinetics.press.PressingRecipe;
+import com.simibubi.create.content.kinetics.saw.CuttingRecipe;
+import com.simibubi.create.content.processing.basin.BasinRecipe;
+import com.simibubi.create.content.processing.recipe.StandardProcessingRecipe;
+import com.simibubi.create.content.processing.sequenced.SequencedAssemblyRecipeSerializer;
 import com.simibubi.create.foundation.recipe.IRecipeTypeInfo;
+import com.simibubi.create.foundation.recipe.ItemCopyingRecipe;
 
+import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -18,12 +40,31 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.item.crafting.ShapedRecipePattern;
+import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.minecraft.world.level.Level;
 
 public enum AllRecipeTypes implements IRecipeTypeInfo, StringRepresentable {
 
-	MECHANICAL_CRAFTING(MechanicalCraftingRecipe.Serializer::new);
+	CRUSHING(CrushingRecipe::new),
+	CUTTING(CuttingRecipe::new),
+	MILLING(MillingRecipe::new),
+	BASIN(BasinRecipe::new),
+	MIXING(MixingRecipe::new),
+	COMPACTING(CompactingRecipe::new),
+	PRESSING(PressingRecipe::new),
+	SANDPAPER_POLISHING(SandPaperPolishingRecipe::new),
+	SPLASHING(SplashingRecipe::new),
+	HAUNTING(HauntingRecipe::new),
+	DEPLOYING(DeployerApplicationRecipe::new),
+	FILLING(FillingRecipe::new),
+	EMPTYING(EmptyingRecipe::new),
+	ITEM_APPLICATION(ManualApplicationRecipe::new),
+
+	MECHANICAL_CRAFTING(MechanicalCraftingRecipe.Serializer::new),
+	SEQUENCED_ASSEMBLY(SequencedAssemblyRecipeSerializer::new),
+
+	TOOLBOX_DYEING(() -> new SimpleCraftingRecipeSerializer<>(ToolboxDyeingRecipe::new), () -> RecipeType.CRAFTING, false),
+	ITEM_COPYING(() -> new SimpleCraftingRecipeSerializer<>(ItemCopyingRecipe::new), () -> RecipeType.CRAFTING, false);
 
 	public static final Predicate<RecipeHolder<?>> CAN_BE_AUTOMATED = r -> !r.id()
 			.getPath()
@@ -31,26 +72,50 @@ public enum AllRecipeTypes implements IRecipeTypeInfo, StringRepresentable {
 
 	public final ResourceLocation id;
 	public final Supplier<RecipeSerializer<?>> serializerSupplier;
+	@Nullable
+	private final Supplier<RecipeType<?>> typeSupplier;
+	private final boolean registerType;
 	private RecipeSerializer<?> serializerObject;
 	private RecipeType<?> typeObject;
 
-	AllRecipeTypes(Supplier<RecipeSerializer<?>> serializerSupplier) {
-		String name = name().toLowerCase(java.util.Locale.ROOT);
+	public static final Codec<AllRecipeTypes> CODEC = StringRepresentable.fromEnum(AllRecipeTypes::values);
+
+	AllRecipeTypes(Supplier<RecipeSerializer<?>> serializerSupplier, Supplier<RecipeType<?>> typeSupplier, boolean registerType) {
+		String name = Lang.asId(name());
 		id = Create.asResource(name);
 		this.serializerSupplier = serializerSupplier;
+		this.typeSupplier = typeSupplier;
+		this.registerType = registerType;
+	}
+
+	AllRecipeTypes(Supplier<RecipeSerializer<?>> serializerSupplier) {
+		this(serializerSupplier, null, true);
+	}
+
+	AllRecipeTypes(StandardProcessingRecipe.Factory<?> processingFactory) {
+		this(() -> new StandardProcessingRecipe.Serializer<>(processingFactory));
+	}
+
+	AllRecipeTypes(ItemApplicationRecipe.Factory<?> itemApplicationFactory) {
+		this(() -> new ItemApplicationRecipe.Serializer<>(itemApplicationFactory));
 	}
 
 	public static void register() {
 		// ShapedRecipePattern.setCraftingSize(9, 9);
 		for (AllRecipeTypes entry : values()) {
 			entry.serializerObject = Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, entry.id, entry.serializerSupplier.get());
-			entry.typeObject = Registry.register(BuiltInRegistries.RECIPE_TYPE, entry.id, new RecipeType<Recipe<RecipeInput>>() {
-				@Override
-				public String toString() {
-					return entry.id.toString();
-				}
-			});
+			if (entry.registerType) {
+				entry.typeObject = Registry.register(BuiltInRegistries.RECIPE_TYPE, entry.id, new RecipeType<Recipe<RecipeInput>>() {
+					@Override
+					public String toString() {
+						return entry.id.toString();
+					}
+				});
+			} else if (entry.typeSupplier != null) {
+				entry.typeObject = entry.typeSupplier.get();
+			}
 		}
+		ManualApplicationRecipe.init();
 	}
 
 	@Override

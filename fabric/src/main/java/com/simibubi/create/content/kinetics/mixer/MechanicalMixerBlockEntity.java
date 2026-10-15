@@ -1,14 +1,49 @@
 package com.simibubi.create.content.kinetics.mixer;
 
-import com.simibubi.create.content.processing.basin.BasinOperatingBlockEntity;
+import java.util.List;
+import java.util.Optional;
 
+import com.simibubi.create.AllRecipeTypes;
+import com.simibubi.create.AllSoundEvents;
+import com.simibubi.create.content.fluids.FluidFX;
+import com.simibubi.create.content.kinetics.press.MechanicalPressBlockEntity;
+import com.simibubi.create.content.processing.basin.BasinBlockEntity;
+import com.simibubi.create.content.processing.basin.BasinOperatingBlockEntity;
+import com.simibubi.create.content.processing.recipe.StandardProcessingRecipe;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
+import com.simibubi.create.foundation.advancement.CreateAdvancement;
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour.TankSegment;
+import com.simibubi.create.foundation.item.SmartInventory;
+import com.simibubi.create.infrastructure.config.AllConfigs;
+
+import net.createmod.catnip.animation.AnimationTickHolder;
+import net.createmod.catnip.data.Couple;
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class MechanicalMixerBlockEntity extends BasinOperatingBlockEntity {
+
+	private static final Object shapelessOrMixingRecipesKey = new Object();
 
 	public int runningTicks;
 	public int processingTicks;
@@ -54,8 +89,160 @@ public class MechanicalMixerBlockEntity extends BasinOperatingBlockEntity {
 	}
 
 	@Override
-	protected boolean isRunning() {
-		return running;
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+		super.addBehaviours(behaviours);
+		registerAwardables(behaviours, AllAdvancements.MIXER);
+	}
+
+	@Override
+	protected AABB createRenderBoundingBox() {
+		return new AABB(worldPosition).expandTowards(0, -1.5, 0);
+	}
+
+	@Override
+	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+		running = compound.getBoolean("Running");
+		runningTicks = compound.getInt("Ticks");
+		super.read(compound, registries, clientPacket);
+
+		if (clientPacket && hasLevel())
+			getBasin().ifPresent(bte -> bte.setAreFluidsMoving(running && runningTicks <= 20));
+	}
+
+	@Override
+	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+		compound.putBoolean("Running", running);
+		compound.putInt("Ticks", runningTicks);
+		super.write(compound, registries, clientPacket);
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+
+		if (runningTicks >= 40) {
+			running = false;
+			runningTicks = 0;
+			basinChecker.scheduleUpdate();
+			return;
+		}
+
+		float speed = Math.abs(getSpeed());
+		if (running && level != null) {
+			if (level.isClientSide) {
+				if (runningTicks == 20)
+					renderParticles();
+				tickAudio();
+			}
+
+			if (getSpeed() == 0 || !isSpeedRequirementFulfilled()) {
+				if (runningTicks < 20)
+					runningTicks = 40 - runningTicks;
+				else if (runningTicks == 20)
+					runningTicks++;
+			}
+
+			if ((!level.isClientSide || isVirtual()) && runningTicks == 20) {
+				if (processingTicks < 0) {
+					float recipeSpeed = 1;
+					if (currentRecipe instanceof StandardProcessingRecipe) {
+						int t = ((StandardProcessingRecipe<?>) currentRecipe).getProcessingDuration();
+						if (t != 0)
+							recipeSpeed = t / 100f;
+					}
+
+					processingTicks = Math.max((Mth.log2((int) (512 / speed))) * Mth.ceil(recipeSpeed * 15) + 1, 1);
+
+					Optional<BasinBlockEntity> basin = getBasin();
+					if (basin.isPresent()) {
+						Couple<SmartFluidTankBehaviour> tanks = basin.get()
+							.getTanks();
+						if (!tanks.getFirst()
+							.isEmpty()
+							|| !tanks.getSecond()
+							.isEmpty())
+							level.playSound(null, worldPosition, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT,
+								SoundSource.BLOCKS, .75f, speed < 65 ? .75f : 1.5f);
+					}
+
+				} else {
+					processingTicks--;
+					if (processingTicks == 0) {
+						runningTicks++;
+						processingTicks = -1;
+						applyBasinRecipe();
+						sendData();
+					}
+				}
+			}
+
+			if (runningTicks != 20)
+				runningTicks++;
+		}
+	}
+
+	public void renderParticles() {
+		Optional<BasinBlockEntity> basin = getBasin();
+		if (!basin.isPresent() || level == null)
+			return;
+
+		for (SmartInventory inv : basin.get()
+			.getInvs()) {
+			for (int slot = 0; slot < inv.getSlotCount(); slot++) {
+				ItemStack stackInSlot = inv.getItem(slot);
+				if (stackInSlot.isEmpty())
+					continue;
+				ItemParticleOption data = new ItemParticleOption(ParticleTypes.ITEM, stackInSlot);
+				spillParticle(data);
+			}
+		}
+
+		for (SmartFluidTankBehaviour behaviour : basin.get()
+			.getTanks()) {
+			if (behaviour == null)
+				continue;
+			for (TankSegment tankSegment : behaviour.getTanks()) {
+				if (tankSegment.isEmpty(0))
+					continue;
+				spillParticle(FluidFX.getFluidParticle(tankSegment.getRenderedFluid()));
+			}
+		}
+	}
+
+	protected void spillParticle(ParticleOptions data) {
+		float angle = level.random.nextFloat() * 360;
+		Vec3 offset = new Vec3(0, 0, 0.25f);
+		offset = VecHelper.rotate(offset, angle, Axis.Y);
+		Vec3 target = VecHelper.rotate(offset, getSpeed() > 0 ? 25 : -25, Axis.Y)
+			.add(0, .25f, 0);
+		Vec3 center = offset.add(VecHelper.getCenterOf(worldPosition));
+		target = VecHelper.offsetRandomly(target.subtract(offset), level.random, 1 / 128f);
+		level.addParticle(data, center.x, center.y - 1.75f, center.z, target.x, target.y, target.z);
+	}
+
+	@Override
+	protected boolean matchStaticFilters(RecipeHolder<? extends Recipe<?>> recipe) {
+		Recipe<?> r = recipe.value();
+		return ((r instanceof CraftingRecipe && !(r instanceof ShapedRecipe)
+			&& AllConfigs.server().recipes.allowShapelessInMixer.get() && r.getIngredients()
+			.size() > 1
+			&& !MechanicalPressBlockEntity.canCompress(r)) && !AllRecipeTypes.shouldIgnoreInAutomation(recipe)
+			|| r.getType() == AllRecipeTypes.MIXING.getType());
+	}
+
+	@Override
+	public void startProcessingBasin() {
+		if (running && runningTicks <= 20)
+			return;
+		super.startProcessingBasin();
+		running = true;
+		runningTicks = 0;
+	}
+
+	@Override
+	public boolean continueWithPreviousRecipe() {
+		runningTicks = 20;
+		return true;
 	}
 
 	@Override
@@ -67,7 +254,26 @@ public class MechanicalMixerBlockEntity extends BasinOperatingBlockEntity {
 	}
 
 	@Override
-	protected AABB createRenderBoundingBox() {
-		return new AABB(worldPosition).expandTowards(0, -1.5, 0);
+	protected Object getRecipeCacheKey() {
+		return shapelessOrMixingRecipesKey;
 	}
+
+	@Override
+	protected boolean isRunning() {
+		return running;
+	}
+
+	@Override
+	protected Optional<CreateAdvancement> getProcessedRecipeTrigger() {
+		return Optional.of(AllAdvancements.MIXER);
+	}
+
+	public void tickAudio() {
+		boolean slow = Math.abs(getSpeed()) < 65;
+		if (slow && AnimationTickHolder.getTicks() % 2 == 0)
+			return;
+		if (runningTicks == 20)
+			AllSoundEvents.MIXING.playAt(level, worldPosition, .75f, 1, true);
+	}
+
 }

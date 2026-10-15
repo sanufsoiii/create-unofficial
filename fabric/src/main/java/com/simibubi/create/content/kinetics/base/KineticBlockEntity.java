@@ -126,4 +126,13 @@ public class KineticBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 
 	public void warnOfMovement() {
 	}
+
+	public boolean isSpeedRequirementFulfilled() {
+		BlockState state = getBlockState();
+		if (!(state.getBlock() instanceof IRotate))
+			return true;
+		IRotate def = (IRotate) state.getBlock();
+		IRotate.SpeedLevel minimumRequiredSpeedLevel = def.getMinimumRequiredSpeedLevel();
+		return Math.abs(getSpeed()) >= minimumRequiredSpeedLevel.getSpeedValue();
+	}
 }

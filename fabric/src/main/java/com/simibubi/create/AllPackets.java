@@ -44,6 +44,9 @@ public enum AllPackets implements BasePacketPayload.PacketTypeProvider {
 	VALUE_SETTINGS(ValueSettingsPacket.class, ValueSettingsPacket.STREAM_CODEC),
 	CONFIGURE_FILTER(com.simibubi.create.content.logistics.filter.FilterScreenPacket.class, com.simibubi.create.content.logistics.filter.FilterScreenPacket.STREAM_CODEC),
 	UPLOAD_SCHEMATIC(com.simibubi.create.content.schematics.packet.SchematicUploadPacket.class, com.simibubi.create.content.schematics.packet.SchematicUploadPacket.STREAM_CODEC),
+	TOOLBOX_DISPOSE_ALL(com.simibubi.create.content.equipment.toolbox.ToolboxDisposeAllPacket.class, com.simibubi.create.content.equipment.toolbox.ToolboxDisposeAllPacket.STREAM_CODEC),
+	PACKAGE_PORT_CONFIGURATION(com.simibubi.create.content.logistics.packagePort.PackagePortConfigurationPacket.class, com.simibubi.create.content.logistics.packagePort.PackagePortConfigurationPacket.STREAM_CODEC),
+	CONFIGURE_REDSTONE_REQUESTER(com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterConfigurationPacket.class, com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterConfigurationPacket.STREAM_CODEC),
 
 	// Server to Client
 	SERVER_SPEED(ServerSpeedProvider.Packet.class, ServerSpeedProvider.Packet.STREAM_CODEC),
@@ -51,7 +54,8 @@ public enum AllPackets implements BasePacketPayload.PacketTypeProvider {
 	FUNNEL_FLAP(FunnelFlapPacket.class, FunnelFlapPacket.STREAM_CODEC),
 	REMOVE_TE(RemoveBlockEntityPacket.class, RemoveBlockEntityPacket.STREAM_CODEC),
 	S_PLACE_ARM(ArmPlacementPacket.ClientBoundRequest.class, ArmPlacementPacket.ClientBoundRequest.STREAM_CODEC),
-	S_PLACE_EJECTOR(EjectorPlacementPacket.ClientBoundRequest.class, EjectorPlacementPacket.ClientBoundRequest.STREAM_CODEC);
+	S_PLACE_EJECTOR(EjectorPlacementPacket.ClientBoundRequest.class, EjectorPlacementPacket.ClientBoundRequest.STREAM_CODEC),
+	REDSTONE_REQUESTER_EFFECT(com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterEffectPacket.class, com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterEffectPacket.STREAM_CODEC);
 
 	private final CatnipPacketRegistry.PacketType<?> type;
 

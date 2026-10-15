@@ -225,13 +225,17 @@ public class AllFanProcessingTypes {
 
 		@Override
 		public boolean canProcess(ItemStack stack, Level level) {
-			return false;
+			return com.simibubi.create.AllRecipeTypes.HAUNTING.find(new SingleRecipeInput(stack), level)
+				.isPresent();
 		}
 
 		@Override
 		@Nullable
 		public List<ItemStack> process(ItemStack stack, Level level) {
-			return null;
+			return com.simibubi.create.AllRecipeTypes.HAUNTING.find(new SingleRecipeInput(stack), level)
+				.map(RecipeHolder::value)
+				.map(r -> RecipeApplier.applyRecipeOn(level, stack, r, true))
+				.orElse(null);
 		}
 
 		@Override
@@ -402,13 +406,17 @@ public class AllFanProcessingTypes {
 
 		@Override
 		public boolean canProcess(ItemStack stack, Level level) {
-			return false;
+			return com.simibubi.create.AllRecipeTypes.SPLASHING.find(new SingleRecipeInput(stack), level)
+				.isPresent();
 		}
 
 		@Override
 		@Nullable
 		public List<ItemStack> process(ItemStack stack, Level level) {
-			return null;
+			return com.simibubi.create.AllRecipeTypes.SPLASHING.find(new SingleRecipeInput(stack), level)
+				.map(RecipeHolder::value)
+				.map(r -> RecipeApplier.applyRecipeOn(level, stack, r, true))
+				.orElse(null);
 		}
 
 		@Override

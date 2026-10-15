@@ -60,6 +60,10 @@ public class BasinBlock extends Block implements IBE<BasinBlockEntity>, IWrencha
 		super.createBlockStateDefinition(builder.add(FACING));
 	}
 
+	public static boolean isBasin(LevelReader world, BlockPos pos) {
+		return world.getBlockEntity(pos) instanceof BasinBlockEntity;
+	}
+
 	@Override
 	public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
 		BlockEntity blockEntity = world.getBlockEntity(pos.above());

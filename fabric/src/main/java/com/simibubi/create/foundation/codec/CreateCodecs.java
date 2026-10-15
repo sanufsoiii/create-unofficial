@@ -25,4 +25,20 @@ public class CreateCodecs {
 	public static Codec<Integer> boundedIntStr(int min) {
 		return INT_STR.validate(i -> i >= min ? DataResult.success(i) : DataResult.error(() -> "Value under minimum of " + min));
 	}
+
+	public static final Codec<Double> NON_NEGATIVE_DOUBLE = doubleRangeWithMessage(0, Double.MAX_VALUE,
+		i -> "Value must be non-negative: " + i);
+	public static final Codec<Double> POSITIVE_DOUBLE = doubleRangeWithMessage(1, Double.MAX_VALUE,
+		i -> "Value must be positive: " + i);
+
+	private static Codec<Double> doubleRangeWithMessage(double min, double max, java.util.function.Function<Double, String> errorMessage) {
+		return Codec.DOUBLE.validate(i ->
+			i.compareTo(min) >= 0 && i.compareTo(max) <= 0 ? DataResult.success(i) : DataResult.error(() ->
+				errorMessage.apply(i)
+			)
+		);
+	}
+
+	public static final Codec<com.simibubi.create.foundation.fluid.SizedFluidIngredient> SIZED_FLUID_INGREDIENT =
+		com.simibubi.create.foundation.fluid.SizedFluidIngredient.CODEC;
 }

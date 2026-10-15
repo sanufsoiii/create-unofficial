@@ -1,9 +1,17 @@
 package com.simibubi.create;
 
+import com.simibubi.create.content.equipment.toolbox.ToolboxMenu;
+import com.simibubi.create.content.equipment.toolbox.ToolboxScreen;
 import com.simibubi.create.content.logistics.filter.AttributeFilterMenu;
 import com.simibubi.create.content.logistics.filter.AttributeFilterScreen;
 import com.simibubi.create.content.logistics.filter.FilterMenu;
 import com.simibubi.create.content.logistics.filter.FilterScreen;
+import com.simibubi.create.content.logistics.filter.PackageFilterMenu;
+import com.simibubi.create.content.logistics.filter.PackageFilterScreen;
+import com.simibubi.create.content.logistics.packagePort.PackagePortMenu;
+import com.simibubi.create.content.logistics.packagePort.PackagePortScreen;
+import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterMenu;
+import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.simibubi.create.content.schematics.cannon.SchematicannonMenu;
 import com.simibubi.create.content.schematics.cannon.SchematicannonScreen;
 import com.simibubi.create.content.schematics.table.SchematicTableMenu;
@@ -31,6 +39,18 @@ public class AllMenuTypes {
 
 	public static final MenuEntry<AttributeFilterMenu> ATTRIBUTE_FILTER =
 		register("attribute_filter", AttributeFilterMenu::new, () -> AttributeFilterScreen::new);
+
+	public static final MenuEntry<PackageFilterMenu> PACKAGE_FILTER =
+		register("package_filter", PackageFilterMenu::new, () -> PackageFilterScreen::new);
+
+	public static final MenuEntry<ToolboxMenu> TOOLBOX =
+		register("toolbox", ToolboxMenu::new, () -> ToolboxScreen::new);
+
+	public static final MenuEntry<PackagePortMenu> PACKAGE_PORT =
+		register("package_port", PackagePortMenu::new, () -> PackagePortScreen::new);
+
+	public static final MenuEntry<RedstoneRequesterMenu> REDSTONE_REQUESTER =
+		register("redstone_requester", RedstoneRequesterMenu::new, () -> RedstoneRequesterScreen::new);
 
 	private static <C extends AbstractContainerMenu, S extends Screen & MenuAccess<C>> MenuEntry<C> register(
 		String name, MenuFactory<C> factory, NonNullSupplier<ScreenFactory<C, S>> screenFactory) {

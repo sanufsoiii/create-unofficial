@@ -36,6 +36,14 @@ public abstract class PackagePortBlockEntity extends SmartBlockEntity implements
 	public boolean acceptsPackages;
 	public String addressFilter;
 	public SmartInventory inventory;
+	public PackagePortTarget target;
+
+	public void filterChanged() {
+		if (target != null) {
+			target.deregister(this, level, worldPosition);
+			target.register(this, level, worldPosition);
+		}
+	}
 
 	protected AnimatedContainerBehaviour<?> openTracker;
 
@@ -114,6 +122,10 @@ public abstract class PackagePortBlockEntity extends SmartBlockEntity implements
 		if (clipboard) {
 			addAddressToClipboard(player, mainHandItem);
 			return ItemInteractionResult.SUCCESS;
+		}
+
+		if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+			dev.architectury.registry.menu.MenuRegistry.openExtendedMenu(serverPlayer, this, buf -> buf.writeBlockPos(worldPosition));
 		}
 
 		return ItemInteractionResult.SUCCESS;
