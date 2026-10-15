@@ -36,16 +36,19 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.gearbox.GearboxBlockEntity> GEARBOX = REGISTRATE
 		.blockEntity("gearbox", com.simibubi.create.content.kinetics.gearbox.GearboxBlockEntity::new)
 		.validBlocks(AllBlocks.GEARBOX)
+		.renderer(() -> com.simibubi.create.content.kinetics.gearbox.GearboxRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.transmission.ClutchBlockEntity> CLUTCH = REGISTRATE
 		.blockEntity("clutch", com.simibubi.create.content.kinetics.transmission.ClutchBlockEntity::new)
 		.validBlocks(AllBlocks.CLUTCH)
+		.renderer(() -> com.simibubi.create.content.kinetics.transmission.SplitShaftRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.transmission.GearshiftBlockEntity> GEARSHIFT = REGISTRATE
 		.blockEntity("gearshift", com.simibubi.create.content.kinetics.transmission.GearshiftBlockEntity::new)
 		.validBlocks(AllBlocks.GEARSHIFT)
+		.renderer(() -> com.simibubi.create.content.kinetics.transmission.SplitShaftRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.chainDrive.ChainGearshiftBlockEntity> ADJUSTABLE_CHAIN_GEARSHIFT = REGISTRATE
@@ -61,11 +64,13 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.waterwheel.WaterWheelBlockEntity> WATER_WHEEL = REGISTRATE
 		.blockEntity("water_wheel", com.simibubi.create.content.kinetics.waterwheel.WaterWheelBlockEntity::new)
 		.validBlocks(AllBlocks.WATER_WHEEL)
+		.renderer(() -> com.simibubi.create.content.kinetics.waterwheel.WaterWheelRenderer::standard)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.waterwheel.LargeWaterWheelBlockEntity> LARGE_WATER_WHEEL = REGISTRATE
 		.blockEntity("large_water_wheel", com.simibubi.create.content.kinetics.waterwheel.LargeWaterWheelBlockEntity::new)
 		.validBlocks(AllBlocks.LARGE_WATER_WHEEL)
+		.renderer(() -> com.simibubi.create.content.kinetics.waterwheel.WaterWheelRenderer::large)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crank.HandCrankBlockEntity> HAND_CRANK = REGISTRATE
@@ -83,6 +88,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.drill.DrillBlockEntity> DRILL = REGISTRATE
 		.blockEntity("drill", com.simibubi.create.content.kinetics.drill.DrillBlockEntity::new)
 		.validBlocks(AllBlocks.MECHANICAL_DRILL)
+		.renderer(() -> com.simibubi.create.content.kinetics.drill.DrillRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.saw.SawBlockEntity> SAW = REGISTRATE
@@ -93,6 +99,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.millstone.MillstoneBlockEntity> MILLSTONE = REGISTRATE
 		.blockEntity("millstone", com.simibubi.create.content.kinetics.millstone.MillstoneBlockEntity::new)
 		.validBlocks(AllBlocks.MILLSTONE)
+		.renderer(() -> com.simibubi.create.content.kinetics.millstone.MillstoneRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crusher.CrushingWheelBlockEntity> CRUSHING_WHEEL = REGISTRATE
@@ -130,16 +137,19 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.clock.CuckooClockBlockEntity> CUCKOO_CLOCK = REGISTRATE
 		.blockEntity("cuckoo_clock", com.simibubi.create.content.kinetics.clock.CuckooClockBlockEntity::new)
 		.validBlocks(AllBlocks.CUCKOO_CLOCK, AllBlocks.MYSTERIOUS_CUCKOO_CLOCK)
+		.renderer(() -> com.simibubi.create.content.kinetics.clock.CuckooClockRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.turntable.TurntableBlockEntity> TURNTABLE = REGISTRATE
 		.blockEntity("turntable", com.simibubi.create.content.kinetics.turntable.TurntableBlockEntity::new)
 		.validBlocks(AllBlocks.TURNTABLE)
+		.renderer(() -> com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.motor.CreativeMotorBlockEntity> MOTOR = REGISTRATE
 		.blockEntity("motor", com.simibubi.create.content.kinetics.motor.CreativeMotorBlockEntity::new)
 		.validBlocks(AllBlocks.CREATIVE_MOTOR)
+		.renderer(() -> com.simibubi.create.content.kinetics.motor.CreativeMotorRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.speedController.SpeedControllerBlockEntity> ROTATION_SPEED_CONTROLLER = REGISTRATE
@@ -175,6 +185,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.fan.EncasedFanBlockEntity> ENCASED_FAN = REGISTRATE
 		.blockEntity("encased_fan", com.simibubi.create.content.kinetics.fan.EncasedFanBlockEntity::new)
 		.validBlocks(AllBlocks.ENCASED_FAN)
+		.renderer(() -> com.simibubi.create.content.kinetics.fan.EncasedFanRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.fan.NozzleBlockEntity> NOZZLE = REGISTRATE
@@ -541,6 +552,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.schematics.cannon.SchematicannonBlockEntity> SCHEMATICANNON = REGISTRATE
 		.blockEntity("schematicannon", com.simibubi.create.content.schematics.cannon.SchematicannonBlockEntity::new)
 		.validBlocks(AllBlocks.SCHEMATICANNON)
+		.renderer(() -> com.simibubi.create.content.schematics.cannon.SchematicannonRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.schematics.table.SchematicTableBlockEntity> SCHEMATIC_TABLE = REGISTRATE

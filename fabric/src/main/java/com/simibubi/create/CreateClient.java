@@ -18,5 +18,6 @@ public class CreateClient {
 		cache.registerCompartment(CachedBuffers.PARTIAL);
 		cache.registerCompartment(CachedBuffers.DIRECTIONAL_PARTIAL);
 		cache.registerCompartment(KineticBlockEntityRenderer.KINETIC_BLOCK);
+		cache.registerCompartment(com.simibubi.create.content.kinetics.waterwheel.WaterWheelRenderer.WATER_WHEEL);
 	}
 }
