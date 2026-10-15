@@ -78,4 +78,15 @@ public class HandCrankBlockEntity extends GeneratingKineticBlockEntity {
 			}
 		}
 	}
+
+	public net.createmod.catnip.render.SuperByteBuffer getRenderedHandle() {
+		BlockState blockState = getBlockState();
+		net.minecraft.core.Direction facing = blockState.getOptionalValue(HandCrankBlock.FACING)
+			.orElse(net.minecraft.core.Direction.UP);
+		return net.createmod.catnip.render.CachedBuffers.partialFacing(com.simibubi.create.AllPartialModels.HAND_CRANK_HANDLE, blockState, facing.getOpposite());
+	}
+
+	public boolean shouldRenderShaft() {
+		return true;
+	}
 }

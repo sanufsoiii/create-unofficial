@@ -1,7 +1,10 @@
 package com.simibubi.create;
 
+import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
 import com.simibubi.create.content.schematics.client.ClientSchematicLoader;
 
+import net.createmod.catnip.render.CachedBuffers;
+import net.createmod.catnip.render.SuperByteBufferCache;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 
@@ -11,6 +14,9 @@ public class CreateClient {
 	public static final ClientSchematicLoader SCHEMATIC_SENDER = new ClientSchematicLoader();
 
 	public static void initClient() {
-		// Common client setup
+		SuperByteBufferCache cache = SuperByteBufferCache.getInstance();
+		cache.registerCompartment(CachedBuffers.PARTIAL);
+		cache.registerCompartment(CachedBuffers.DIRECTIONAL_PARTIAL);
+		cache.registerCompartment(KineticBlockEntityRenderer.KINETIC_BLOCK);
 	}
 }

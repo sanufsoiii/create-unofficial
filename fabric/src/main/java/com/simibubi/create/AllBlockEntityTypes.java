@@ -12,21 +12,25 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<BracketedKineticBlockEntity> BRACKETED_KINETIC = REGISTRATE
 		.blockEntity("simple_kinetic", BracketedKineticBlockEntity::new)
 		.validBlocks(AllBlocks.SHAFT, AllBlocks.COGWHEEL, AllBlocks.LARGE_COGWHEEL)
+		.renderer(() -> com.simibubi.create.content.kinetics.simpleRelays.BracketedKineticBlockEntityRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<KineticBlockEntity> ENCASED_SHAFT = REGISTRATE
 		.blockEntity("encased_shaft", KineticBlockEntity::new)
 		.validBlocks(AllBlocks.ANDESITE_ENCASED_SHAFT, AllBlocks.BRASS_ENCASED_SHAFT, AllBlocks.ENCASED_CHAIN_DRIVE, AllBlocks.METAL_GIRDER_ENCASED_SHAFT)
+		.renderer(() -> com.simibubi.create.content.kinetics.base.ShaftRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.simpleRelays.SimpleKineticBlockEntity> ENCASED_COGWHEEL = REGISTRATE
 		.blockEntity("encased_cogwheel", com.simibubi.create.content.kinetics.simpleRelays.SimpleKineticBlockEntity::new)
 		.validBlocks(AllBlocks.ANDESITE_ENCASED_COGWHEEL, AllBlocks.BRASS_ENCASED_COGWHEEL)
+		.renderer(() -> com.simibubi.create.content.kinetics.simpleRelays.encased.EncasedCogRenderer::small)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.simpleRelays.SimpleKineticBlockEntity> ENCASED_LARGE_COGWHEEL = REGISTRATE
 		.blockEntity("encased_large_cogwheel", com.simibubi.create.content.kinetics.simpleRelays.SimpleKineticBlockEntity::new)
 		.validBlocks(AllBlocks.ANDESITE_ENCASED_LARGE_COGWHEEL, AllBlocks.BRASS_ENCASED_LARGE_COGWHEEL)
+		.renderer(() -> com.simibubi.create.content.kinetics.simpleRelays.encased.EncasedCogRenderer::large)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.gearbox.GearboxBlockEntity> GEARBOX = REGISTRATE
@@ -67,6 +71,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crank.HandCrankBlockEntity> HAND_CRANK = REGISTRATE
 		.blockEntity("hand_crank", com.simibubi.create.content.kinetics.crank.HandCrankBlockEntity::new)
 		.validBlocks(AllBlocks.HAND_CRANK)
+		.renderer(() -> com.simibubi.create.content.kinetics.crank.HandCrankRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.crank.ValveHandleBlockEntity> VALVE_HANDLE = REGISTRATE
@@ -103,11 +108,13 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.press.MechanicalPressBlockEntity> MECHANICAL_PRESS = REGISTRATE
 		.blockEntity("mechanical_press", com.simibubi.create.content.kinetics.press.MechanicalPressBlockEntity::new)
 		.validBlocks(AllBlocks.MECHANICAL_PRESS)
+		.renderer(() -> com.simibubi.create.content.kinetics.press.MechanicalPressRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlockEntity> MECHANICAL_MIXER = REGISTRATE
 		.blockEntity("mechanical_mixer", com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlockEntity::new)
 		.validBlocks(AllBlocks.MECHANICAL_MIXER)
+		.renderer(() -> com.simibubi.create.content.kinetics.mixer.MechanicalMixerRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.gauge.SpeedGaugeBlockEntity> SPEEDOMETER = REGISTRATE
