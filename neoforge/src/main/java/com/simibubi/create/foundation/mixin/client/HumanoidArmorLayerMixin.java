@@ -10,6 +10,8 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.foundation.item.CustomRenderedArmorItem;
+import com.simibubi.create.foundation.item.LayeredArmorItem;
+import com.simibubi.create.foundation.item.LayeredArmorRenderer;
 
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -28,7 +30,10 @@ public class HumanoidArmorLayerMixin {
 		cancellable = true
 	)
 	private void create$onRenderArmorPiece(PoseStack poseStack, MultiBufferSource bufferSource, LivingEntity entity, EquipmentSlot slot, int light, HumanoidModel<?> model, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch, CallbackInfo ci, @Local ItemStack stack) {
-		if (stack.getItem() instanceof CustomRenderedArmorItem renderer) {
+		if (stack.getItem() instanceof LayeredArmorItem layeredItem) {
+			LayeredArmorRenderer.renderArmorPiece((HumanoidArmorLayer<?, ?, ?>) (Object) this, poseStack, bufferSource, entity, slot, light, model, stack, layeredItem);
+			ci.cancel();
+		} else if (stack.getItem() instanceof CustomRenderedArmorItem renderer) {
 			renderer.renderArmorPiece((HumanoidArmorLayer<?, ?, ?>) (Object) this, poseStack, bufferSource, entity, slot, light, model, stack);
 			ci.cancel();
 		}

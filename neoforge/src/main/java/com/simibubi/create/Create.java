@@ -196,7 +196,6 @@ public class Create {
 		AllPotatoProjectileBlockHitActions.init();
 
 		if (event.getRegistry() == BuiltInRegistries.TRIGGER_TYPES) {
-			AllAdvancements.register();
 			AllTriggers.register();
 		}
 	}
