@@ -1673,7 +1673,7 @@ public class AllBlocks {
 	public static final BlockEntry<com.simibubi.create.content.equipment.armor.BacktankBlock> COPPER_BACKTANK =
 		REGISTRATE.block("copper_backtank", com.simibubi.create.content.equipment.armor.BacktankBlock::new)
 			.initialProperties(SharedProperties::copperMetal)
-			.transform(BuilderTransformers.backtank(AllBlocks.COPPER_BACKTANK::get))
+			.transform(BuilderTransformers.backtank(() -> AllBlocks.COPPER_BACKTANK.get()))
 			.item(com.simibubi.create.content.equipment.armor.BacktankBlockItem::new)
 			.build()
 			.register();
@@ -1681,7 +1681,7 @@ public class AllBlocks {
 	public static final BlockEntry<com.simibubi.create.content.equipment.armor.BacktankBlock> NETHERITE_BACKTANK =
 		REGISTRATE.block("netherite_backtank", com.simibubi.create.content.equipment.armor.BacktankBlock::new)
 			.initialProperties(SharedProperties::netheriteMetal)
-			.transform(BuilderTransformers.backtank(AllBlocks.NETHERITE_BACKTANK::get))
+			.transform(BuilderTransformers.backtank(() -> AllBlocks.NETHERITE_BACKTANK.get()))
 			.item(com.simibubi.create.content.equipment.armor.BacktankBlockItem::new)
 			.build()
 			.register();

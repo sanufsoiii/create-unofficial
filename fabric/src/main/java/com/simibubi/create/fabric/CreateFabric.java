@@ -36,6 +36,7 @@ public class CreateFabric implements ModInitializer {
 		com.simibubi.create.content.kinetics.fan.processing.AllFanProcessingTypes.init();
 		com.simibubi.create.content.kinetics.mechanicalArm.AllArmInteractionPointTypes.init();
 		REGISTRATE.register();
+		com.simibubi.create.api.registry.fabric.CreateRegistryHelperImpl.bakeAll();
 		com.simibubi.create.infrastructure.config.AllConfigs.register();
 
 		// Register default passive boiler heater for Fabric
