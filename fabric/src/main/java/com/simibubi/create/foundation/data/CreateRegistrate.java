@@ -86,6 +86,11 @@ public class CreateRegistrate extends AbstractRegistrate<CreateRegistrate> {
 		return entry;
 	}
 
+	public <T extends net.minecraft.world.inventory.AbstractContainerMenu, S extends net.minecraft.client.gui.screens.Screen & net.minecraft.client.gui.screens.inventory.MenuAccess<T>> CreateMenuBuilder<T, S, CreateRegistrate> menu(
+			String name, CreateMenuBuilder.MenuFactory<T> factory, NonNullSupplier<com.tterrag.registrate.builders.MenuBuilder.ScreenFactory<T, S>> screenFactory) {
+		return entry(name, callback -> new CreateMenuBuilder<>(this, this, name, callback, factory, screenFactory));
+	}
+
 	public static <T extends Block> com.tterrag.registrate.util.nullness.NonNullConsumer<? super T> casingConnectivity(
 			java.util.function.BiConsumer<T, com.simibubi.create.content.decoration.encasing.CasingConnectivity> consumer) {
 		return entry -> {};
