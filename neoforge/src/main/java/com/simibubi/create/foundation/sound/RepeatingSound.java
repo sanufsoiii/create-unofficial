@@ -29,10 +29,17 @@ public class RepeatingSound {
 			return;
 
 		ClientLevel world = Minecraft.getInstance().level;
+		if (world == null)
+			return;
+
+		float volume = scape.getVolume() * relativeVolume;
+		if (volume <= 0.001f)
+			return;
+
 		Vec3 meanPos = scape.getMeanPos();
 
 		world.playLocalSound(meanPos.x, meanPos.y, meanPos.z, event, SoundSource.AMBIENT,
-			scape.getVolume() * relativeVolume, sharedPitch, true);
+			volume, sharedPitch, true);
 	}
 
 }

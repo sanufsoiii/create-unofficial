@@ -45,7 +45,7 @@ public class BigItemStack {
 	}
 
 	public static BigItemStack receive(RegistryFriendlyByteBuf buffer) {
-		return new BigItemStack(ItemStack.STREAM_CODEC.decode(buffer), buffer.readVarInt());
+		return new BigItemStack(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer), buffer.readVarInt());
 	}
 
 	public static Comparator<? super BigItemStack> comparator() {

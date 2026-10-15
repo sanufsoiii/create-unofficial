@@ -1,8 +1,11 @@
 package com.simibubi.create.foundation.advancement;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import com.simibubi.create.Create;
@@ -91,10 +94,13 @@ public class CreateAdvancement {
 		if (parent != null)
 			mcBuilder.parent(parent.datagenResult);
 
-		if (createBuilder.func != null)
-			createBuilder.icon(createBuilder.func.apply(registries));
+		ItemStack iconStack = createBuilder.getIcon(registries);
 
-		mcBuilder.display(createBuilder.icon, Component.translatable(titleKey()),
+		for (Consumer<Advancement.Builder> action : createBuilder.criteriaActions) {
+			action.accept(mcBuilder);
+		}
+
+		mcBuilder.display(iconStack, Component.translatable(titleKey()),
 			Component.translatable(descriptionKey()).withStyle(s -> s.withColor(0xDBA213)),
 			id.equals("root") ? BACKGROUND : null, createBuilder.type.advancementType, createBuilder.type.toast,
 			createBuilder.type.announce, createBuilder.type.hide);
@@ -137,7 +143,9 @@ public class CreateAdvancement {
 		private boolean externalTrigger;
 		private int keyIndex;
 		private ItemStack icon;
+		private Supplier<ItemStack> iconSupplier;
 		private Function<Provider, ItemStack> func;
+		final List<Consumer<Advancement.Builder>> criteriaActions = new ArrayList<>();
 
 		public Builder special(TaskType type) {
 			this.type = type;
@@ -149,19 +157,29 @@ public class CreateAdvancement {
 			return this;
 		}
 
-
 		public Builder icon(ItemLike item) {
-			return icon(new ItemStack(item));
+			this.iconSupplier = () -> new ItemStack(item);
+			return this;
 		}
 
 		public Builder icon(ItemStack stack) {
-			icon = stack;
+			this.icon = stack;
 			return this;
 		}
 
 		public Builder icon(Function<Provider, ItemStack> func) {
 			this.func = func;
 			return this;
+		}
+
+		public ItemStack getIcon(HolderLookup.Provider registries) {
+			if (func != null && registries != null)
+				return func.apply(registries);
+			if (iconSupplier != null)
+				return iconSupplier.get();
+			if (icon != null)
+				return icon;
+			return ItemStack.EMPTY;
 		}
 
 		public Builder title(String title) {
@@ -175,31 +193,48 @@ public class CreateAdvancement {
 		}
 
 		public Builder whenBlockPlaced(Block block) {
-			return externalTrigger(ItemUsedOnLocationTrigger.TriggerInstance.placedBlock(block));
+			externalTrigger = true;
+			int index = keyIndex++;
+			criteriaActions.add(b -> b.addCriterion(String.valueOf(index), ItemUsedOnLocationTrigger.TriggerInstance.placedBlock(block)));
+			return this;
 		}
 
 		public Builder whenIconCollected() {
-			return externalTrigger(InventoryChangeTrigger.TriggerInstance.hasItems(icon.getItem()));
+			externalTrigger = true;
+			int index = keyIndex++;
+			criteriaActions.add(b -> {
+				ItemStack stack = getIcon(null);
+				b.addCriterion(String.valueOf(index), InventoryChangeTrigger.TriggerInstance.hasItems(stack.getItem()));
+			});
+			return this;
 		}
 
-
 		public Builder whenItemCollected(ItemLike itemProvider) {
-			return externalTrigger(InventoryChangeTrigger.TriggerInstance.hasItems(itemProvider));
+			externalTrigger = true;
+			int index = keyIndex++;
+			criteriaActions.add(b -> b.addCriterion(String.valueOf(index), InventoryChangeTrigger.TriggerInstance.hasItems(itemProvider)));
+			return this;
 		}
 
 		public Builder whenItemCollected(TagKey<Item> tag) {
-			return externalTrigger(InventoryChangeTrigger.TriggerInstance
-				.hasItems(ItemPredicate.Builder.item().of(tag).build()));
+			externalTrigger = true;
+			int index = keyIndex++;
+			criteriaActions.add(b -> b.addCriterion(String.valueOf(index), InventoryChangeTrigger.TriggerInstance
+				.hasItems(ItemPredicate.Builder.item().of(tag).build())));
+			return this;
 		}
 
 		public Builder awardedForFree() {
-			return externalTrigger(InventoryChangeTrigger.TriggerInstance.hasItems(new ItemLike[] {}));
+			externalTrigger = true;
+			int index = keyIndex++;
+			criteriaActions.add(b -> b.addCriterion(String.valueOf(index), InventoryChangeTrigger.TriggerInstance.hasItems(new ItemLike[] {})));
+			return this;
 		}
 
 		public Builder externalTrigger(Criterion<?> trigger) {
-			mcBuilder.addCriterion(String.valueOf(keyIndex), trigger);
 			externalTrigger = true;
-			keyIndex++;
+			int index = keyIndex++;
+			criteriaActions.add(b -> b.addCriterion(String.valueOf(index), trigger));
 			return this;
 		}
 

@@ -23,12 +23,12 @@ import net.minecraft.world.item.ItemStack;
  */
 public class ItemSlots {
 	public static final Codec<ItemSlots> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-		Codec.unboundedMap(CreateCodecs.boundedIntStr(0), ItemStack.CODEC).fieldOf("items").forGetter(ItemSlots::toBoxedMap),
+		Codec.unboundedMap(CreateCodecs.boundedIntStr(0), ItemStack.OPTIONAL_CODEC).fieldOf("items").forGetter(ItemSlots::toBoxedMap),
 		ExtraCodecs.NON_NEGATIVE_INT.fieldOf("size").forGetter(ItemSlots::getSize)
 	).apply(instance, ItemSlots::deserialize));
 
 	public static final StreamCodec<RegistryFriendlyByteBuf, ItemSlots> STREAM_CODEC = StreamCodec.composite(
-		ByteBufCodecs.map(HashMap::new, ByteBufCodecs.INT, ItemStack.STREAM_CODEC), ItemSlots::toBoxedMap,
+		ByteBufCodecs.map(HashMap::new, ByteBufCodecs.INT, ItemStack.OPTIONAL_STREAM_CODEC), ItemSlots::toBoxedMap,
 		ByteBufCodecs.INT, ItemSlots::getSize,
 		ItemSlots::deserialize
 	);
