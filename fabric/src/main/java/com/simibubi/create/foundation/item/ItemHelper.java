@@ -297,4 +297,26 @@ public class ItemHelper {
 			return ItemStack.EMPTY;
 		return entityIn instanceof net.minecraft.world.entity.item.ItemEntity itemEntity ? itemEntity.getItem() : ItemStack.EMPTY;
 	}
+
+	public static void fillItemStackHandler(net.minecraft.world.item.component.ItemContainerContents contents, io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler inv) {
+		List<ItemStack> itemStacks = contents.stream().toList();
+		for (int i = 0; i < itemStacks.size() && i < inv.getSlotCount(); i++) {
+			inv.setStackInSlot(i, itemStacks.get(i));
+		}
+	}
+
+	public static io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler getFilterItemHandler(ItemStack stack) {
+		io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler newInv = new io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler(18);
+		net.minecraft.world.item.component.ItemContainerContents contents = stack.getOrDefault(com.simibubi.create.AllDataComponents.FILTER_ITEMS, net.minecraft.world.item.component.ItemContainerContents.EMPTY);
+		fillItemStackHandler(contents, newInv);
+		return newInv;
+	}
+
+	public static net.minecraft.world.item.component.ItemContainerContents containerContentsFromHandler(io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler handler) {
+		List<ItemStack> items = new ArrayList<>();
+		for (int i = 0; i < handler.getSlotCount(); i++) {
+			items.add(handler.getStackInSlot(i));
+		}
+		return net.minecraft.world.item.component.ItemContainerContents.fromItems(items);
+	}
 }

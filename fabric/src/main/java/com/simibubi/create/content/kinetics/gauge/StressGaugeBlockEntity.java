@@ -100,4 +100,7 @@ public class StressGaugeBlockEntity extends GaugeBlockEntity {
 	public float getNetworkCapacity() {
 		return capacity;
 	}
+
+	public void onObserved() {
+	}
 }

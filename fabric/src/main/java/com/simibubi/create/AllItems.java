@@ -215,6 +215,10 @@ public class AllItems {
 		.properties(p -> p.stacksTo(1))
 		.register();
 
+	public static final ItemEntry<Item> SCHEMATIC_AND_QUILL = REGISTRATE.item("schematic_and_quill", Item::new)
+		.properties(p -> p.stacksTo(1))
+		.register();
+
 	public static final ItemEntry<com.simibubi.create.content.schematics.SchematicItem> SCHEMATIC = REGISTRATE.item("schematic", com.simibubi.create.content.schematics.SchematicItem::new)
 		.properties(p -> p.stacksTo(1))
 		.register();

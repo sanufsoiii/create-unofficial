@@ -20,6 +20,8 @@ public class CreateFabric implements ModInitializer {
 	public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(Create.ID);
 	public static final com.simibubi.create.content.redstone.link.RedstoneLinkNetworkHandler REDSTONE_LINK_NETWORK_HANDLER =
 		new com.simibubi.create.content.redstone.link.RedstoneLinkNetworkHandler();
+	public static final com.simibubi.create.content.schematics.ServerSchematicLoader SCHEMATIC_RECEIVER =
+		new com.simibubi.create.content.schematics.ServerSchematicLoader();
 
 	@Override
 	public void onInitialize() {
@@ -33,8 +35,10 @@ public class CreateFabric implements ModInitializer {
 		com.simibubi.create.AllBlockEntityTypes.register();
 		com.simibubi.create.AllParticleTypes.register();
 		com.simibubi.create.AllRecipeTypes.register();
+		com.simibubi.create.AllPackets.register();
 		com.simibubi.create.content.kinetics.fan.processing.AllFanProcessingTypes.init();
 		com.simibubi.create.content.kinetics.mechanicalArm.AllArmInteractionPointTypes.init();
+		com.simibubi.create.AllMenuTypes.register();
 		REGISTRATE.register();
 		com.simibubi.create.api.registry.fabric.CreateRegistryHelperImpl.bakeAll();
 		com.simibubi.create.infrastructure.config.AllConfigs.register();

@@ -5,6 +5,7 @@ import org.jetbrains.annotations.ApiStatus.Internal;
 import com.simibubi.create.content.kinetics.fan.processing.FanProcessingType;
 import com.simibubi.create.content.kinetics.fan.processing.FanProcessingTypeRegistry;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPointType;
+import com.simibubi.create.content.logistics.item.filter.attribute.ItemAttributeType;
 
 import net.minecraft.core.Registry;
 
@@ -16,6 +17,8 @@ public class CreateBuiltInRegistries {
 		CreateRegistryHelper.simpleWithFreezeCallback(CreateRegistries.FAN_PROCESSING_TYPE, FanProcessingTypeRegistry::init);
 	public static final Registry<ArmInteractionPointType> ARM_INTERACTION_POINT_TYPE =
 		CreateRegistryHelper.simpleWithFreezeCallback(CreateRegistries.ARM_INTERACTION_POINT_TYPE, ArmInteractionPointType::init);
+	public static final Registry<ItemAttributeType> ITEM_ATTRIBUTE_TYPE =
+		CreateRegistryHelper.simple(CreateRegistries.ITEM_ATTRIBUTE_TYPE);
 
 	@Internal
 	public static void init() {

@@ -52,6 +52,9 @@ dependencies {
 
     // Ponder Fabric
     modImplementation "net.createmod.ponder:ponder-fabric:$rootProject.ponder_version+mc$rootProject.minecraft_version"
+
+    // Annotations (JSR-305)
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
 }
 
 processResources {
