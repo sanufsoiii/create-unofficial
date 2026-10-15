@@ -13,6 +13,8 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import io.github.fabricators_of_create.porting_lib.transfer.item.SlotItemHandler;
 
 public class SchematicannonMenu extends MenuBase<SchematicannonBlockEntity> {
@@ -30,6 +32,7 @@ public class SchematicannonMenu extends MenuBase<SchematicannonBlockEntity> {
 	}
 
 	@Override
+	@Environment(EnvType.CLIENT)
 	protected SchematicannonBlockEntity createOnClient(RegistryFriendlyByteBuf extraData) {
 		ClientLevel world = Minecraft.getInstance().level;
 		BlockEntity blockEntity = world.getBlockEntity(extraData.readBlockPos());

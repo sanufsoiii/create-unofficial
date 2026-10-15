@@ -86,10 +86,16 @@ public class RotationIndicatorParticleData
 		return CODEC;
 	}
 
+	@Environment(EnvType.CLIENT)
+	private static class ClientHelper {
+		private static SpriteParticleRegistration<RotationIndicatorParticleData> getMetaFactory() {
+			return RotationIndicatorParticle.Factory::new;
+		}
+	}
+
 	@Override
 	@Environment(EnvType.CLIENT)
 	public SpriteParticleRegistration<RotationIndicatorParticleData> getMetaFactory() {
-		return RotationIndicatorParticle.Factory::new;
+		return ClientHelper.getMetaFactory();
 	}
-
 }

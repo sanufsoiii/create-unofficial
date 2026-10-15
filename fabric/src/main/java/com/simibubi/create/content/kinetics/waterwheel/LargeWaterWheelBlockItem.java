@@ -38,6 +38,7 @@ public class LargeWaterWheelBlockItem extends BlockItem {
 		return result;
 	}
 
+	@net.fabricmc.api.Environment(net.fabricmc.api.EnvType.CLIENT)
 	public void showBounds(BlockPlaceContext context) {
 		BlockPos pos = context.getClickedPos();
 		Axis axis = ((LargeWaterWheelBlock) getBlock()).getAxisForPlacement(context);

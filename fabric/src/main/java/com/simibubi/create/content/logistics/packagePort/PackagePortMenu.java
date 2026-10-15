@@ -7,6 +7,8 @@ import com.simibubi.create.foundation.gui.menu.MenuBase;
 import com.simibubi.create.foundation.item.SmartInventory;
 
 import io.github.fabricators_of_create.porting_lib.transfer.item.SlotItemHandler;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -35,6 +37,7 @@ public class PackagePortMenu extends MenuBase<PackagePortBlockEntity> {
 	}
 
 	@Override
+	@Environment(EnvType.CLIENT)
 	protected PackagePortBlockEntity createOnClient(RegistryFriendlyByteBuf extraData) {
 		BlockPos readBlockPos = extraData.readBlockPos();
 		ClientLevel world = Minecraft.getInstance().level;

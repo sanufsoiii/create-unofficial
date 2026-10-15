@@ -57,10 +57,17 @@ public class AirParticleData implements ParticleOptions, ICustomParticleDataWith
 		return CODEC;
 	}
 
+	@Environment(EnvType.CLIENT)
+	private static class ClientHelper {
+		private static SpriteParticleRegistration<AirParticleData> getMetaFactory() {
+			return AirParticle.Factory::new;
+		}
+	}
+
 	@Override
 	@Environment(EnvType.CLIENT)
 	public SpriteParticleRegistration<AirParticleData> getMetaFactory() {
-		return AirParticle.Factory::new;
+		return ClientHelper.getMetaFactory();
 	}
 
 }

@@ -64,6 +64,13 @@ public class ShoppingListItem extends Item {
 		return stack.getOrDefault(AllDataComponents.SHOPPING_LIST_ADDRESS, "");
 	}
 
+	@net.fabricmc.api.Environment(net.fabricmc.api.EnvType.CLIENT)
+	private static class ClientHelper {
+		private static Level getClientLevel() {
+			return net.minecraft.client.Minecraft.getInstance().level;
+		}
+	}
+
 	@Override
 	public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents,
 								TooltipFlag tooltipFlag) {
@@ -72,7 +79,7 @@ public class ShoppingListItem extends Item {
 		if (list != null) {
 			Level level = null;
 			if (net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT) {
-				level = net.minecraft.client.Minecraft.getInstance().level;
+				level = ClientHelper.getClientLevel();
 			}
 			Couple<InventorySummary> lists = bakeEntries(list, level, null);
 

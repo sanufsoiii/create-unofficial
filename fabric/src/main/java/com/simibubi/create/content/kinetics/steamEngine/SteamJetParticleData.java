@@ -48,10 +48,17 @@ public class SteamJetParticleData implements ParticleOptions, ICustomParticleDat
 		return CODEC;
 	}
 
+	@Environment(EnvType.CLIENT)
+	private static class ClientHelper {
+		private static SpriteParticleRegistration<SteamJetParticleData> getMetaFactory() {
+			return SteamJetParticle.Factory::new;
+		}
+	}
+
 	@Override
 	@Environment(EnvType.CLIENT)
 	public SpriteParticleRegistration<SteamJetParticleData> getMetaFactory() {
-		return SteamJetParticle.Factory::new;
+		return ClientHelper.getMetaFactory();
 	}
 
 	@Override

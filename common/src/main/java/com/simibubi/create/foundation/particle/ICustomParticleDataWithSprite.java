@@ -42,10 +42,17 @@ public interface ICustomParticleDataWithSprite<T extends ParticleOptions> extend
 	@Environment(EnvType.CLIENT)
 	SpriteParticleRegistration<T> getMetaFactory();
 
+	@Environment(EnvType.CLIENT)
+	class ClientHelper {
+		public static <T extends ParticleOptions> void register(ICustomParticleDataWithSprite<T> data, ParticleType<T> type) {
+			ParticleProviderRegistry.register(type, sprites -> data.getMetaFactory().create(sprites));
+		}
+	}
+
 	@Override
 	@Environment(EnvType.CLIENT)
 	default void register(ParticleType<T> type) {
-		ParticleProviderRegistry.register(type, sprites -> getMetaFactory().create(sprites));
+		ClientHelper.register(this, type);
 	}
 
 }
