@@ -155,6 +155,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.speedController.SpeedControllerBlockEntity> ROTATION_SPEED_CONTROLLER = REGISTRATE
 		.blockEntity("rotation_speed_controller", com.simibubi.create.content.kinetics.speedController.SpeedControllerBlockEntity::new)
 		.validBlocks(AllBlocks.ROTATION_SPEED_CONTROLLER)
+		.renderer(() -> com.simibubi.create.content.kinetics.speedController.SpeedControllerRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.depot.DepotBlockEntity> DEPOT = REGISTRATE
@@ -175,6 +176,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.chute.ChuteBlockEntity> CHUTE = REGISTRATE
 		.blockEntity("chute", com.simibubi.create.content.logistics.chute.ChuteBlockEntity::new)
 		.validBlocks(AllBlocks.CHUTE)
+		.renderer(() -> com.simibubi.create.content.logistics.chute.ChuteRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.chute.SmartChuteBlockEntity> SMART_CHUTE = REGISTRATE
@@ -197,11 +199,13 @@ public class AllBlockEntityTypes {
 		.blockEntity("funnel", com.simibubi.create.content.logistics.funnel.FunnelBlockEntity::new)
 		.validBlocks(AllBlocks.BRASS_FUNNEL, AllBlocks.BRASS_BELT_FUNNEL, AllBlocks.ANDESITE_FUNNEL,
 			AllBlocks.ANDESITE_BELT_FUNNEL)
+		.renderer(() -> com.simibubi.create.content.logistics.funnel.FunnelRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.mechanicalArm.ArmBlockEntity> MECHANICAL_ARM = REGISTRATE
 		.blockEntity("mechanical_arm", com.simibubi.create.content.kinetics.mechanicalArm.ArmBlockEntity::new)
 		.validBlocks(AllBlocks.MECHANICAL_ARM)
+		.renderer(() -> com.simibubi.create.content.kinetics.mechanicalArm.ArmRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.kinetics.deployer.DeployerBlockEntity> DEPLOYER = REGISTRATE
@@ -272,6 +276,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.decoration.placard.PlacardBlockEntity> PLACARD = REGISTRATE
 		.blockEntity("placard", com.simibubi.create.content.decoration.placard.PlacardBlockEntity::new)
 		.validBlocks(AllBlocks.PLACARD)
+		.renderer(() -> com.simibubi.create.content.decoration.placard.PlacardRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.crate.CreativeCrateBlockEntity> CREATIVE_CRATE = REGISTRATE
