@@ -25,6 +25,19 @@ public class BeltBlockEntity extends KineticBlockEntity {
 		casing = CasingType.NONE;
 	}
 
+	public void setController(BlockPos controller) {
+		this.controller = controller;
+	}
+
+	public BlockPos getController() {
+		return controller == null ? worldPosition : controller;
+	}
+
+	public boolean isController() {
+		return controller != null && worldPosition.getX() == controller.getX()
+			&& worldPosition.getY() == controller.getY() && worldPosition.getZ() == controller.getZ();
+	}
+
 	public Direction getMovementFacing() {
 		return getBlockState().getOptionalValue(BlockStateProperties.HORIZONTAL_FACING).orElse(Direction.NORTH);
 	}

@@ -61,4 +61,23 @@ public class BeltBlock extends HorizontalKineticBlock {
 			return pos.above(slope == BeltSlope.UPWARD ? offset : -offset);
 		return pos;
 	}
+
+	public static java.util.List<BlockPos> getBeltChain(net.minecraft.world.level.LevelAccessor world, BlockPos controllerPos) {
+		java.util.List<BlockPos> positions = new java.util.LinkedList<>();
+		BlockState blockState = world.getBlockState(controllerPos);
+		if (!com.simibubi.create.AllBlocks.BELT.has(blockState))
+			return positions;
+
+		int limit = 1000;
+		BlockPos current = controllerPos;
+		while (limit-- > 0 && current != null) {
+			BlockState state = world.getBlockState(current);
+			if (!com.simibubi.create.AllBlocks.BELT.has(state))
+				break;
+			positions.add(current);
+			current = nextSegmentPosition(state, current, true);
+		}
+
+		return positions;
+	}
 }

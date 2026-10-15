@@ -10,6 +10,7 @@ import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.item.ItemHelper;
 
 import net.createmod.catnip.codecs.CatnipCodecUtils;
@@ -41,6 +42,7 @@ public class PackagerBlockEntity extends SmartBlockEntity implements Clearable {
 	public ItemStack heldBox;
 	public ItemStack previouslyUnwrapped;
 
+	public InvManipulationBehaviour targetInventory;
 	public List<BigItemStack> queuedExitingPackages;
 	public final PackagerItemHandler inventory;
 
@@ -65,7 +67,30 @@ public class PackagerBlockEntity extends SmartBlockEntity implements Clearable {
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+		behaviours.add(targetInventory = new InvManipulationBehaviour(this, InvManipulationBehaviour.InterfaceProvider.oppositeOfBlockFacing()));
 		behaviours.add(advancements = new AdvancementBehaviour(this));
+	}
+
+	public boolean isTooBusyFor(com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour.RequestType type) {
+		int queue = queuedExitingPackages.size();
+		return queue >= switch (type) {
+			case PLAYER -> 50;
+			case REDSTONE -> 20;
+			case RESTOCK -> 10;
+		};
+	}
+
+	public InventorySummary getAvailableItems() {
+		return InventorySummary.EMPTY;
+	}
+
+	public void flashLink() {
+	}
+
+	public void triggerStockCheck() {
+	}
+
+	public void attemptToSend(List<PackagingRequest> requests) {
 	}
 
 	@Override
@@ -107,9 +132,6 @@ public class PackagerBlockEntity extends SmartBlockEntity implements Clearable {
 		if (animationTicks == 0 && !level.isClientSide()) {
 			setChanged();
 		}
-	}
-
-	public void triggerStockCheck() {
 	}
 
 	@Override

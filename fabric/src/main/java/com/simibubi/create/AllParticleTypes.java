@@ -13,6 +13,7 @@ import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 public enum AllParticleTypes {
+	ROTATION_INDICATOR(com.simibubi.create.content.kinetics.base.RotationIndicatorParticleData::new),
 	AIR_FLOW(AirFlowParticleData::new),
 	AIR(AirParticleData::new),
 	STEAM_JET(com.simibubi.create.content.kinetics.steamEngine.SteamJetParticleData::new);

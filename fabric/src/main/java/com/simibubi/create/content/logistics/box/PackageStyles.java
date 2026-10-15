@@ -61,11 +61,16 @@ public class PackageStyles {
 
 	public static ItemStack getRandomBox() {
 		List<PackageItem> pool = STYLE_PICKER.nextInt(RARE_CHANCE) == 0 ? RARE_BOXES : STANDARD_BOXES;
+		if (pool.isEmpty()) {
+			if (!STANDARD_BOXES.isEmpty()) return new ItemStack(STANDARD_BOXES.get(0));
+			if (!ALL_BOXES.isEmpty()) return new ItemStack(ALL_BOXES.get(0));
+			return ItemStack.EMPTY;
+		}
 		return new ItemStack(pool.get(STYLE_PICKER.nextInt(pool.size())));
 	}
 
 	public static ItemStack getDefaultBox() {
-		return new ItemStack(ALL_BOXES.get(0));
+		return ALL_BOXES.isEmpty() ? ItemStack.EMPTY : new ItemStack(ALL_BOXES.get(0));
 	}
 
 	private static PackageStyle rare(String name) {

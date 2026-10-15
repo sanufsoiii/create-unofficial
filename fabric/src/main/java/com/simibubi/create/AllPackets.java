@@ -54,8 +54,11 @@ public enum AllPackets implements BasePacketPayload.PacketTypeProvider {
 	FUNNEL_FLAP(FunnelFlapPacket.class, FunnelFlapPacket.STREAM_CODEC),
 	REMOVE_TE(RemoveBlockEntityPacket.class, RemoveBlockEntityPacket.STREAM_CODEC),
 	S_PLACE_ARM(ArmPlacementPacket.ClientBoundRequest.class, ArmPlacementPacket.ClientBoundRequest.STREAM_CODEC),
-	S_PLACE_EJECTOR(EjectorPlacementPacket.ClientBoundRequest.class, EjectorPlacementPacket.ClientBoundRequest.STREAM_CODEC),
-	REDSTONE_REQUESTER_EFFECT(com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterEffectPacket.class, com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterEffectPacket.STREAM_CODEC);
+	S_PLACE_EJECTOR(com.simibubi.create.content.logistics.depot.EjectorPlacementPacket.ClientBoundRequest.class, com.simibubi.create.content.logistics.depot.EjectorPlacementPacket.ClientBoundRequest.STREAM_CODEC),
+	REDSTONE_REQUESTER_EFFECT(com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterEffectPacket.class, com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterEffectPacket.STREAM_CODEC),
+	CONFIGURE_FACTORY_PANEL(com.simibubi.create.content.logistics.factoryBoard.FactoryPanelConfigurationPacket.class, com.simibubi.create.content.logistics.factoryBoard.FactoryPanelConfigurationPacket.STREAM_CODEC),
+	CONNECT_FACTORY_PANEL(com.simibubi.create.content.logistics.factoryBoard.FactoryPanelConnectionPacket.class, com.simibubi.create.content.logistics.factoryBoard.FactoryPanelConnectionPacket.STREAM_CODEC),
+	FACTORY_PANEL_EFFECT(com.simibubi.create.content.logistics.factoryBoard.FactoryPanelEffectPacket.class, com.simibubi.create.content.logistics.factoryBoard.FactoryPanelEffectPacket.STREAM_CODEC);
 
 	private final CatnipPacketRegistry.PacketType<?> type;
 

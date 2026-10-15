@@ -19,5 +19,7 @@ public class CreateClient {
 		cache.registerCompartment(CachedBuffers.DIRECTIONAL_PARTIAL);
 		cache.registerCompartment(KineticBlockEntityRenderer.KINETIC_BLOCK);
 		cache.registerCompartment(com.simibubi.create.content.kinetics.waterwheel.WaterWheelRenderer.WATER_WHEEL);
+
+		net.createmod.ponder.foundation.PonderIndex.addPlugin(new com.simibubi.create.foundation.ponder.CreatePonderPlugin());
 	}
 }

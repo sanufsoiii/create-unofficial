@@ -449,11 +449,13 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.packager.PackagerBlockEntity> PACKAGER = REGISTRATE
 		.blockEntity("packager", com.simibubi.create.content.logistics.packager.PackagerBlockEntity::new)
 		.validBlocks(AllBlocks.PACKAGER)
+		.renderer(() -> com.simibubi.create.content.logistics.packager.PackagerRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity> REPACKAGER = REGISTRATE
 		.blockEntity("repackager", com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity::new)
 		.validBlocks(AllBlocks.REPACKAGER)
+		.renderer(() -> com.simibubi.create.content.logistics.packager.PackagerRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity> PACKAGE_FROGPORT = REGISTRATE
@@ -489,6 +491,7 @@ public class AllBlockEntityTypes {
 	public static final BlockEntityEntry<com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity> FACTORY_PANEL = REGISTRATE
 		.blockEntity("factory_panel", com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity::new)
 		.validBlocks(AllBlocks.FACTORY_GAUGE)
+		.renderer(() -> com.simibubi.create.content.logistics.factoryBoard.FactoryPanelRenderer::new)
 		.register();
 
 	public static final BlockEntityEntry<com.simibubi.create.content.redstone.displayLink.DisplayLinkBlockEntity> DISPLAY_LINK = REGISTRATE

@@ -22,6 +22,22 @@ public class ChainConveyorBlockEntity extends KineticBlockEntity implements Clea
 	public boolean cancelDrops;
 	public boolean checkInvalid;
 
+	public java.util.List<ChainConveyorPackage> loopingPackages = new java.util.ArrayList<>();
+	public java.util.Map<BlockPos, java.util.List<ChainConveyorPackage>> travellingPackages = new java.util.HashMap<>();
+
+	public java.util.List<ChainConveyorPackage> getLoopingPackages() {
+		return loopingPackages;
+	}
+
+	public java.util.Map<BlockPos, java.util.List<ChainConveyorPackage>> getTravellingPackages() {
+		return travellingPackages;
+	}
+
+	public boolean addTravellingPackage(ChainConveyorPackage box, BlockPos connection) {
+		travellingPackages.computeIfAbsent(connection, $ -> new java.util.ArrayList<>()).add(box);
+		return true;
+	}
+
 	public ChainConveyorBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
 		super(typeIn, pos, state);
 		checkInvalid = true;

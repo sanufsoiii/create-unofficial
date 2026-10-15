@@ -31,6 +31,10 @@ public class PulleyBlockEntity extends KineticBlockEntity implements ThresholdSw
 		sendData();
 	}
 
+	public void animateOffset(float forcedOffset) {
+		offset = forcedOffset;
+	}
+
 	@Override
 	public int getCurrentValue() {
 		return worldPosition.getY() - (int) offset;

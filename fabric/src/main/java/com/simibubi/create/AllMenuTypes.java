@@ -52,6 +52,9 @@ public class AllMenuTypes {
 	public static final MenuEntry<RedstoneRequesterMenu> REDSTONE_REQUESTER =
 		register("redstone_requester", RedstoneRequesterMenu::new, () -> RedstoneRequesterScreen::new);
 
+	public static final MenuEntry<com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemMenu> FACTORY_PANEL_SET_ITEM =
+		register("factory_panel_set_item", com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemMenu::new, () -> com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScreen::new);
+
 	private static <C extends AbstractContainerMenu, S extends Screen & MenuAccess<C>> MenuEntry<C> register(
 		String name, MenuFactory<C> factory, NonNullSupplier<ScreenFactory<C, S>> screenFactory) {
 		return CreateFabric.REGISTRATE

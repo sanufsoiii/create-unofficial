@@ -29,6 +29,9 @@ import com.simibubi.create.fabric.CreateFabric;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.data.recipe.CommonMetal;
 import com.simibubi.create.foundation.item.TagDependentIngredientItem;
+import com.simibubi.create.content.logistics.box.PackageItem;
+import com.simibubi.create.content.logistics.box.PackageStyles;
+import com.simibubi.create.content.logistics.box.PackageStyles.PackageStyle;
 import com.simibubi.create.content.logistics.tableCloth.ShoppingListItem;
 import com.tterrag.registrate.util.entry.ItemEntry;
 
@@ -185,6 +188,15 @@ public class AllItems {
 			.properties(p -> p.stacksTo(1))
 			.register();
 
+	static {
+		for (PackageStyle style : PackageStyles.STYLES) {
+			REGISTRATE.item(style.getItemId().getPath(), p -> new PackageItem(p, style))
+				.properties(p -> p.stacksTo(1))
+				.tag(AllItemTags.PACKAGES.tag)
+				.register();
+		}
+	}
+
 	// Shortcuts
 	private static ItemEntry<Item> ingredient(String name) {
 		return REGISTRATE.item(name, Item::new)
@@ -225,6 +237,30 @@ public class AllItems {
 
 	public static final ItemEntry<com.simibubi.create.content.kinetics.belt.item.BeltConnectorItem> BELT_CONNECTOR =
 		REGISTRATE.item("belt_connector", com.simibubi.create.content.kinetics.belt.item.BeltConnectorItem::new)
+			.register();
+
+	public static final ItemEntry<com.simibubi.create.content.contraptions.glue.SuperGlueItem> SUPER_GLUE =
+		REGISTRATE.item("super_glue", com.simibubi.create.content.contraptions.glue.SuperGlueItem::new)
+			.properties(p -> p.stacksTo(1).durability(99))
+			.tag(ItemTags.DURABILITY_ENCHANTABLE)
+			.register();
+
+	public static final ItemEntry<com.simibubi.create.content.equipment.sandPaper.SandPaperItem> SAND_PAPER =
+		REGISTRATE.item("sand_paper", com.simibubi.create.content.equipment.sandPaper.SandPaperItem::new)
+			.tag(AllTags.AllItemTags.SANDPAPER.tag)
+			.register();
+
+	public static final ItemEntry<com.simibubi.create.content.equipment.sandPaper.SandPaperItem> RED_SAND_PAPER =
+		REGISTRATE.item("red_sand_paper", com.simibubi.create.content.equipment.sandPaper.SandPaperItem::new)
+			.tag(AllTags.AllItemTags.SANDPAPER.tag)
+			.register();
+
+	public static final ItemEntry<Item> MINECART_CONTRAPTION =
+		REGISTRATE.item("minecart_contraption", Item::new)
+			.register();
+
+	public static final ItemEntry<Item> SCHEDULE =
+		REGISTRATE.item("schedule", Item::new)
 			.register();
 
 	public static void register() {

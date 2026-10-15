@@ -32,6 +32,38 @@ public class FactoryPanelBlock extends FaceAttachedHorizontalDirectionalBlock
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
+	public enum PanelSlot implements net.minecraft.util.StringRepresentable {
+		TOP_LEFT(1, 1),
+		TOP_RIGHT(0, 1),
+		BOTTOM_LEFT(1, 0),
+		BOTTOM_RIGHT(0, 0);
+
+		public static final com.mojang.serialization.Codec<PanelSlot> CODEC = net.minecraft.util.StringRepresentable.fromValues(PanelSlot::values);
+		public static final net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, PanelSlot> STREAM_CODEC =
+			net.createmod.catnip.codecs.stream.CatnipStreamCodecBuilders.ofEnum(PanelSlot.class);
+
+		public final int xOffset;
+		public final int yOffset;
+
+		PanelSlot(int xOffset, int yOffset) {
+			this.xOffset = xOffset;
+			this.yOffset = yOffset;
+		}
+
+		@Override
+		public @org.jetbrains.annotations.NotNull String getSerializedName() {
+			return net.createmod.catnip.lang.Lang.asId(name());
+		}
+	}
+
+	public static enum PanelState {
+		PASSIVE, ACTIVE
+	}
+
+	public static enum PanelType {
+		NETWORK, PACKAGER
+	}
+
 	public FactoryPanelBlock(Properties properties) {
 		super(properties);
 		registerDefaultState(defaultBlockState().setValue(WATERLOGGED, false).setValue(POWERED, false));
@@ -96,6 +128,40 @@ public class FactoryPanelBlock extends FaceAttachedHorizontalDirectionalBlock
 	@Override
 	public void onRemove(BlockState pState, net.minecraft.world.level.Level pLevel, BlockPos pPos, BlockState pNewState, boolean pMovedByPiston) {
 		IBE.onRemove(pState, pLevel, pPos, pNewState);
+	}
+
+	public static PanelSlot getTargetedSlot(BlockPos pos, BlockState blockState, net.minecraft.world.phys.Vec3 clickLocation) {
+		double bestDistance = Double.MAX_VALUE;
+		PanelSlot bestSlot = PanelSlot.BOTTOM_LEFT;
+		net.minecraft.world.phys.Vec3 localClick = clickLocation.subtract(net.minecraft.world.phys.Vec3.atLowerCornerOf(pos));
+		float xRot = net.minecraft.util.Mth.RAD_TO_DEG * FactoryPanelBlock.getXRot(blockState);
+		float yRot = net.minecraft.util.Mth.RAD_TO_DEG * FactoryPanelBlock.getYRot(blockState);
+
+		for (PanelSlot slot : PanelSlot.values()) {
+			net.minecraft.world.phys.Vec3 vec = new net.minecraft.world.phys.Vec3(.25 + slot.xOffset * .5, 0, .25 + slot.yOffset * .5);
+			vec = net.createmod.catnip.math.VecHelper.rotateCentered(vec, 180, Direction.Axis.Y);
+			vec = net.createmod.catnip.math.VecHelper.rotateCentered(vec, xRot + 90, Direction.Axis.X);
+			vec = net.createmod.catnip.math.VecHelper.rotateCentered(vec, yRot, Direction.Axis.Y);
+
+			double diff = vec.distanceToSqr(localClick);
+			if (diff > bestDistance)
+				continue;
+			bestDistance = diff;
+			bestSlot = slot;
+		}
+
+		return bestSlot;
+	}
+
+	public static float getXRot(BlockState state) {
+		AttachFace face = state.getOptionalValue(FactoryPanelBlock.FACE).orElse(AttachFace.FLOOR);
+		return face == AttachFace.CEILING ? net.minecraft.util.Mth.PI / 2 : face == AttachFace.FLOOR ? -net.minecraft.util.Mth.PI / 2 : 0;
+	}
+
+	public static float getYRot(BlockState state) {
+		Direction facing = state.getOptionalValue(FactoryPanelBlock.FACING).orElse(Direction.SOUTH);
+		AttachFace face = state.getOptionalValue(FactoryPanelBlock.FACE).orElse(AttachFace.FLOOR);
+		return (face == AttachFace.CEILING ? net.minecraft.util.Mth.PI : 0) + net.createmod.catnip.math.AngleHelper.rad(net.createmod.catnip.math.AngleHelper.horizontalAngle(facing));
 	}
 
 	@Override
