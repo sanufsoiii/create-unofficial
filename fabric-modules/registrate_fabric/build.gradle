@@ -1,5 +1,8 @@
 loom {
     accessWidenerPath = file("src/main/resources/registrate_fabric.accesswidener")
+    mixin {
+        defaultRefmapName.set("registrate_fabric-refmap.json")
+    }
 }
 
 dependencies {

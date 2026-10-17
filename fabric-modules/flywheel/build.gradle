@@ -1,5 +1,8 @@
 loom {
     accessWidenerPath = file("src/main/resources/flywheel.accesswidener")
+    mixin {
+        defaultRefmapName.set("flywheel-refmap.json")
+    }
 }
 
 dependencies {

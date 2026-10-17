@@ -1,5 +1,8 @@
 loom {
     accessWidenerPath = file("src/main/resources/porting_lib_ufo.accesswidener")
+    mixin {
+        defaultRefmapName.set("porting_lib_ufo-refmap.json")
+    }
 }
 
 dependencies {

@@ -9,6 +9,9 @@ architectury {
 
 loom {
     accessWidenerPath = file("src/main/resources/create.accesswidener")
+    mixin {
+        defaultRefmapName.set("create-refmap.json")
+    }
     mods {
         register("flywheel") {
             sourceSet project(":flywheel").sourceSets.main, project(":flywheel")
@@ -39,7 +42,7 @@ dependencies {
     api project(path: ":registrate_fabric", configuration: "namedElements")
 
     // Configs & Utilities
-    modImplementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:21.1.3"
+    modImplementation include("fuzs.forgeconfigapiport:forgeconfigapiport-fabric:21.1.3")
     modImplementation include("com.electronwill.night-config:core:3.8.0")
     modImplementation include("com.electronwill.night-config:toml:3.8.0")
     compileOnly "com.google.code.findbugs:jsr305:3.0.2"
