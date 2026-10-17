@@ -20,6 +20,3 @@ run/
 # System
 .DS_Store
 Thumbs.db
-
-# AI Context
-PORTING_CONTEXT_FOR_AI.md
