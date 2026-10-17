@@ -67,7 +67,7 @@ public class MultiRenderTypeModel extends ForwardingBakedModel {
 	}
 
 	public static BakedModel forDisplayLink(BakedModel wrapped) {
-		return builder().solid("base").cutout("bulb_inner").translucent("bulb").build(wrapped);
+		return builder().solid("base").translucent("bulb").build(wrapped);
 	}
 
 	protected FabricBakedModel getPart(String name) {
