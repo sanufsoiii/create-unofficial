@@ -55,6 +55,9 @@ dependencies {
     compileOnly "maven.modrinth:journeymap:1.21.1-6.0.0-beta.54+neoforge"
     compileOnly "xaero.lib:xaerolib-neoforge-1.21:1.0.42"
     compileOnly "curse.maven:xaeros-world-map-317780:7401095"
+
+    // Addons
+    modLocalRuntime "maven.modrinth:create-cyber-goggles:8S36YIoy"
 }
 
 processResources {
