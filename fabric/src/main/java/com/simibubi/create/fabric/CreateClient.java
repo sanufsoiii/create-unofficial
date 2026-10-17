@@ -9,6 +9,7 @@ import net.fabricmc.api.ClientModInitializer;
 public class CreateClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+		com.simibubi.create.foundation.pack.DynamicAssetManager.preInit();
 		Create.LOGGER.info("Create client initializing on Fabric!");
 		AllParticleTypes.registerFactories();
 		AllKeys.register();

@@ -48,7 +48,8 @@
     "accessor.UseOnContextAccessor",
     "datafixer.BlockPosFormatAndRenamesFixMixin",
     "datafixer.ItemStackComponentizationFixMixin",
-    "datafixer.V1460Mixin"
+    "datafixer.V1460Mixin",
+    "PackRepositoryMixin"
   ],
   "client": [
     "accessor.AgeableListModelAccessor",

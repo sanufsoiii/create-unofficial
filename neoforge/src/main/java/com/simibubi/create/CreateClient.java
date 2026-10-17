@@ -72,6 +72,7 @@ public class CreateClient {
 	}
 
 	public static void onCtorClient(IEventBus modEventBus) {
+		com.simibubi.create.foundation.pack.DynamicAssetManager.preInit();
 		IEventBus neoEventBus = NeoForge.EVENT_BUS;
 
 		modEventBus.addListener(CreateClient::clientInit);

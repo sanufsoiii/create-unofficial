@@ -63,4 +63,13 @@ subprojects {
         options.encoding = "UTF-8"
         options.release = 21
     }
+
+    // Exclude all ARR assets so that compiled mod jars contain ZERO copyrighted assets
+    tasks.withType(ProcessResources).configureEach {
+        exclude("assets/create/**")
+    }
+
+    tasks.withType(Jar).configureEach {
+        exclude("assets/create/**")
+    }
 }

@@ -30,7 +30,8 @@
     "accessor.SystemReportAccessor",
     "accessor.UseOnContextAccessor",
     "datafixer.BlockPosFormatAndRenamesFixMixin",
-    "datafixer.V1460Mixin"
+    "datafixer.V1460Mixin",
+    "PackRepositoryMixin"
   ],
   "client": [
     "accessor.AgeableListModelAccessor",
