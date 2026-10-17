@@ -1,5 +1,7 @@
 package com.simibubi.create.foundation.gui.menu;
 
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -7,8 +9,6 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
 
 public abstract class GhostItemMenu<T> extends MenuBase<T> implements IClearableMenu {
 
@@ -83,18 +83,12 @@ public abstract class GhostItemMenu<T> extends MenuBase<T> implements IClearable
 	}
 
 	@Override
-	protected boolean moveItemStackTo(ItemStack pStack, int pStartIndex, int pEndIndex, boolean pReverseDirection) {
-		return false;
-	}
-
-	@Override
 	public ItemStack quickMoveStack(Player playerIn, int index) {
 		if (index < 36) {
-			Slot slot = this.slots.get(index);
-			ItemStack stackToInsert = slot.getItem();
+			ItemStack stackToInsert = playerInventory.getItem(index);
 			for (int i = 0; i < ghostInventory.getSlotCount(); i++) {
 				ItemStack stack = ghostInventory.getStackInSlot(i);
-				if (!allowRepeats() && ItemStack.isSameItemSameComponents(stack, stackToInsert))
+				if (!allowRepeats() && ItemHandlerHelper.canItemStacksStack(stack, stackToInsert))
 					break;
 				if (stack.isEmpty()) {
 					ItemStack copy = stackToInsert.copy();

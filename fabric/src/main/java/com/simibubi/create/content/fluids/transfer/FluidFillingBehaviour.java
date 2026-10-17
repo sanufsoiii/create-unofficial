@@ -6,16 +6,17 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.fluid.FluidHelper;
 import com.simibubi.create.foundation.utility.BBHelper;
-import net.createmod.catnip.data.Iterate;
+import com.simibubi.create.foundation.utility.Iterate;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import io.github.fabricators_of_create.porting_lib.transfer.callbacks.TransactionCallback;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.callbacks.TransactionCallback;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.minecraft.core.BlockPos;
@@ -47,7 +48,8 @@ public class FluidFillingBehaviour extends FluidManipulationBehaviour {
 
 	public static final BehaviourType<FluidFillingBehaviour> TYPE = new BehaviourType<>();
 
-	// fabric: we need to save the queue for snapshots, so it must be a copyable type.
+	// fabric: we need to save the queue for snapshots, so it must be a copyable
+	// type.
 	SortedArraySet<BlockPosEntry> queue;
 
 	List<BlockPosEntry> infinityCheckFrontier;
@@ -56,7 +58,7 @@ public class FluidFillingBehaviour extends FluidManipulationBehaviour {
 	SnapshotParticipant<Data> snapshotParticipant = new SnapshotParticipant<>() {
 		@Override
 		protected Data createSnapshot() {
-			return new Data(new HashSet<>(visited), copySet(queue, (p, p2) -> -comparePositions(p, p2)), counterpartActed);
+			return new Data(new HashSet<>(visited), copySet(queue), counterpartActed);
 		}
 
 		@Override
@@ -178,8 +180,8 @@ public class FluidFillingBehaviour extends FluidManipulationBehaviour {
 					int k = root.getZ();
 					world.playSound(null, i, j, k, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F,
 							2.6F + (world.random.nextFloat() - world.random.nextFloat()) * 0.8F);
-				}
-				// TODO: AllAdvancements.HOSE_PULLEY when ported
+				} else if (!canPlaceSources)
+					blockEntity.award(AllAdvancements.HOSE_PULLEY);
 			});
 			return true;
 		}
@@ -216,7 +218,8 @@ public class FluidFillingBehaviour extends FluidManipulationBehaviour {
 				if (!blockEntity.isVirtual())
 					world.updateSnapshots(ctx);
 
-				new SnapshotParticipant<Unit>() { // can't be a typical TransactionCallback because ordering refuses to cooperate
+				new SnapshotParticipant<Unit>() { // can't be a typical TransactionCallback because ordering refuses to
+													// cooperate
 					@Override
 					protected Unit createSnapshot() {
 						return Unit.INSTANCE;
@@ -270,7 +273,8 @@ public class FluidFillingBehaviour extends FluidManipulationBehaviour {
 			}
 		}
 
-		// TODO: AllAdvancements.HOSE_PULLEY when ported
+		if (success)
+			TransactionCallback.onSuccess(ctx, () -> blockEntity.award(AllAdvancements.HOSE_PULLEY));
 		return success;
 	}
 

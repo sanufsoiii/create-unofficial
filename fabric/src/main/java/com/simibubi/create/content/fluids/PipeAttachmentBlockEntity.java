@@ -4,14 +4,14 @@ import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.content.fluids.FluidTransportBehaviour.AttachmentTypes;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
 import net.fabricmc.fabric.api.rendering.data.v1.RenderAttachmentBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 /**
  * Fabric: Implement this on any BlockEntity that uses
- * PipeAttachmentModel and call {@link #getAttachments(BlockEntity)}
+ * {@link PipeAttachmentModel} and call {@link #getAttachments(BlockEntity)}
  */
 public interface PipeAttachmentBlockEntity extends RenderAttachmentBlockEntity {
 	@Nullable

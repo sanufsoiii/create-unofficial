@@ -8,8 +8,8 @@ import com.simibubi.create.content.decoration.encasing.EncasedCTBehaviour;
 import com.simibubi.create.content.kinetics.base.IRotate;
 import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import com.simibubi.create.foundation.block.connected.CTSpriteShiftEntry;
+import com.simibubi.create.foundation.utility.Couple;
 
-import net.createmod.catnip.data.Couple;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -60,13 +60,40 @@ public class EncasedCogCTBehaviour extends EncasedCTBehaviour {
 	}
 
 	@Override
-	public CTSpriteShiftEntry getShift(BlockState state, Direction direction, @Nullable TextureAtlasSprite sprite) {
-		if (sideShifts != null && direction.getAxis() != state.getValue(AXIS)) {
-			Axis axis = state.getValue(AXIS);
-			Axis normal = direction.getAxis();
-			boolean top = axis.isHorizontal() && normal == Axis.Y || axis == Axis.Y && normal == Axis.X;
-			return top ? sideShifts.getFirst() : sideShifts.getSecond();
-		}
-		return super.getShift(state, direction, sprite);
+	protected boolean reverseUVsVertically(BlockState state, Direction face) {
+		if (!large && state.getValue(AXIS) == Axis.X && face.getAxis() == Axis.Z)
+			return face != Direction.SOUTH;
+		return super.reverseUVsVertically(state, face);
 	}
+
+	@Override
+	protected boolean reverseUVsHorizontally(BlockState state, Direction face) {
+		if (large)
+			return super.reverseUVsHorizontally(state, face);
+
+		if (state.getValue(AXIS)
+			.isVertical()
+			&& face.getAxis()
+				.isHorizontal())
+			return true;
+
+		if (state.getValue(AXIS) == Axis.Z && face == Direction.DOWN)
+			return true;
+
+		return super.reverseUVsHorizontally(state, face);
+	}
+
+	@Override
+	public CTSpriteShiftEntry getShift(BlockState state, Direction direction, @Nullable TextureAtlasSprite sprite) {
+		Axis axis = state.getValue(AXIS);
+		if (large || axis == direction.getAxis()) {
+			if (axis == direction.getAxis() && state
+				.getValue(direction.getAxisDirection() == AxisDirection.POSITIVE ? EncasedCogwheelBlock.TOP_SHAFT
+					: EncasedCogwheelBlock.BOTTOM_SHAFT))
+				return null;
+			return super.getShift(state, direction, sprite);
+		}
+		return sideShifts.get(axis == Axis.X || axis == Axis.Z && direction.getAxis() == Axis.X);
+	}
+
 }

@@ -1,6 +1,6 @@
 package com.simibubi.create.content.fluids.pipes;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.level.block.state.BlockState;

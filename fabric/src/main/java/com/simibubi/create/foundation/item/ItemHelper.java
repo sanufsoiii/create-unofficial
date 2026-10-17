@@ -5,12 +5,14 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import net.createmod.catnip.data.Pair;
+import com.simibubi.create.foundation.utility.Pair;
+
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
@@ -58,7 +60,7 @@ public class ItemHelper {
 
 	public static void addToList(ItemStack stack, List<ItemStack> stacks) {
 		for (ItemStack s : stacks) {
-			if (!ItemStack.isSameItemSameComponents(stack, s))
+			if (!ItemHandlerHelper.canItemStacksStack(stack, s))
 				continue;
 			int transferred = Math.min(s.getMaxStackSize() - s.getCount(), stack.getCount());
 			s.grow(transferred);
@@ -67,16 +69,28 @@ public class ItemHelper {
 		if (stack.getCount() > 0)
 			stacks.add(stack);
 	}
-
-	public static <T> T getOrCreateComponent(ItemStack stack, DataComponentType<T> comp, T newone) {
-		if (stack.has(comp)) return stack.get(comp);
+	
+	public static <T> T getOrCreateComponent(ItemStack stack, DataComponentType<T> comp, T newone){
+		if(stack.has(comp)) return stack.get(comp);
 		stack.set(comp, newone);
 		return newone;
 	}
-
+	
 	public static void clearComponents(ItemStack is) {
 		is.getComponents().stream().forEach(obj -> is.remove(obj.type()));
 	}
+
+//	public static boolean isSameInventory(Storage<ItemVariant> h1, Storage<ItemVariant> h2) {
+//		if (h1 == null || h2 == null)
+//			return false;
+//		if (h1.getSlotCount() != h2.getSlotCount())
+//			return false;
+//		for (int slot = 0; slot < h1.getSlotCount(); slot++) {
+//			if (h1.getStackInSlot(slot) != h2.getStackInSlot(slot))
+//				return false;
+//		}
+//		return true;
+//	}
 
 	public static int calcRedstoneFromInventory(@Nullable Storage<ItemVariant> inv) {
 		if (inv == null)
@@ -179,18 +193,21 @@ public class ItemHelper {
 				for (StorageView<ItemVariant> view : inv.nonEmptyViews()) {
 					ItemVariant contained = view.getResource();
 					int maxStackSize = contained.getItem().getDefaultMaxStackSize();
+					// amount stored, amount needed, or max size, whichever is lowest.
 					int amountToExtractFromThisSlot = Math.min(truncateLong(view.getAmount()),
 							Math.min(amount - extracted, maxStackSize));
 					if (!test.test(contained.toStack(amountToExtractFromThisSlot)))
 						continue;
 					if (extracting == null) {
-						extracting = contained;
+						extracting = contained; // we found a target
 					}
 					boolean sameType = extracting.equals(contained);
 					if (sameType && maxStackSize == extracted) {
+						// stack is maxed out, skip
 						continue;
 					}
 					if (!sameType) {
+						// multiple types passed the test
 						if (otherTargets == null) {
 							otherTargets = new ArrayList<>();
 						}
@@ -209,17 +226,21 @@ public class ItemHelper {
 					}
 				}
 
-				if (mode == ExtractionCountMode.UPTO) {
+				// if the code reaches this point, we've extracted as much as possible, and it
+				// isn't enough.
+				if (mode == ExtractionCountMode.UPTO) { // we don't need to get exactly the amount requested
 					if (extracting != null && extracted != 0) {
 						if (!simulate)
 							t.commit();
 						return extracting.toStack(extracted);
 					}
 				} else {
+					// let's try a different target
 					if (otherTargets != null) {
 						t.abort();
 						try (Transaction nested = TransferUtil.getTransaction()) {
 							for (ItemVariant target : otherTargets) {
+								// try again, but now only match the existing matches we've found
 								ItemStack successfulExtraction = extract(inv, target::matches, mode, amount, simulate);
 								if (!successfulExtraction.isEmpty()) {
 									if (!simulate)
@@ -279,7 +300,7 @@ public class ItemHelper {
 	}
 
 	public static boolean canItemStackAmountsStack(ItemStack a, ItemStack b) {
-		return ItemStack.isSameItemSameComponents(a, b) && a.getCount() + b.getCount() <= a.getMaxStackSize();
+		return ItemHandlerHelper.canItemStacksStack(a, b) && a.getCount() + b.getCount() <= a.getMaxStackSize();
 	}
 
 	public static int truncateLong(long l) {
@@ -292,31 +313,11 @@ public class ItemHelper {
 		}
 	}
 
-	public static ItemStack fromItemEntity(net.minecraft.world.entity.Entity entityIn) {
-		if (entityIn == null || !entityIn.isAlive())
-			return ItemStack.EMPTY;
-		return entityIn instanceof net.minecraft.world.entity.item.ItemEntity itemEntity ? itemEntity.getItem() : ItemStack.EMPTY;
-	}
-
-	public static void fillItemStackHandler(net.minecraft.world.item.component.ItemContainerContents contents, io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler inv) {
-		List<ItemStack> itemStacks = contents.stream().toList();
-		for (int i = 0; i < itemStacks.size() && i < inv.getSlotCount(); i++) {
-			inv.setStackInSlot(i, itemStacks.get(i));
-		}
-	}
-
-	public static io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler getFilterItemHandler(ItemStack stack) {
-		io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler newInv = new io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler(18);
-		net.minecraft.world.item.component.ItemContainerContents contents = stack.getOrDefault(com.simibubi.create.AllDataComponents.FILTER_ITEMS, net.minecraft.world.item.component.ItemContainerContents.EMPTY);
-		fillItemStackHandler(contents, newInv);
-		return newInv;
-	}
-
-	public static net.minecraft.world.item.component.ItemContainerContents containerContentsFromHandler(io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler handler) {
-		List<ItemStack> items = new ArrayList<>();
-		for (int i = 0; i < handler.getSlotCount(); i++) {
-			items.add(handler.getStackInSlot(i));
-		}
-		return net.minecraft.world.item.component.ItemContainerContents.fromItems(items);
-	}
+//	public static ItemStack findFirstMatch(Storage<ItemVariant> inv, Predicate<ItemStack> test) {
+//		int slot = findFirstMatchingSlotIndex(inv, test);
+//		if (slot == -1)
+//			return ItemStack.EMPTY;
+//		else
+//			return inv.getStackInSlot(slot);
+//	}
 }

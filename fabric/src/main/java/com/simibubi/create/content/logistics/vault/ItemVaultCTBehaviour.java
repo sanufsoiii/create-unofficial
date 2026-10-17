@@ -66,7 +66,7 @@ public class ItemVaultCTBehaviour extends ConnectedTextureBehaviour.Base {
 	@Override
 	public boolean connectsTo(BlockState state, BlockState other, BlockAndTintGetter reader, BlockPos pos,
 		BlockPos otherPos, Direction face) {
-		return state == other && ConnectivityHandler.isConnected(reader, pos, otherPos);
+		return state == other && ConnectivityHandler.isConnected(reader, pos, otherPos); //ItemVaultConnectivityHandler.isConnected(reader, pos, otherPos);
 	}
 
 }

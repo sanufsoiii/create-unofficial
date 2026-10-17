@@ -10,11 +10,7 @@ import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 
-import org.jetbrains.annotations.NotNull;
-
 public class PloughBlock extends AttachedActorBlock {
-
-	public static final MapCodec<PloughBlock> CODEC = simpleCodec(PloughBlock::new);
 
 	public PloughBlock(Properties p_i48377_1_) {
 		super(p_i48377_1_);
@@ -23,7 +19,7 @@ public class PloughBlock extends AttachedActorBlock {
 	/**
 	 * The OnHoeUse event takes a player, so we better not pass null
 	 */
-	public static class PloughFakePlayer extends FakePlayer {
+	static class PloughFakePlayer extends FakePlayer {
 
 		public static final GameProfile PLOUGH_PROFILE =
 				new GameProfile(UUID.fromString("9e2faded-eeee-4ec2-c314-dad129ae971d"), "Plough");
@@ -35,7 +31,9 @@ public class PloughBlock extends AttachedActorBlock {
 	}
 
 	@Override
-	protected @NotNull MapCodec<? extends HorizontalDirectionalBlock> codec() {
-		return CODEC;
+	protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
+
 }

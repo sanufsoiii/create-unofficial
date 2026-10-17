@@ -6,11 +6,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.Create;
-import com.simibubi.create.foundation.utility.CreateLang;
 import com.simibubi.create.foundation.utility.FilesHelper;
+import com.simibubi.create.foundation.utility.Lang;
+
+import net.fabricmc.loader.api.FabricLoader;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -20,14 +22,16 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 
 public class SchematicExport {
+	public static final Path SCHEMATICS = FabricLoader.getInstance().getGameDir().resolve("schematics");
+
 	/**
 	 * Save a schematic to a file from a world.
-	 *
+	 * 
 	 * @param dir       the directory the schematic will be created in
-	 * @param fileName  the ideal name of the schematic, may not be the name of the created file
+	 * @param fileName  the ideal name of the schematic, may not be the name of the
+	 *                  created file
 	 * @param overwrite whether overwriting an existing schematic is allowed
 	 * @param level     the level where the schematic structure is placed
 	 * @param first     the first corner of the schematic area
@@ -35,7 +39,8 @@ public class SchematicExport {
 	 * @return a SchematicExportResult, or null if an error occurred.
 	 */
 	@Nullable
-	public static SchematicExportResult saveSchematic(Path dir, String fileName, boolean overwrite, Level level, BlockPos first, BlockPos second) {
+	public static SchematicExportResult saveSchematic(Path dir, String fileName, boolean overwrite, Level level,
+			BlockPos first, BlockPos second) {
 		BoundingBox bb = BoundingBox.fromCorners(first, second);
 		BlockPos origin = new BlockPos(bb.minX(), bb.minY(), bb.minZ());
 		BlockPos bounds = new BlockPos(bb.getXSpan(), bb.getYSpan(), bb.getZSpan());
@@ -44,10 +49,11 @@ public class SchematicExport {
 		structure.fillFromWorld(level, origin, bounds, true, Blocks.AIR);
 		CompoundTag data = structure.save(new CompoundTag());
 		SchematicAndQuillItem.replaceStructureVoidWithAir(data);
-		SchematicAndQuillItem.clampGlueBoxes(level, new AABB(Vec3.atLowerCornerOf(origin), Vec3.atLowerCornerOf(origin.offset(bounds))), data);
+		SchematicAndQuillItem.clampGlueBoxes(level, new AABB(origin.getCenter(), origin.offset(bounds).getCenter()),
+				data);
 
 		if (fileName.isEmpty())
-			fileName = CreateLang.translateDirect("schematicAndQuill.fallbackName").getString();
+			fileName = Lang.translateDirect("schematicAndQuill.fallbackName").getString();
 		if (!overwrite)
 			fileName = FilesHelper.findFirstValidFilename(fileName, dir, "nbt");
 		if (!fileName.endsWith(".nbt"))
@@ -68,6 +74,6 @@ public class SchematicExport {
 	}
 
 	public record SchematicExportResult(Path file, Path dir, String fileName, boolean overwritten, BlockPos origin,
-										BlockPos bounds) {
+			BlockPos bounds) {
 	}
 }

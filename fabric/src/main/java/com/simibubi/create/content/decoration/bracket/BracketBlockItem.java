@@ -48,15 +48,15 @@ public class BracketBlockItem extends BlockItem {
 
 		BlockState bracket = behaviour.getBracket();
 		BlockState newBracket = suitableBracket.get();
-
+		
 		if (bracket == newBracket)
 			return InteractionResult.SUCCESS;
-
+		
 		world.playSound(null, pos, newBracket
 			.getSoundType()
 			.getPlaceSound(), SoundSource.BLOCKS, 0.75f, 1);
 		behaviour.applyBracket(newBracket);
-
+		
 		if (player == null || !player.isCreative()) {
 			context.getItemInHand()
 				.shrink(1);

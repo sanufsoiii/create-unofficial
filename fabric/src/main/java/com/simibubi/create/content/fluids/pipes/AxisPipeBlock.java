@@ -2,7 +2,6 @@ package com.simibubi.create.content.fluids.pipes;
 
 import java.util.Map;
 import java.util.Optional;
-
 import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.AllBlocks;
@@ -13,8 +12,9 @@ import com.simibubi.create.content.fluids.FluidPropagator;
 import com.simibubi.create.content.fluids.FluidTransportBehaviour;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
+import net.fabricmc.fabric.api.block.BlockPickInteractionAware;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -23,6 +23,7 @@ import net.minecraft.network.protocol.game.DebugPackets;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -40,7 +41,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.ticks.TickPriority;
 
-public class AxisPipeBlock extends RotatedPillarBlock implements IWrenchableWithBracket, IAxisPipe {
+public class AxisPipeBlock extends RotatedPillarBlock implements IWrenchableWithBracket, IAxisPipe, BlockPickInteractionAware {
 
 	public AxisPipeBlock(Properties p_i48339_1_) {
 		super(p_i48339_1_);
@@ -56,11 +57,11 @@ public class AxisPipeBlock extends RotatedPillarBlock implements IWrenchableWith
 		if (state.hasBlockEntity() && (blockTypeChanged || !newState.hasBlockEntity()))
 			world.removeBlockEntity(pos);
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
 			Player player, InteractionHand hand, BlockHitResult hitResult) {
-
+		
 		if (!AllBlocks.COPPER_CASING.isIn(player.getItemInHand(hand)))
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 		if (world.isClientSide)
@@ -72,7 +73,7 @@ public class AxisPipeBlock extends RotatedPillarBlock implements IWrenchableWith
 		world.setBlockAndUpdate(pos, newState);
 		FluidTransportBehaviour.loadFlows(world, pos);
 		return ItemInteractionResult.SUCCESS;
-
+		
 	}
 
 	@Override
@@ -89,7 +90,8 @@ public class AxisPipeBlock extends RotatedPillarBlock implements IWrenchableWith
 			world.scheduleTick(pos, this, 1, TickPriority.HIGH);
 	}
 
-	public ItemStack getCloneItemStack(BlockGetter view, BlockPos pos, BlockState state) {
+	@Override
+	public ItemStack getPickedStack(BlockState state, BlockGetter view, BlockPos pos, @Nullable Player player, @Nullable HitResult result) {
 		return AllBlocks.FLUID_PIPE.asStack();
 	}
 

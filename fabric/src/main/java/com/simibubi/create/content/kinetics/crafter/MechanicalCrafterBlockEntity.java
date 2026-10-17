@@ -10,44 +10,44 @@ import java.util.Map.Entry;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
-import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.api.contraption.transformable.TransformableBlockEntity;
-import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehaviour;
 import com.simibubi.create.content.kinetics.crafter.ConnectedInputHandler.ConnectedInput;
 import com.simibubi.create.content.kinetics.crafter.RecipeGridHandler.GroupedItems;
-// import com.simibubi.create.foundation.advancement.AllAdvancements;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.edgeInteraction.EdgeInteractionBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.item.SmartInventory;
+import com.simibubi.create.foundation.utility.BlockFace;
+import com.simibubi.create.foundation.utility.Pointing;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.math.BlockFace;
-import net.createmod.catnip.math.Pointing;
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.callbacks.TransactionCallback;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements TransformableBlockEntity, SidedStorageBlockEntity {
+public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements SidedStorageBlockEntity {
 
 	enum Phase {
 		IDLE, ACCEPTING, ASSEMBLING, EXPORTING, WAITING, CRAFTING, INSERTING;
@@ -61,43 +61,48 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 			super(1, blockEntity, 1, false);
 			this.blockEntity = blockEntity;
 			forbidExtraction();
-			whenContentsChanged((java.util.function.Consumer<Integer>) slot -> {
-				if (getItem(slot).isEmpty())
+			whenContentsChanged(() -> {
+				if (getStackInSlot(0).isEmpty()) // fabric: only has one slot, this is safe
 					return;
 				if (blockEntity.phase == Phase.IDLE)
 					blockEntity.checkCompletedRecipe(false);
 			});
 		}
 
-		public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+		@Override
+		public long insert(ItemVariant resource, long maxAmount, TransactionContext transaction) {
 			if (blockEntity.phase != Phase.IDLE)
-				return stack;
+				return 0;
 			if (blockEntity.covered)
-				return stack;
-			return super.insertItem(slot, stack, simulate);
+				return 0;
+			long inserted = super.insert(resource, maxAmount, transaction);
+			if (inserted != 0)
+				TransactionCallback.onSuccess(transaction, () -> blockEntity.getLevel()
+						.playSound(null, blockEntity.getBlockPos(), SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, .25f,
+								.5f));
+			return inserted;
 		}
 
 	}
 
-	public ConnectedInput input;
 	protected Inventory inventory;
-	protected GroupedItems groupedItems;
-	protected GroupedItems groupedItemsBeforeCraft;
+	protected GroupedItems groupedItems = new GroupedItems();
+	protected ConnectedInput input = new ConnectedInput();
+	protected boolean reRender;
 	protected Phase phase;
 	protected int countDown;
 	protected boolean covered;
 	protected boolean wasPoweredBefore;
-	private boolean reRender;
 
-	InvManipulationBehaviour inserting;
-	EdgeInteractionBehaviour connectivity;
+	protected GroupedItems groupedItemsBeforeCraft; // for rendering on client
+	private InvManipulationBehaviour inserting;
+	private EdgeInteractionBehaviour connectivity;
 
-	private ItemStack scriptedResult;
+	private ItemStack scriptedResult = ItemStack.EMPTY;
 
 	public MechanicalCrafterBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
-		input = new ConnectedInput();
-		groupedItems = new GroupedItems();
+		setLazyTickRate(20);
 		phase = Phase.IDLE;
 		groupedItemsBeforeCraft = new GroupedItems();
 		inventory = new Inventory(this);
@@ -106,32 +111,26 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 		wasPoweredBefore = true;
 	}
 
-	@Nullable
-	@Override
-	public Storage<ItemVariant> getItemStorage(@Nullable Direction side) {
-		return input != null ? input.getItemStorage(getLevel(), getBlockPos()) : null;
-	}
-
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		super.addBehaviours(behaviours);
 		inserting = new InvManipulationBehaviour(this, this::getTargetFace);
 		connectivity = new EdgeInteractionBehaviour(this, ConnectedInputHandler::toggleConnection)
 			.connectivity(ConnectedInputHandler::shouldConnect)
-			.require(item -> AllItems.WRENCH.isIn(item.getDefaultInstance()));
+			.require(AllItems.WRENCH.get());
 		behaviours.add(inserting);
 		behaviours.add(connectivity);
-		// TODO: registerAwardables(behaviours, AllAdvancements.CRAFTER, AllAdvancements.CRAFTER_LAZY);
+		registerAwardables(behaviours, AllAdvancements.CRAFTER, AllAdvancements.CRAFTER_LAZY);
 	}
 
 	@Override
 	public void onSpeedChanged(float previousSpeed) {
 		super.onSpeedChanged(previousSpeed);
-		// if (!Mth.equal(getSpeed(), 0)) {
-		// 	award(AllAdvancements.CRAFTER);
-		// 	if (Math.abs(getSpeed()) < 5)
-		// 		award(AllAdvancements.CRAFTER_LAZY);
-		// }
+		if (!Mth.equal(getSpeed(), 0)) {
+			award(AllAdvancements.CRAFTER);
+			if (Math.abs(getSpeed()) < 5)
+				award(AllAdvancements.CRAFTER_LAZY);
+		}
 	}
 
 	public void blockChanged() {
@@ -149,33 +148,33 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 	}
 
 	@Override
-	public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
-		super.writeSafe(tag, registries);
+	public void writeSafe(CompoundTag compound) {
+		super.writeSafe(compound);
 		if (input == null)
 			return;
 
 		CompoundTag inputNBT = new CompoundTag();
 		input.write(inputNBT);
-		tag.put("ConnectedInput", inputNBT);
+		compound.put("ConnectedInput", inputNBT);
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		compound.put("Inventory", inventory.serializeNBT(registries));
+	public void write(CompoundTag compound, boolean clientPacket) {
+		compound.put("Inventory", inventory.serializeNBT());
 
 		CompoundTag inputNBT = new CompoundTag();
 		input.write(inputNBT);
 		compound.put("ConnectedInput", inputNBT);
 
 		CompoundTag groupedItemsNBT = new CompoundTag();
-		groupedItems.write(groupedItemsNBT, registries);
+		groupedItems.write(groupedItemsNBT);
 		compound.put("GroupedItems", groupedItemsNBT);
 
 		compound.putString("Phase", phase.name());
 		compound.putInt("CountDown", countDown);
 		compound.putBoolean("Cover", covered);
 
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 
 		if (clientPacket && reRender) {
 			compound.putBoolean("Redraw", true);
@@ -184,13 +183,13 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		Phase phaseBefore = phase;
 		GroupedItems before = this.groupedItems;
 
-		inventory.deserializeNBT(registries, compound.getCompound("Inventory"));
+		inventory.deserializeNBT(compound.getCompound("Inventory"));
 		input.read(compound.getCompound("ConnectedInput"));
-		groupedItems = GroupedItems.read(compound.getCompound("GroupedItems"), registries);
+		groupedItems = GroupedItems.read(compound.getCompound("GroupedItems"));
 		phase = Phase.IDLE;
 		String name = compound.getString("Phase");
 		for (Phase phase : Phase.values())
@@ -199,7 +198,7 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 				this.phase = phase;
 		countDown = compound.getInt("CountDown");
 		covered = compound.getBoolean("Cover");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 		if (!clientPacket)
 			return;
 		if (compound.contains("Redraw"))
@@ -207,8 +206,6 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 		if (phaseBefore != phase && phase == Phase.CRAFTING)
 			groupedItemsBeforeCraft = before;
 		if (phaseBefore == Phase.EXPORTING && phase == Phase.WAITING) {
-			if (before.onlyEmptyItems())
-				return;
 			Direction facing = getBlockState().getValue(MechanicalCrafterBlock.HORIZONTAL_FACING);
 			Vec3 vec = Vec3.atLowerCornerOf(facing.getNormal())
 				.scale(.75)
@@ -218,6 +215,11 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 				.scale(1));
 			level.addParticle(ParticleTypes.CRIT, vec.x, vec.y, vec.z, 0, 0, 0);
 		}
+	}
+
+	@Override
+	public void invalidate() {
+		super.invalidate();
 	}
 
 	public int getCountDownSpeed() {
@@ -253,7 +255,7 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 					return;
 				if (RecipeGridHandler.getTargetingCrafter(this) != null) {
 					phase = Phase.EXPORTING;
-					countDown = groupedItems.onlyEmptyItems() ? 0 : 1000;
+					countDown = 1000;
 					sendData();
 					return;
 				}
@@ -265,11 +267,9 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 					List<ItemStack> containers = new ArrayList<>();
 					groupedItems.grid.values()
 						.forEach(stack -> {
-							if (stack.getItem().hasCraftingRemainingItem()) {
-								net.minecraft.world.item.Item remainder = stack.getItem().getCraftingRemainingItem();
-								if (remainder != null)
-									containers.add(new ItemStack(remainder));
-							}
+							ItemStack remaining = stack.getRecipeRemainder();
+							if (!remaining.isEmpty())
+								containers.add(remaining);
 						});
 
 					if (isVirtual())
@@ -307,15 +307,12 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 					return;
 				}
 
-				boolean empty = groupedItems.onlyEmptyItems();
 				Pointing pointing = getBlockState().getValue(MechanicalCrafterBlock.POINTING);
 				groupedItems.mergeOnto(targetingCrafter.groupedItems, pointing);
 				groupedItems = new GroupedItems();
 
 				float pitch = targetingCrafter.groupedItems.grid.size() * 1 / 16f + .5f;
-
-				if (!empty)
-					AllSoundEvents.CRAFTER_CLICK.playOnServer(level, worldPosition, 1, pitch);
+				AllSoundEvents.CRAFTER_CLICK.playOnServer(level, worldPosition, 1, pitch);
 
 				phase = Phase.WAITING;
 				countDown = 0;
@@ -481,7 +478,7 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 			.isEmpty() || covered;
 	}
 
-	public void checkCompletedRecipe(boolean poweredStart) {
+	protected void checkCompletedRecipe(boolean poweredStart) {
 		if (getSpeed() == 0)
 			return;
 		if (level.isClientSide && !isVirtual())
@@ -502,7 +499,7 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 		if (RecipeGridHandler.getPrecedingCrafters(this)
 			.isEmpty()) {
 			phase = Phase.ASSEMBLING;
-			countDown = 1;
+			countDown = 500;
 		}
 		sendData();
 	}
@@ -519,7 +516,13 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 				return;
 
 		phase = Phase.ASSEMBLING;
-		countDown = 1;
+		countDown = Math.max(100, getCountDownSpeed() + 1);
+	}
+
+	@Nullable
+	@Override
+	public Storage<ItemVariant> getItemStorage(@Nullable Direction face) {
+		return input.getItemHandler(level, worldPosition);
 	}
 
 	public void connectivityChanged() {
@@ -535,13 +538,4 @@ public class MechanicalCrafterBlockEntity extends KineticBlockEntity implements 
 		this.scriptedResult = scriptedResult;
 	}
 
-	public ConnectedInput getInput() {
-		return input;
-	}
-
-	@Override
-	public void transform(BlockEntity be, StructureTransform transform) {
-		input.data.replaceAll(transform::applyWithoutOffset);
-		notifyUpdate();
-	}
 }

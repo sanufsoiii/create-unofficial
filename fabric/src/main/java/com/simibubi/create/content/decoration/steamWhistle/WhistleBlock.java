@@ -8,8 +8,8 @@ import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.fluids.tank.FluidTankBlock;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.utility.Lang;
 
-import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -20,6 +20,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -64,8 +65,8 @@ public class WhistleBlock extends Block implements IBE<WhistleBlockEntity>, IWre
 
 	}
 
-	public WhistleBlock(Properties properties) {
-		super(properties);
+	public WhistleBlock(Properties p_49795_) {
+		super(p_49795_);
 		registerDefaultState(defaultBlockState().setValue(POWERED, false)
 			.setValue(WALL, false)
 			.setValue(SIZE, WhistleSize.MEDIUM));
@@ -111,11 +112,11 @@ public class WhistleBlock extends Block implements IBE<WhistleBlockEntity>, IWre
 			return null;
 		return state;
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level pLevel, BlockPos pPos,
 			Player pPlayer, InteractionHand hand, BlockHitResult hitResult) {
-
+		
 		if (pPlayer == null)
 			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 
@@ -126,6 +127,7 @@ public class WhistleBlock extends Block implements IBE<WhistleBlockEntity>, IWre
 		}
 
 		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
 	}
 
 	public static void incrementSize(LevelAccessor pLevel, BlockPos pPos) {
@@ -173,7 +175,8 @@ public class WhistleBlock extends Block implements IBE<WhistleBlockEntity>, IWre
 
 	public static void queuePitchUpdate(LevelAccessor level, BlockPos pos) {
 		BlockState blockState = level.getBlockState(pos);
-		if (blockState.getBlock() instanceof WhistleBlock whistle && !level.getBlockTicks().hasScheduledTick(pos, whistle))
+		if (blockState.getBlock()instanceof WhistleBlock whistle && !level.getBlockTicks()
+			.hasScheduledTick(pos, whistle))
 			level.scheduleTick(pos, whistle, 1);
 	}
 

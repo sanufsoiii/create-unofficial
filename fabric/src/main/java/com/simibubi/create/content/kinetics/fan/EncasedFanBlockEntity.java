@@ -2,17 +2,18 @@ package com.simibubi.create.content.kinetics.fan;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.logistics.chute.ChuteBlockEntity;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -37,18 +38,19 @@ public class EncasedFanBlockEntity extends KineticBlockEntity implements IAirCur
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		super.addBehaviours(behaviours);
+		registerAwardables(behaviours, AllAdvancements.ENCASED_FAN, AllAdvancements.FAN_PROCESSING);
 	}
-
+	
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		super.read(compound, reg, clientPacket);
 		if (clientPacket)
 			airCurrent.rebuild();
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(compound, registries, clientPacket);
+	public void write(CompoundTag compound, boolean clientPacket) {
+		super.write(compound, clientPacket);
 	}
 
 	@Override
@@ -88,7 +90,7 @@ public class EncasedFanBlockEntity extends KineticBlockEntity implements IAirCur
 		super.remove();
 		updateChute();
 	}
-
+	
 	@Override
 	public boolean isSourceRemoved() {
 		return remove;
@@ -107,8 +109,9 @@ public class EncasedFanBlockEntity extends KineticBlockEntity implements IAirCur
 			.isVertical())
 			return;
 		BlockEntity poweredChute = level.getBlockEntity(worldPosition.relative(direction));
-		if (!(poweredChute instanceof ChuteBlockEntity chuteBE))
+		if (!(poweredChute instanceof ChuteBlockEntity))
 			return;
+		ChuteBlockEntity chuteBE = (ChuteBlockEntity) poweredChute;
 		if (direction == Direction.DOWN)
 			chuteBE.updatePull();
 		else
@@ -133,6 +136,8 @@ public class EncasedFanBlockEntity extends KineticBlockEntity implements IAirCur
 		if (updateAirFlow) {
 			updateAirFlow = false;
 			airCurrent.rebuild();
+			if (airCurrent.maxDistance > 0)
+				award(AllAdvancements.ENCASED_FAN);
 			sendData();
 		}
 

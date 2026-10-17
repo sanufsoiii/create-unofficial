@@ -1,10 +1,10 @@
 package com.simibubi.create.content.redstone.diodes;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllItems;
+import com.simibubi.create.AllTags;
 
+import io.github.fabricators_of_create.porting_lib_ufo.block.ConnectableRedstoneBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -24,21 +25,14 @@ import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
 
-public class ToggleLatchBlock extends AbstractDiodeBlock {
+public class ToggleLatchBlock extends AbstractDiodeBlock implements ConnectableRedstoneBlock {
 
 	public static BooleanProperty POWERING = BooleanProperty.create("powering");
-
-	public static final MapCodec<ToggleLatchBlock> CODEC = simpleCodec(ToggleLatchBlock::new);
 
 	public ToggleLatchBlock(Properties properties) {
 		super(properties);
 		registerDefaultState(defaultBlockState().setValue(POWERING, false)
 			.setValue(POWERED, false));
-	}
-
-	@Override
-	protected @NotNull MapCodec<? extends DiodeBlock> codec() {
-		return CODEC;
 	}
 
 	@Override
@@ -55,16 +49,33 @@ public class ToggleLatchBlock extends AbstractDiodeBlock {
 	protected int getDelay(BlockState state) {
 		return 1;
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
+			Player player, InteractionHand handIn, BlockHitResult hitResult) {
+		
+		if(stack.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 		if (!player.mayBuild())
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 		if (player.isShiftKeyDown())
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		if (AllItems.WRENCH.isIn(stack))
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		return activated(level, pos, state);
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		if (AllItems.WRENCH.isIn(player.getItemInHand(handIn)))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		return activated(worldIn, pos, state);
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		if (!player.mayBuild())
+			return InteractionResult.PASS;
+		if (player.isShiftKeyDown())
+			return InteractionResult.PASS;
+		return activated(worldIn, pos, state).result();
+		
 	}
 
 	@Override
@@ -78,23 +89,30 @@ public class ToggleLatchBlock extends AbstractDiodeBlock {
 		super.tick(state, worldIn, pos, random);
 		BlockState newState = worldIn.getBlockState(pos);
 		if (newState.getValue(POWERED) && !poweredPreviously)
-			worldIn.setBlock(pos, newState.cycle(POWERING), Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, newState.cycle(POWERING), 2);
 	}
 
 	protected ItemInteractionResult activated(Level worldIn, BlockPos pos, BlockState state) {
 		if (!worldIn.isClientSide) {
 			float f = !state.getValue(POWERING) ? 0.6F : 0.5F;
 			worldIn.playSound(null, pos, SoundEvents.LEVER_CLICK, SoundSource.BLOCKS, 0.3F, f);
-			worldIn.setBlock(pos, state.cycle(POWERING), Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, state.cycle(POWERING), 2);
 		}
 		return ItemInteractionResult.SUCCESS;
 	}
 
+	@Override
 	public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, Direction side) {
 		if (side == null)
 			return false;
 		return side.getAxis() == state.getValue(FACING)
 			.getAxis();
+	}
+
+	@Override
+	protected MapCodec<? extends DiodeBlock> codec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

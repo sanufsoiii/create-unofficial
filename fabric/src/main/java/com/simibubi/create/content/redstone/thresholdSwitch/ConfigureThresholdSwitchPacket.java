@@ -1,48 +1,46 @@
 package com.simibubi.create.content.redstone.thresholdSwitch;
 
-import com.simibubi.create.AllPackets;
 import com.simibubi.create.foundation.networking.BlockEntityConfigurationPacket;
 
-import io.netty.buffer.ByteBuf;
-
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 public class ConfigureThresholdSwitchPacket extends BlockEntityConfigurationPacket<ThresholdSwitchBlockEntity> {
-	public static final StreamCodec<ByteBuf, ConfigureThresholdSwitchPacket> STREAM_CODEC = StreamCodec.composite(
-			BlockPos.STREAM_CODEC, packet -> packet.pos,
-			ByteBufCodecs.INT, packet -> packet.offBelow,
-			ByteBufCodecs.INT, packet -> packet.onAbove,
-			ByteBufCodecs.BOOL, packet -> packet.invert,
-			ByteBufCodecs.BOOL, packet -> packet.inStacks,
-			ConfigureThresholdSwitchPacket::new
-	);
 
-	private final int offBelow;
-	private final int onAbove;
-	private final boolean invert;
-	private final boolean inStacks;
+	private float offBelow;
+	private float onAbove;
+	private boolean invert;
 
-	public ConfigureThresholdSwitchPacket(BlockPos pos, int offBelow, int onAbove, boolean invert, boolean inStacks) {
+	public ConfigureThresholdSwitchPacket(BlockPos pos, float offBelow, float onAbove, boolean invert) {
 		super(pos);
 		this.offBelow = offBelow;
 		this.onAbove = onAbove;
 		this.invert = invert;
-		this.inStacks = inStacks;
+	}
+	
+	public ConfigureThresholdSwitchPacket(RegistryFriendlyByteBuf buffer) {
+		super(buffer);
+	}
+	
+	@Override
+	protected void readSettings(RegistryFriendlyByteBuf buffer) {
+		offBelow = buffer.readFloat();
+		onAbove = buffer.readFloat();
+		invert = buffer.readBoolean();
 	}
 
 	@Override
-	protected void applySettings(ServerPlayer player, ThresholdSwitchBlockEntity be) {
+	protected void writeSettings(RegistryFriendlyByteBuf buffer) {
+		buffer.writeFloat(offBelow);
+		buffer.writeFloat(onAbove);
+		buffer.writeBoolean(invert);
+	}
+
+	@Override
+	protected void applySettings(ThresholdSwitchBlockEntity be) {
 		be.offWhenBelow = offBelow;
 		be.onWhenAbove = onAbove;
 		be.setInverted(invert);
-		be.inStacks = inStacks;
 	}
-
-	@Override
-	public PacketTypeProvider getTypeProvider() {
-		return AllPackets.CONFIGURE_STOCKSWITCH;
-	}
+	
 }

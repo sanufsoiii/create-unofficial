@@ -2,17 +2,21 @@ package com.simibubi.create.content.kinetics.transmission.sequencer;
 
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllItems;
-import com.simibubi.create.api.contraption.transformable.TransformableBlock;
+import com.simibubi.create.content.contraptions.ITransformableBlock;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.kinetics.base.HorizontalAxisKineticBlock;
 import com.simibubi.create.content.kinetics.base.KineticBlock;
 import com.simibubi.create.content.kinetics.base.RotatedPillarKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
+import com.simibubi.create.foundation.gui.ScreenOpener;
 import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.tterrag.registrate.fabric.EnvExecutor;
 
-import io.github.fabricators_of_create.porting_lib.block.WeakPowerCheckingBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.WeakPowerCheckingBlock;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -37,8 +41,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.BlockHitResult;
 
-public class SequencedGearshiftBlock extends HorizontalAxisKineticBlock
-		implements IBE<SequencedGearshiftBlockEntity>, TransformableBlock, WeakPowerCheckingBlock {
+public class SequencedGearshiftBlock extends HorizontalAxisKineticBlock implements IBE<SequencedGearshiftBlockEntity>, ITransformableBlock, WeakPowerCheckingBlock {
 
 	public static final BooleanProperty VERTICAL = BooleanProperty.create("vertical");
 	public static final IntegerProperty STATE = IntegerProperty.create("state", 0, 5);
@@ -53,9 +56,9 @@ public class SequencedGearshiftBlock extends HorizontalAxisKineticBlock
 	}
 
 	@Override
-	public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
-		return false;
-	}
+    public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
+        return false;
+    }
 
 	@Override
 	public void neighborChanged(BlockState state, Level worldIn, BlockPos pos, Block blockIn, BlockPos fromPos,
@@ -86,17 +89,19 @@ public class SequencedGearshiftBlock extends HorizontalAxisKineticBlock
 				.isVertical();
 		return super.hasShaftTowards(world, pos, state, face);
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
 			Player player, InteractionHand hand, BlockHitResult hit) {
+		
 		if (AdventureUtil.isAdventure(player))
 			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
-
+		
 		ItemStack held = player.getMainHandItem();
-		if (held.isEmpty())
+		if(held.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-
+		
+		
 		if (AllItems.WRENCH.isIn(held))
 			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 		if (held.getItem() instanceof BlockItem) {
@@ -105,23 +110,30 @@ public class SequencedGearshiftBlock extends HorizontalAxisKineticBlock
 				return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 		}
 
-		withBlockEntityDo(worldIn, pos, be -> this.displayScreen(be, player));
+		EnvExecutor.runWhenOn(EnvType.CLIENT,
+			() -> () -> withBlockEntityDo(worldIn, pos, be -> this.displayScreen(be, player)));
 		return ItemInteractionResult.SUCCESS;
+		
 	}
-
+	
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
 			BlockHitResult hitResult) {
+		
 		if (AdventureUtil.isAdventure(player))
 			return InteractionResult.PASS;
+		ItemStack held = ItemStack.EMPTY;
 
-		withBlockEntityDo(worldIn, pos, be -> this.displayScreen(be, player));
+		EnvExecutor.runWhenOn(EnvType.CLIENT,
+			() -> () -> withBlockEntityDo(worldIn, pos, be -> this.displayScreen(be, player)));
 		return InteractionResult.SUCCESS;
+		
 	}
 
 	@Environment(value = EnvType.CLIENT)
 	protected void displayScreen(SequencedGearshiftBlockEntity be, Player player) {
-		// Screen opening will be connected on UI porting phase
+		if (player instanceof LocalPlayer)
+			ScreenOpener.open(new SequencedGearshiftScreen(be));
 	}
 
 	@Override

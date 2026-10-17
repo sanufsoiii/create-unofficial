@@ -5,25 +5,25 @@ import java.util.List;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import com.simibubi.create.AllRecipeTypes;
-import com.simibubi.create.content.processing.recipe.ProcessingRecipeParams;
-import com.simibubi.create.content.processing.recipe.StandardProcessingRecipe;
+import com.simibubi.create.content.equipment.sandPaper.SandPaperPolishingRecipe.SandPaperInv;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipe;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder.ProcessingRecipeParams;
 
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandlerContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 @ParametersAreNonnullByDefault
-public class SandPaperPolishingRecipe extends StandardProcessingRecipe<SingleRecipeInput> {
+public class SandPaperPolishingRecipe extends ProcessingRecipe<SandPaperInv> {
 
 	public SandPaperPolishingRecipe(ProcessingRecipeParams params) {
 		super(AllRecipeTypes.SANDPAPER_POLISHING, params);
 	}
 
 	@Override
-	public boolean matches(SingleRecipeInput inv, Level worldIn) {
+	public boolean matches(SandPaperInv inv, Level worldIn) {
 		return ingredients.get(0)
 			.test(inv.getItem(0));
 	}
@@ -43,16 +43,27 @@ public class SandPaperPolishingRecipe extends StandardProcessingRecipe<SingleRec
 	}
 
 	public static ItemStack applyPolish(Level world, Vec3 position, ItemStack stack, ItemStack sandPaperStack) {
-		List<RecipeHolder<Recipe<SingleRecipeInput>>> matchingRecipes = getMatchingRecipes(world, stack);
+		List<Recipe<SandPaperInv>> matchingRecipes = getMatchingRecipes(world, stack);
 		if (!matchingRecipes.isEmpty())
-			return matchingRecipes.get(0).value()
-				.assemble(new SingleRecipeInput(stack), world.registryAccess())
+			return matchingRecipes.get(0)
+				.assemble(new SandPaperInv(stack), world.registryAccess())
 				.copy();
 		return stack;
 	}
 
-	public static List<RecipeHolder<Recipe<SingleRecipeInput>>> getMatchingRecipes(Level world, ItemStack stack) {
+	public static List<Recipe<SandPaperInv>> getMatchingRecipes(Level world, ItemStack stack) {
 		return world.getRecipeManager()
-			.getRecipesFor(AllRecipeTypes.SANDPAPER_POLISHING.getType(), new SingleRecipeInput(stack), world);
+			.getRecipesFor(AllRecipeTypes.SANDPAPER_POLISHING.getType(), 
+					new SandPaperInv(stack), world).stream().map(r -> r.value()).toList();
 	}
+
+	public static class SandPaperInv extends ItemStackHandlerContainer {
+
+		public SandPaperInv(ItemStack stack) {
+			super(1);
+			setStackInSlot(0, stack);
+		}
+
+	}
+
 }

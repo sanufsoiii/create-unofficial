@@ -5,30 +5,38 @@ import java.util.List;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.decoration.steamWhistle.WhistleBlock.WhistleSize;
 import com.simibubi.create.content.decoration.steamWhistle.WhistleExtenderBlock.WhistleExtenderShape;
+import com.simibubi.create.content.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.fluids.tank.FluidTankBlockEntity;
+import com.simibubi.create.content.kinetics.steamEngine.SteamJetParticleData;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.AngleHelper;
+import com.simibubi.create.foundation.utility.Components;
+import com.simibubi.create.foundation.utility.Lang;
+import com.simibubi.create.foundation.utility.VecHelper;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
-import net.createmod.catnip.platform.CatnipServices;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import com.tterrag.registrate.fabric.EnvExecutor;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 public class WhistleBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation {
 
@@ -44,7 +52,7 @@ public class WhistleBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
-		// TODO: registerAwardables(behaviours, AllAdvancements.STEAM_WHISTLE);
+		registerAwardables(behaviours, AllAdvancements.STEAM_WHISTLE);
 	}
 
 	public void updatePitch() {
@@ -75,7 +83,8 @@ public class WhistleBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 	public void tick() {
 		super.tick();
 		if (!level.isClientSide()) {
-			// TODO: award(AllAdvancements.STEAM_WHISTLE);
+			if (isPowered())
+				award(AllAdvancements.STEAM_WHISTLE);
 			return;
 		}
 
@@ -85,27 +94,28 @@ public class WhistleBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 				|| isVirtual());
 		animation.chase(powered ? 1 : 0, powered ? .5f : .4f, powered ? Chaser.EXP : Chaser.LINEAR);
 		animation.tickChaser();
-		CatnipServices.PLATFORM.executeOnClientOnly(() -> () -> this.tickAudio(getOctave(), powered));
+		EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> this.tickAudio(getOctave(), powered));
 	}
 
 	@Override
-	protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void write(CompoundTag tag, boolean clientPacket) {
 		tag.putInt("Pitch", pitch);
-		super.write(tag, registries, clientPacket);
+		super.write(tag, clientPacket);
 	}
-
+	
 	@Override
-	protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag tag, Provider registries, boolean clientPacket) {
 		pitch = tag.getInt("Pitch");
 		super.read(tag, registries, clientPacket);
 	}
 
 	@Override
 	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
-		String[] pitches = CreateLang.translateDirect("generic.notes")
+		String[] pitches = Lang.translateDirect("generic.notes")
 			.getString()
 			.split(";");
-		CreateLang.translate("generic.pitch", pitches[pitch % pitches.length]).forGoggles(tooltip);
+		MutableComponent textComponent = Components.literal(spacing);
+		tooltip.add(textComponent.append(Lang.translateDirect("generic.pitch", pitches[pitch % pitches.length])));
 		return true;
 	}
 
@@ -133,6 +143,7 @@ public class WhistleBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 		}
 
 		float f = (float) Math.pow(2, -pitch / 12.0);
+		boolean particle = level.getGameTime() % 8 == 0;
 		Vec3 eyePosition = Minecraft.getInstance().cameraEntity.getEyePosition();
 		float maxVolume = (float) Mth.clamp((64 - eyePosition.distanceTo(Vec3.atCenterOf(worldPosition))) / 64, 0, 1);
 
@@ -142,10 +153,26 @@ public class WhistleBlockEntity extends SmartBlockEntity implements IHaveGoggleI
 				.play(soundInstance = new WhistleSoundInstance(size, worldPosition));
 			AllSoundEvents.WHISTLE_CHIFF.playAt(level, worldPosition, maxVolume * .175f,
 				size == WhistleSize.SMALL ? f + .75f : f, false);
+			particle = true;
 		}
 
 		soundInstance.keepAlive();
 		soundInstance.setPitch(f);
+
+		if (!particle)
+			return;
+
+		Direction facing = getBlockState().getOptionalValue(WhistleBlock.FACING)
+			.orElse(Direction.SOUTH);
+		float angle = 180 + AngleHelper.horizontalAngle(facing);
+		Vec3 sizeOffset = VecHelper.rotate(new Vec3(0, -0.4f, 1 / 16f * size.ordinal()), angle, Axis.Y);
+		Vec3 offset = VecHelper.rotate(new Vec3(0, 1, 0.75f), angle, Axis.Y);
+		Vec3 v = offset.scale(.45f)
+			.add(sizeOffset)
+			.add(Vec3.atCenterOf(worldPosition));
+		Vec3 m = offset.subtract(Vec3.atLowerCornerOf(facing.getNormal())
+			.scale(.75f));
+		level.addParticle(new SteamJetParticleData(1), v.x, v.y, v.z, m.x, m.y, m.z);
 	}
 
 	public int getPitchId() {

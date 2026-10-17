@@ -2,43 +2,31 @@ package com.simibubi.create.content.equipment.toolbox;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.AllItems;
-import com.simibubi.create.foundation.item.ItemSlots;
+import com.simibubi.create.foundation.utility.NBTHelper;
 
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
-import net.createmod.catnip.codecs.stream.CatnipStreamCodecBuilders;
-import net.createmod.catnip.nbt.NBTHelper;
-import net.minecraft.core.HolderLookup;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.callbacks.TransactionCallback;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandlerSlot;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 
 public class ToolboxInventory extends ItemStackHandler {
+
 	public static final int STACKS_PER_COMPARTMENT = 4;
-	public static final Codec<ToolboxInventory> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-		ItemSlots.maxSizeCodec(8 * STACKS_PER_COMPARTMENT).fieldOf("items").forGetter(ItemSlots::fromHandler),
-		ItemStack.OPTIONAL_CODEC.listOf().fieldOf("filters").forGetter(toolbox -> toolbox.filters)
-	).apply(instance, ToolboxInventory::deserialize));
-
-	public static final StreamCodec<RegistryFriendlyByteBuf, ToolboxInventory> STREAM_CODEC = StreamCodec.composite(
-		ItemSlots.STREAM_CODEC, ItemSlots::fromHandler,
-		CatnipStreamCodecBuilders.list(ItemStack.OPTIONAL_STREAM_CODEC), toolbox -> toolbox.filters,
-		ToolboxInventory::deserialize
-	);
-
 	List<ItemStack> filters;
 	boolean settling;
-	private final ToolboxBlockEntity blockEntity;
+	private ToolboxBlockEntity blockEntity;
 
 	private boolean limitedMode;
 
@@ -95,17 +83,19 @@ public class ToolboxInventory extends ItemStackHandler {
 		} else {
 			for (int i = 0; i < STACKS_PER_COMPARTMENT; i++) {
 				ItemStack copy = totalCount <= 0 ? ItemStack.EMPTY
-					: sample.copyWithCount(Math.min(totalCount, sample.getMaxStackSize()));
+					: ItemHandlerHelper.copyStackWithSize(sample, Math.min(totalCount, sample.getMaxStackSize()));
 				setStackInSlot(compartment * STACKS_PER_COMPARTMENT + i, copy);
 				totalCount -= copy.getCount();
 			}
 		}
 		settling = false;
-		notifyUpdate();
+		blockEntity.sendData();
 	}
 
-	public boolean isItemValid(int slot, ItemStack stack) {
-		if (stack.isEmpty() || !stack.getItem().canFitInsideContainerItems())
+	@Override
+	public boolean isItemValid(int slot, ItemVariant var, int count) {
+		ItemStack stack = var.toStack();
+		if (!stack.getItem().canFitInsideContainerItems())
 			return false;
 
 		if (slot < 0 || slot >= getSlotCount())
@@ -115,184 +105,105 @@ public class ToolboxInventory extends ItemStackHandler {
 		if (limitedMode && filter.isEmpty())
 			return false;
 		if (filter.isEmpty() || ToolboxInventory.canItemsShareCompartment(filter, stack))
-			return true;
+			return super.isItemValid(slot, var, count);
 		return false;
 	}
 
 	@Override
 	public void setStackInSlot(int slot, ItemStack stack) {
 		super.setStackInSlot(slot, stack);
-		int compartment = slot / STACKS_PER_COMPARTMENT;
-		if (!stack.isEmpty() && filters.get(compartment)
-			.isEmpty()) {
-			filters.set(compartment, stack.copyWithCount(1));
-			notifyUpdate();
-		}
+		updateCompartmentFilters(slot, stack, null);
 	}
 
-	public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
-		if (stack.isEmpty())
-			return ItemStack.EMPTY;
-		if (!isItemValid(slot, stack))
-			return stack;
-
-		ItemStack existing = getStackInSlot(slot);
-		int limit = Math.min(getSlotLimit(slot), stack.getMaxStackSize());
-
-		if (!existing.isEmpty()) {
-			if (!ItemStack.isSameItemSameComponents(stack, existing))
-				return stack;
-			limit -= existing.getCount();
+	private void updateCompartmentFilters(int slot, ItemStack stack, @Nullable TransactionContext ctx) {
+		int compartment = slot / STACKS_PER_COMPARTMENT;
+		if (!stack.isEmpty() && filters.get(compartment)
+				.isEmpty()) {
+			filters.set(compartment, ItemHandlerHelper.copyStackWithSize(stack, 1));
+			if (ctx != null) TransactionCallback.onSuccess(ctx, blockEntity::sendData);
+			else blockEntity.sendData();
 		}
-
-		if (limit <= 0)
-			return stack;
-
-		boolean reachedLimit = stack.getCount() > limit;
-
-		if (!simulate) {
-			if (existing.isEmpty()) {
-				setStackInSlot(slot, reachedLimit ? stack.copyWithCount(limit) : stack);
-			} else {
-				existing.grow(reachedLimit ? limit : stack.getCount());
-				onContentsChanged(slot);
-			}
-			int compartment = slot / STACKS_PER_COMPARTMENT;
-			if (!stack.isEmpty() && filters.get(compartment).isEmpty()) {
-				filters.set(compartment, stack.copyWithCount(1));
-				notifyUpdate();
-			}
-		}
-
-		return reachedLimit ? stack.copyWithCount(stack.getCount() - limit) : ItemStack.EMPTY;
 	}
 
 	@Override
-	public @NotNull CompoundTag serializeNBT(@NotNull HolderLookup.Provider registries) {
-		CompoundTag compound = super.serializeNBT(registries);
-		compound.put("Compartments", NBTHelper.writeItemList(filters, registries));
+	public CompoundTag serializeNBT() {
+		CompoundTag compound = super.serializeNBT();
+		compound.put("Compartments", NBTHelper.writeItemList(filters));
 		return compound;
 	}
 
 	@Override
 	protected void onContentsChanged(int slot) {
-		if (!settling && (blockEntity == null || !blockEntity.getLevel().isClientSide))
+		if (!settling && !blockEntity.getLevel().isClientSide)
 			settle(slot / STACKS_PER_COMPARTMENT);
-		notifyUpdate();
+		blockEntity.sendData();
+		blockEntity.setChanged();
 		super.onContentsChanged(slot);
 	}
 
 	@Override
-	public void deserializeNBT(@NotNull HolderLookup.Provider registries, CompoundTag nbt) {
-		filters = NBTHelper.readItemList(nbt.getList("Compartments", Tag.TAG_COMPOUND), registries);
+	public void deserializeNBT(CompoundTag nbt) {
+		filters = NBTHelper.readItemList(nbt.getList("Compartments", Tag.TAG_COMPOUND));
 		if (filters.size() != 8) {
 			filters.clear();
 			for (int i = 0; i < 8; i++)
 				filters.add(ItemStack.EMPTY);
 		}
-		super.deserializeNBT(registries, nbt);
+		super.deserializeNBT(nbt);
 	}
 
-	public ItemStack distributeToCompartment(@NotNull ItemStack stack, int compartment, boolean simulate) {
+	public ItemStack distributeToCompartment(@Nonnull ItemStack stack, int compartment, TransactionContext ctx) {
 		if (stack.isEmpty())
 			return stack;
 		if (filters.get(compartment)
 			.isEmpty())
 			return stack;
 
+		int toInsert = stack.getCount();
+		int inserted = 0;
+		ItemVariant variant = ItemVariant.of(stack);
 		for (int i = STACKS_PER_COMPARTMENT - 1; i >= 0; i--) {
 			int slot = compartment * STACKS_PER_COMPARTMENT + i;
-			stack = insertItem(slot, stack, simulate);
-			if (stack.isEmpty())
-				return ItemStack.EMPTY;
+			inserted += getSlot(slot).insert(variant, toInsert - inserted, ctx);
+			if (inserted >= toInsert)
+				break;
 		}
 
-		return stack;
+		return ItemHandlerHelper.copyStackWithSize(stack, toInsert - inserted);
 	}
 
-	public ItemStack extractItem(int slot, int amount, boolean simulate) {
-		if (amount <= 0)
-			return ItemStack.EMPTY;
-		if (slot < 0 || slot >= getSlotCount())
-			return ItemStack.EMPTY;
-		ItemStack existing = getStackInSlot(slot);
-		if (existing.isEmpty())
-			return ItemStack.EMPTY;
-		int toExtract = Math.min(amount, existing.getCount());
-		ItemStack result = existing.copyWithCount(toExtract);
-		if (!simulate) {
-			ItemStack remainder = existing.copyWithCount(existing.getCount() - toExtract);
-			setStackInSlot(slot, remainder.isEmpty() ? ItemStack.EMPTY : remainder);
-			onContentsChanged(slot);
-		}
-		return result;
-	}
-
-	public ItemStack takeFromCompartment(int amount, int compartment, boolean simulate) {
+	public ItemStack takeFromCompartment(int amount, int compartment, TransactionContext ctx) {
 		if (amount == 0)
 			return ItemStack.EMPTY;
 
-		int remaining = amount;
-		ItemStack lastValid = ItemStack.EMPTY;
-
+		ItemVariant toExtract = null;
+		int extracted = 0;
 		for (int i = STACKS_PER_COMPARTMENT - 1; i >= 0; i--) {
 			int slot = compartment * STACKS_PER_COMPARTMENT + i;
-			ItemStack extracted = extractItem(slot, remaining, simulate);
-			remaining -= extracted.getCount();
-			if (!extracted.isEmpty())
-				lastValid = extracted;
-			if (remaining == 0)
-				return lastValid.copyWithCount(amount);
+			ItemStackHandlerSlot handlerSlot = getSlot(slot);
+			if (handlerSlot.isResourceBlank())
+				continue;
+			if (toExtract == null)
+				toExtract = handlerSlot.getResource();
+			extracted += handlerSlot.extract(toExtract, amount - extracted, ctx);
+			if (extracted >= amount)
+				break;
 		}
 
-		if (remaining == amount)
-			return ItemStack.EMPTY;
-
-		return lastValid.copyWithCount(amount - remaining);
+		return toExtract == null || extracted == 0 ? ItemStack.EMPTY : toExtract.toStack(extracted);
 	}
 
 	public static ItemStack cleanItemNBT(ItemStack stack) {
-		if (stack.has(AllDataComponents.BELT_FIRST_SHAFT))
-			stack.remove(AllDataComponents.BELT_FIRST_SHAFT);
+		if (AllItems.BELT_CONNECTOR.isIn(stack) && stack.has(AllDataComponents.FIRST_PULLEY))
+			stack.remove(AllDataComponents.FIRST_PULLEY);
 		return stack;
 	}
 
 	public static boolean canItemsShareCompartment(ItemStack stack1, ItemStack stack2) {
 		if (!stack1.isStackable() && !stack2.isStackable() && stack1.isDamageableItem() && stack2.isDamageableItem())
 			return stack1.getItem() == stack2.getItem();
-		if (stack1.has(AllDataComponents.BELT_FIRST_SHAFT) && stack2.has(AllDataComponents.BELT_FIRST_SHAFT))
+		if (AllItems.BELT_CONNECTOR.isIn(stack1) && AllItems.BELT_CONNECTOR.isIn(stack2))
 			return true;
-		return ItemStack.isSameItemSameComponents(stack1, stack2);
-	}
-
-	private void notifyUpdate() {
-		if (blockEntity != null)
-			blockEntity.notifyUpdate();
-	}
-
-	private static ToolboxInventory deserialize(ItemSlots slots, List<ItemStack> filters) {
-		ToolboxInventory inventory = new ToolboxInventory(null);
-		inventory.settling = true;
-		slots.forEach(inventory::setStackInSlot);
-		inventory.settling = false;
-		inventory.filters = new ArrayList<>(filters);
-		return inventory;
-	}
-
-	@Override
-	public final boolean equals(Object o) {
-		if (!(o instanceof ToolboxInventory that)) return false;
-
-		return settling == that.settling && limitedMode == that.limitedMode && filters.equals(that.filters)
-			&& Objects.equals(blockEntity, that.blockEntity);
-	}
-
-	@Override
-	public int hashCode() {
-		int result = filters.hashCode();
-		result = 31 * result + Boolean.hashCode(settling);
-		result = 31 * result + Objects.hashCode(blockEntity);
-		result = 31 * result + Boolean.hashCode(limitedMode);
-		return result;
+		return ItemHandlerHelper.canItemStacksStack(stack1, stack2);
 	}
 }

@@ -5,11 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllTags.AllEntityTags;
+import com.simibubi.create.foundation.utility.RegisteredObjects;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.math.VecHelper;
-import net.createmod.catnip.registry.RegisteredObjectsHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.mixin.accessors.common.accessor.BaseSpawnerAccessor;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -34,6 +37,7 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.phys.Vec3;
 
 @MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
 public class BlazeBurnerBlockItem extends BlockItem {
 
 	private final boolean capturedBlaze;
@@ -60,7 +64,7 @@ public class BlazeBurnerBlockItem extends BlockItem {
 
 	@Override
 	public String getDescriptionId() {
-		return hasCapturedBlaze() ? super.getDescriptionId() : "item.create." + RegisteredObjectsHelper.getKeyOrThrow(this).getPath();
+		return hasCapturedBlaze() ? super.getDescriptionId() : "item.create." + RegisteredObjects.getKeyOrThrow(this).getPath();
 	}
 
 	@Override
@@ -78,14 +82,14 @@ public class BlazeBurnerBlockItem extends BlockItem {
 
 		BaseSpawner spawner = ((SpawnerBlockEntity) be).getSpawner();
 
-		List<SpawnData> possibleSpawns = spawner.spawnPotentials.unwrap()
+		List<SpawnData> possibleSpawns = ((BaseSpawnerAccessor) spawner).port_lib$getSpawnPotentials().unwrap()
 			.stream()
 			.map(Wrapper::data)
 			.toList();
 
 		if (possibleSpawns.isEmpty()) {
 			possibleSpawns = new ArrayList<>();
-			possibleSpawns.add(spawner.nextSpawnData);
+			possibleSpawns.add(((BaseSpawnerAccessor) spawner).port_lib$getNextSpawnData());
 		}
 
 		for (SpawnData e : possibleSpawns) {

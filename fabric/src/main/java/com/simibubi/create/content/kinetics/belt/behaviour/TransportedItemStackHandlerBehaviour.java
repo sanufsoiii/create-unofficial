@@ -3,15 +3,16 @@ package com.simibubi.create.content.kinetics.belt.behaviour;
 import java.util.List;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.util.ItemStackUtil;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 

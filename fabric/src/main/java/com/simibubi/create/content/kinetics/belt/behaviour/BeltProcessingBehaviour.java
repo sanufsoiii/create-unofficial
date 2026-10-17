@@ -1,6 +1,7 @@
 package com.simibubi.create.content.kinetics.belt.behaviour;
 
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
+import com.simibubi.create.content.logistics.funnel.AbstractFunnelBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
@@ -18,7 +19,7 @@ public class BeltProcessingBehaviour extends BlockEntityBehaviour {
 
 	public static final BehaviourType<BeltProcessingBehaviour> TYPE = new BehaviourType<>();
 
-	public enum ProcessingResult {
+	public static enum ProcessingResult {
 		PASS, HOLD, REMOVE;
 	}
 
@@ -43,7 +44,10 @@ public class BeltProcessingBehaviour extends BlockEntityBehaviour {
 
 	public static boolean isBlocked(BlockGetter world, BlockPos processingSpace) {
 		BlockState blockState = world.getBlockState(processingSpace.above());
-		return !blockState.getCollisionShape(world, processingSpace.above()).isEmpty();
+		if (AbstractFunnelBlock.isFunnel(blockState))
+			return false;
+		return !blockState.getCollisionShape(world, processingSpace.above())
+			.isEmpty();
 	}
 
 	@Override
@@ -62,7 +66,7 @@ public class BeltProcessingBehaviour extends BlockEntityBehaviour {
 
 	@FunctionalInterface
 	public interface ProcessingCallback {
-		ProcessingResult apply(TransportedItemStack stack, TransportedItemStackHandlerBehaviour inventory);
+		public ProcessingResult apply(TransportedItemStack stack, TransportedItemStackHandlerBehaviour inventory);
 	}
 
 }

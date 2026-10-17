@@ -1,35 +1,57 @@
 package com.simibubi.create.content.decoration.copycat;
 
-import org.jetbrains.annotations.Nullable;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllTags.AllBlockTags;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.utility.AdventureUtil;
 
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomFrictionBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomLandingEffectsBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomRunningEffectsBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomSoundTypeBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.ExplosionResistanceBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.LightEmissiveBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.ValidSpawnBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.enchant.EnchantmentBonusBlock;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.block.BlockPickInteractionAware;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.block.BlockColor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.SpawnPlacementType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.GrassColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.LevelEvent;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -37,10 +59,13 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEntity>, IWrenchable {
+public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEntity>, IWrenchable, CustomFrictionBlock,
+		CustomSoundTypeBlock, LightEmissiveBlock, ExplosionResistanceBlock, BlockPickInteractionAware,
+		CustomLandingEffectsBlock, CustomRunningEffectsBlock, EnchantmentBonusBlock, ValidSpawnBlock {
 
 	public CopycatBlock(Properties pProperties) {
 		super(pProperties);
@@ -49,7 +74,7 @@ public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEnti
 	@Nullable
 	@Override
 	public <S extends BlockEntity> BlockEntityTicker<S> getTicker(Level p_153212_, BlockState p_153213_,
-																  BlockEntityType<S> p_153214_) {
+			BlockEntityType<S> p_153214_) {
 		return null;
 	}
 
@@ -64,62 +89,110 @@ public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEnti
 		return onBlockEntityUse(context.getLevel(), context.getClickedPos(), ufte -> {
 			ItemStack consumedItem = ufte.getConsumedItem();
 			if (!ufte.hasCustomMaterial())
-				return InteractionResult.PASS;
+				return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 			Player player = context.getPlayer();
-			if (player != null && !player.isCreative())
-				player.getInventory()
-					.placeItemBackInInventory(consumedItem);
-			context.getLevel()
-				.levelEvent(LevelEvent.PARTICLES_DESTROY_BLOCK, context.getClickedPos(), Block.getId(ufte.getBlockState()));
+			if (!player.isCreative())
+				player.getInventory().placeItemBackInInventory(consumedItem);
+			context.getLevel().levelEvent(2001, context.getClickedPos(), Block.getId(ufte.getBlockState()));
 			ufte.setMaterial(AllBlocks.COPYCAT_BASE.getDefaultState());
 			ufte.setConsumedItem(ItemStack.EMPTY);
-			return InteractionResult.SUCCESS;
-		});
+			return ItemInteractionResult.SUCCESS;
+		}).result();
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (player == null)
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState pState, Level pLevel, BlockPos pPos,
+			Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
+		
+		ItemStack itemInHand = pPlayer.getItemInHand(pHand);
+		if(itemInHand.isEmpty()) 
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+		if (pPlayer == null || AdventureUtil.isAdventure(pPlayer))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 
-		Direction face = hitResult.getDirection();
-		BlockState materialIn = getAcceptedBlockState(level, pos, stack, face);
+		Direction face = pHit.getDirection();
+		BlockState materialIn = getAcceptedBlockState(pLevel, pPos, itemInHand, face);
 
 		if (materialIn != null)
-			materialIn = prepareMaterial(level, pos, state, player, hand, hitResult, materialIn);
+			materialIn = prepareMaterial(pLevel, pPos, pState, pPlayer, pHand, pHit, materialIn);
 		if (materialIn == null)
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 
 		BlockState material = materialIn;
-		return onBlockEntityUseItemOn(level, pos, ufte -> {
-			if (ufte.getMaterial()
-				.is(material.getBlock())) {
+		return onBlockEntityUse(pLevel, pPos, ufte -> {
+			if (ufte.getMaterial().is(material.getBlock())) {
 				if (!ufte.cycleMaterial())
-					return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-				ufte.getLevel()
-					.playSound(null, ufte.getBlockPos(), SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, .75f,
-						.95f);
+					return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+				ufte.getLevel().playSound(null, ufte.getBlockPos(), SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS,
+						.75f, .95f);
 				return ItemInteractionResult.SUCCESS;
 			}
 			if (ufte.hasCustomMaterial())
-				return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-			if (level.isClientSide())
+				return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+			if (pLevel.isClientSide())
 				return ItemInteractionResult.SUCCESS;
 
 			ufte.setMaterial(material);
-			ufte.setConsumedItem(stack);
-			ufte.getLevel()
-				.playSound(null, ufte.getBlockPos(), material.getSoundType()
-					.getPlaceSound(), SoundSource.BLOCKS, 1, .75f);
+			ufte.setConsumedItem(itemInHand);
+			ufte.getLevel().playSound(null, ufte.getBlockPos(), material.getSoundType().getPlaceSound(),
+					SoundSource.BLOCKS, 1, .75f);
 
-			if (player.isCreative())
+			if (pPlayer.isCreative())
 				return ItemInteractionResult.SUCCESS;
 
-			stack.shrink(1);
-			if (stack.isEmpty())
-				player.setItemInHand(hand, ItemStack.EMPTY);
+			itemInHand.shrink(1);
+			if (itemInHand.isEmpty())
+				pPlayer.setItemInHand(pHand, ItemStack.EMPTY);
 			return ItemInteractionResult.SUCCESS;
 		});
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer,
+			BlockHitResult pHit) {
+		
+		if (pPlayer == null || AdventureUtil.isAdventure(pPlayer))
+			return InteractionResult.PASS;
+
+		Direction face = pHit.getDirection();
+		ItemStack itemInHand = ItemStack.EMPTY;
+		BlockState materialIn = getAcceptedBlockState(pLevel, pPos, itemInHand, face);
+
+		if (materialIn != null)
+			materialIn = prepareMaterial(pLevel, pPos, pState, pPlayer, InteractionHand.MAIN_HAND, pHit, materialIn);
+		if (materialIn == null)
+			return InteractionResult.PASS;
+
+		BlockState material = materialIn;
+		return onBlockEntityUse(pLevel, pPos, ufte -> {
+			if (ufte.getMaterial().is(material.getBlock())) {
+				if (!ufte.cycleMaterial())
+					return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+				ufte.getLevel().playSound(null, ufte.getBlockPos(), SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS,
+						.75f, .95f);
+				return ItemInteractionResult.SUCCESS;
+			}
+			if (ufte.hasCustomMaterial())
+				return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+			if (pLevel.isClientSide())
+				return ItemInteractionResult.SUCCESS;
+
+			ufte.setMaterial(material);
+			ufte.setConsumedItem(itemInHand);
+			ufte.getLevel().playSound(null, ufte.getBlockPos(), material.getSoundType().getPlaceSound(),
+					SoundSource.BLOCKS, 1, .75f);
+
+			if (pPlayer.isCreative())
+				return ItemInteractionResult.SUCCESS;
+
+			itemInHand.shrink(1);
+			//if (itemInHand.isEmpty())
+				//pPlayer.setItemInHand(pHand, ItemStack.EMPTY);
+			return ItemInteractionResult.SUCCESS;
+		}).result();
+		
 	}
 
 	@Override
@@ -127,8 +200,8 @@ public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEnti
 		if (pPlacer == null)
 			return;
 		ItemStack offhandItem = pPlacer.getItemInHand(InteractionHand.OFF_HAND);
-		BlockState appliedState =
-			getAcceptedBlockState(pLevel, pPos, offhandItem, Direction.orderedByNearest(pPlacer)[0]);
+		BlockState appliedState = getAcceptedBlockState(pLevel, pPos, offhandItem,
+				Direction.orderedByNearest(pPlacer)[0]);
 
 		if (appliedState == null)
 			return;
@@ -170,9 +243,7 @@ public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEnti
 
 			if (pLevel != null) {
 				VoxelShape shape = appliedState.getShape(pLevel, pPos);
-				if (shape.isEmpty() || !shape.bounds()
-					.equals(Shapes.block()
-						.bounds()))
+				if (shape.isEmpty() || !shape.bounds().equals(Shapes.block().bounds()))
 					return null;
 
 				VoxelShape collisionShape = appliedState.getCollisionShape(pLevel, pPos);
@@ -202,7 +273,7 @@ public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEnti
 	}
 
 	public BlockState prepareMaterial(Level pLevel, BlockPos pPos, BlockState pState, Player pPlayer,
-									  InteractionHand pHand, BlockHitResult pHit, BlockState material) {
+			InteractionHand pHand, BlockHitResult pHit, BlockState material) {
 		return material;
 	}
 
@@ -217,10 +288,10 @@ public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEnti
 
 	@Override
 	public BlockState playerWillDestroy(Level pLevel, BlockPos pPos, BlockState pState, Player pPlayer) {
-		super.playerWillDestroy(pLevel, pPos, pState, pPlayer);
+		BlockState state = super.playerWillDestroy(pLevel, pPos, pState, pPlayer);
 		if (pPlayer.isCreative())
 			withBlockEntityDo(pLevel, pPos, ufte -> ufte.setConsumedItem(ItemStack.EMPTY));
-		return pState;
+		return state;
 	}
 
 	@Override
@@ -233,13 +304,28 @@ public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEnti
 		return AllBlockEntityTypes.COPYCAT.get();
 	}
 
+	// Connected Textures
+
+	@Override
+	@Environment(EnvType.CLIENT)
+	public BlockState getAppearance(BlockState state, BlockAndTintGetter level, BlockPos pos, Direction side,
+			BlockState queryState, BlockPos queryPos) {
+
+		if (isIgnoredConnectivitySide(level, state, side, pos, queryPos))
+			return state;
+
+		return CopycatModel.getMaterial(getMaterial(level, pos));
+	}
+
 	public boolean isIgnoredConnectivitySide(BlockAndTintGetter reader, BlockState state, Direction face,
-											 @Nullable BlockPos fromPos, @Nullable BlockPos toPos) {
+			BlockPos fromPos, BlockPos toPos) {
 		return false;
 	}
 
 	public abstract boolean canConnectTexturesToward(BlockAndTintGetter reader, BlockPos fromPos, BlockPos toPos,
-													 BlockState state);
+			BlockState state);
+
+	//
 
 	public static BlockState getMaterial(BlockGetter reader, BlockPos targetPos) {
 		if (reader.getBlockEntity(targetPos) instanceof CopycatBlockEntity cbe)
@@ -255,24 +341,124 @@ public abstract class CopycatBlock extends Block implements IBE<CopycatBlockEnti
 		return false;
 	}
 
+	// Wrapped properties
+
 	@Override
-	public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+	public SoundType getSoundType(BlockState state, LevelReader level, BlockPos pos, Entity entity) {
+		return getMaterial(level, pos).getSoundType();
+	}
+
+	@Override
+	public float getFriction(BlockState state, LevelReader level, BlockPos pos, Entity entity) {
+		return maybeMaterialAs(level, pos, CustomFrictionBlock.class,
+				(material, block) -> block.getFriction(material, level, pos, entity),
+				material -> material.getBlock().getFriction());
+	}
+
+	@Override
+	public int getLightEmission(BlockState state, BlockGetter level, BlockPos pos) {
+		return maybeMaterialAs(level, pos, LightEmissiveBlock.class,
+				(material, block) -> block.getLightEmission(material, level, pos), BlockStateBase::getLightEmission);
+	}
+
+	@Override
+	public float getExplosionResistance(BlockState state, BlockGetter level, BlockPos pos, Explosion explosion) {
+		return maybeMaterialAs(level, pos, ExplosionResistanceBlock.class,
+				(material, block) -> block.getExplosionResistance(material, level, pos, explosion),
+				material -> material.getBlock().getExplosionResistance());
+	}
+
+	@Override
+	public ItemStack getPickedStack(BlockState state, BlockGetter level, BlockPos pos, @Nullable Player player,
+			@Nullable HitResult result) {
 		BlockState material = getMaterial(level, pos);
-		if (AllBlocks.COPYCAT_BASE.has(material))
+		if (AllBlocks.COPYCAT_BASE.has(material) || player != null && player.isShiftKeyDown())
 			return new ItemStack(this);
-		return new ItemStack(material.getBlock().asItem());
+		Object obj = maybeMaterialAs(level, pos, BlockPickInteractionAware.class,
+				(mat, block) -> block.getPickedStack(mat, level, pos, player, result),
+				mat -> mat.getBlock().getCloneItemStack((LevelReader) level, pos, mat));
+		return (ItemStack) obj;
+	}
+
+	@Override
+	public boolean addLandingEffects(BlockState state1, ServerLevel level, BlockPos pos, BlockState state2,
+			LivingEntity entity, int numberOfParticles) {
+		return maybeMaterialAs(level, pos, CustomLandingEffectsBlock.class, // duplicate material is not a bug
+				(material, block) -> block.addLandingEffects(material, level, pos, material, entity, numberOfParticles),
+				material -> false // default to vanilla, true cancels
+		);
+	}
+
+	@Override
+	public boolean addRunningEffects(BlockState state, Level level, BlockPos pos, Entity entity) {
+		return maybeMaterialAs(level, pos, CustomRunningEffectsBlock.class,
+				(material, block) -> block.addRunningEffects(material, level, pos, entity), material -> false // default
+																												// to
+																												// vanilla,
+																												// true
+																												// cancels
+		);
+	}
+
+	@Override
+	public float getEnchantPowerBonus(BlockState state, LevelReader level, BlockPos pos) {
+		return maybeMaterialAs(level, pos, EnchantmentBonusBlock.class,
+				(material, block) -> block.getEnchantPowerBonus(material, level, pos),
+				material -> EnchantmentBonusBlock.super.getEnchantPowerBonus(material, level, pos));
+	}
+
+	// fabric: unsupported
+//	@Override
+//	public boolean canEntityDestroy(BlockState state, BlockGetter level, BlockPos pos, Entity entity) {
+//		return getMaterial(level, pos).canEntityDestroy(level, pos, entity);
+//	}
+
+	@Override
+	public boolean isValidSpawn(BlockState state, BlockGetter level, BlockPos pos, SpawnPlacementType type,
+			EntityType<?> entityType) {
+		return false;
 	}
 
 	@Override
 	public void fallOn(Level pLevel, BlockState pState, BlockPos pPos, Entity pEntity, float p_152430_) {
 		BlockState material = getMaterial(pLevel, pPos);
-		material.getBlock()
-			.fallOn(pLevel, material, pPos, pEntity, p_152430_);
+		material.getBlock().fallOn(pLevel, material, pPos, pEntity, p_152430_);
 	}
 
 	@Override
 	public float getDestroyProgress(BlockState pState, Player pPlayer, BlockGetter pLevel, BlockPos pPos) {
 		return getMaterial(pLevel, pPos).getDestroyProgress(pPlayer, pLevel, pPos);
+	}
+
+	//
+
+	@Environment(EnvType.CLIENT)
+	public static BlockColor wrappedColor() {
+		return new WrappedBlockColor();
+	}
+
+	@Environment(EnvType.CLIENT)
+	public static class WrappedBlockColor implements BlockColor {
+
+		@Override
+		public int getColor(BlockState pState, @Nullable BlockAndTintGetter pLevel, @Nullable BlockPos pPos,
+				int pTintIndex) {
+			if (pLevel == null || pPos == null)
+				return GrassColor.get(0.5D, 1.0D);
+			return Minecraft.getInstance().getBlockColors().getColor(getMaterial(pLevel, pPos), pLevel, pPos,
+					pTintIndex);
+		}
+
+	}
+
+	// fabric: util
+	private static <T, R> R maybeMaterialAs(BlockGetter level, BlockPos pos, Class<T> clazz,
+			BiFunction<BlockState, T, R> ifType, Function<BlockState, R> ifNot) {
+		BlockState material = getMaterial(level, pos);
+		Block block = material.getBlock();
+		if (clazz.isInstance(block))
+			return ifType.apply(material, clazz.cast(block));
+		return ifNot.apply(material);
 	}
 
 }

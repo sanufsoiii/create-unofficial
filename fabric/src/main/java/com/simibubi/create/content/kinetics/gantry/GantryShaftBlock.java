@@ -10,17 +10,16 @@ import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.DirectionalKineticBlock;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 import com.simibubi.create.foundation.placement.PoleHelper;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Lang;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.lang.Lang;
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
-import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -69,15 +68,37 @@ public class GantryShaftBlock extends DirectionalKineticBlock implements IBE<Gan
 	protected void createBlockStateDefinition(Builder<Block, BlockState> builder) {
 		super.createBlockStateDefinition(builder.add(PART, POWERED));
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
-		if (!placementHelper.matchesItem(stack))
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult ray) {
+		
+		ItemStack heldItem = player.getItemInHand(hand);
+		if(heldItem.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 
-		return placementHelper.getOffset(player, level, state, pos, hitResult)
-			.placeInWorld(level, ((BlockItem) stack.getItem()), player, hand, hitResult);
+		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
+		if (!placementHelper.matchesItem(heldItem))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+
+		return placementHelper.getOffset(player, world, state, pos, ray)
+			.placeInWorld(world, ((BlockItem) heldItem.getItem()), player, hand, ray);
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
+			BlockHitResult ray) {
+		
+		ItemStack heldItem = ItemStack.EMPTY;
+
+		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
+		if (!placementHelper.matchesItem(heldItem))
+			return InteractionResult.PASS;
+
+		return placementHelper.getOffset(player, world, state, pos, ray)
+			.placeInWorld(world, ((BlockItem) heldItem.getItem()), player, InteractionHand.MAIN_HAND, ray).result();
+		
 	}
 
 	@Override
@@ -192,10 +213,10 @@ public class GantryShaftBlock extends DirectionalKineticBlock implements IBE<Gan
 		if (worldIn.isClientSide)
 			return;
 		boolean previouslyPowered = state.getValue(POWERED);
-		boolean shouldPower = worldIn.hasNeighborSignal(pos);
+		boolean shouldPower = worldIn.hasNeighborSignal(pos); // shouldBePowered(state, worldIn, pos);
 
 		if (!previouslyPowered && !shouldPower && shouldBePowered(state, worldIn, pos)) {
-			worldIn.setBlock(pos, state.setValue(POWERED, true), Block.UPDATE_ALL);
+			worldIn.setBlock(pos, state.setValue(POWERED, true), 3);
 			return;
 		}
 
@@ -232,7 +253,7 @@ public class GantryShaftBlock extends DirectionalKineticBlock implements IBE<Gan
 			if (be instanceof KineticBlockEntity)
 				((KineticBlockEntity) be).detachKinetics();
 			if (blockState.getBlock() instanceof GantryShaftBlock)
-				worldIn.setBlock(blockPos, blockState.setValue(POWERED, shouldPower), Block.UPDATE_CLIENTS);
+				worldIn.setBlock(blockPos, blockState.setValue(POWERED, shouldPower), 2);
 		}
 	}
 
@@ -319,4 +340,5 @@ public class GantryShaftBlock extends DirectionalKineticBlock implements IBE<Gan
 	public BlockEntityType<? extends GantryShaftBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.GANTRY_SHAFT.get();
 	}
+
 }

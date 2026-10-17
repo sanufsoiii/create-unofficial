@@ -6,22 +6,26 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
+import io.github.fabricators_of_create.porting_lib_ufo.util.TagUtil;
+import net.fabricmc.fabric.api.block.BlockPickInteractionAware;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -33,16 +37,16 @@ import net.minecraft.world.item.ShearsItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public class SailBlock extends WrenchableDirectionalBlock {
+public class SailBlock extends WrenchableDirectionalBlock implements BlockPickInteractionAware {
 
 	public static SailBlock frame(Properties properties) {
 		return new SailBlock(properties, true, null);
@@ -69,37 +73,41 @@ public class SailBlock extends WrenchableDirectionalBlock {
 		return state.setValue(FACING, state.getValue(FACING)
 			.getOpposite());
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
+	protected ItemInteractionResult useItemOn(ItemStack heldItem, BlockState state, Level world, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult ray) {
+		
 		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
 		if (!player.isShiftKeyDown() && player.mayBuild()) {
-			if (placementHelper.matchesItem(stack)) {
-				placementHelper.getOffset(player, level, state, pos, hitResult)
-					.placeInWorld(level, (BlockItem) stack.getItem(), player, hand, hitResult);
+			if (placementHelper.matchesItem(heldItem)) {
+				placementHelper.getOffset(player, world, state, pos, ray)
+					.placeInWorld(world, (BlockItem) heldItem.getItem(), player, hand, ray);
 				return ItemInteractionResult.SUCCESS;
 			}
 		}
 
-		if (stack.getItem() instanceof ShearsItem) {
-			if (!level.isClientSide)
-				level.playSound(null, pos, SoundEvents.SHEEP_SHEAR, SoundSource.BLOCKS, 1.0f, 1.0f);
-			applyDye(state, level, pos, hitResult.getLocation(), null);
+		if (heldItem.getItem() instanceof ShearsItem) {
+			if (!world.isClientSide)
+				world.playSound(null, pos, SoundEvents.SHEEP_SHEAR, SoundSource.BLOCKS, 1.0f, 1.0f);
+				applyDye(state, world, pos, ray.getLocation(), null);
 			return ItemInteractionResult.SUCCESS;
 		}
 
 		if (frame)
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 
-		DyeColor color = stack.getItem() instanceof net.minecraft.world.item.DyeItem dyeItem ? dyeItem.getDyeColor() : null;
+		DyeColor color = TagUtil.getColorFromStack(heldItem);
+
 		if (color != null) {
-			if (!level.isClientSide)
-				level.playSound(null, pos, SoundEvents.DYE_USE, SoundSource.BLOCKS, 1.0f, 1.1f - level.random.nextFloat() * .2f);
-			applyDye(state, level, pos, hitResult.getLocation(), color);
+			if (!world.isClientSide)
+				world.playSound(null, pos, SoundEvents.DYE_USE, SoundSource.BLOCKS, 1.0f, 1.1f - world.random.nextFloat() * .2f);
+				applyDye(state, world, pos, ray.getLocation(), color);
 			return ItemInteractionResult.SUCCESS;
 		}
 
 		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
 	}
 
 	public void applyDye(BlockState state, Level world, BlockPos pos, Vec3 hit, @Nullable DyeColor color) {
@@ -178,11 +186,12 @@ public class SailBlock extends WrenchableDirectionalBlock {
 	}
 
 	@Override
-	public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
-		ItemStack pickBlock = super.getCloneItemStack(level, pos, state);
+	public ItemStack getPickedStack(BlockState state, BlockGetter view, BlockPos pos,
+		@Nullable Player player, @Nullable HitResult result) {
+		ItemStack pickBlock = new ItemStack(this);
 		if (pickBlock.isEmpty())
 			return AllBlocks.SAIL.get()
-				.getCloneItemStack(level, pos, state);
+					.getPickedStack(state, view, pos, player, result);
 		return pickBlock;
 	}
 
@@ -207,8 +216,9 @@ public class SailBlock extends WrenchableDirectionalBlock {
 			double d0 = p_226860_1_ instanceof LivingEntity ? 1.0D : 0.8D;
 			p_226860_1_.setDeltaMovement(Vector3d.x, -Vector3d.y * (double) 0.26F * d0, Vector3d.z);
 		}
-	}
 
+	}
+	
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;
@@ -222,6 +232,7 @@ public class SailBlock extends WrenchableDirectionalBlock {
 		return color;
 	}
 
+	@MethodsReturnNonnullByDefault
 	private static class PlacementHelper implements IPlacementHelper {
 		@Override
 		public Predicate<ItemStack> getItemPredicate() {

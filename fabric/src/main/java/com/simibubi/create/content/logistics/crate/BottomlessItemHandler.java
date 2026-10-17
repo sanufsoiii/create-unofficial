@@ -4,8 +4,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.Supplier;
 
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandlerSlot;
+import javax.annotation.ParametersAreNonnullByDefault;
+
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandlerSlot;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
@@ -14,6 +16,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.world.item.ItemStack;
 
 @MethodsReturnNonnullByDefault
+@ParametersAreNonnullByDefault
 public class BottomlessItemHandler extends ItemStackHandler implements SingleSlotStorage<ItemVariant> { // must extend ItemStackHandler for mounted storages
 
 	private Supplier<ItemStack> suppliedItemStack;

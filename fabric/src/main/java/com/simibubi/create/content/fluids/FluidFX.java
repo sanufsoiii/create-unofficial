@@ -1,9 +1,11 @@
 package com.simibubi.create.content.fluids;
 
+import com.simibubi.create.AllParticleTypes;
+import com.simibubi.create.content.fluids.particle.FluidParticleData;
 import com.simibubi.create.foundation.fluid.FluidHelper;
-import net.createmod.catnip.math.VecHelper;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -42,9 +44,7 @@ public class FluidFX {
 	}
 
 	public static ParticleOptions getFluidParticle(FluidStack fluid) {
-		if (FluidHelper.isLava(fluid.getFluid()))
-			return ParticleTypes.LAVA;
-		return ParticleTypes.SPLASH;
+		return new FluidParticleData(AllParticleTypes.FLUID_PARTICLE.get(), fluid);
 	}
 
 	public static ParticleOptions getDrippingParticle(FluidStack fluid) {
@@ -54,14 +54,12 @@ public class FluidFX {
 		if (FluidHelper.isLava(fluid.getFluid()))
 			particle = ParticleTypes.DRIPPING_LAVA;
 		if (particle == null)
-			particle = ParticleTypes.DRIPPING_WATER;
+			particle = new FluidParticleData(AllParticleTypes.FLUID_DRIP.get(), fluid);
 		return particle;
 	}
 
 	public static void spawnRimParticles(Level world, BlockPos pos, Direction side, int amount, ParticleOptions particle,
 		float rimRadius) {
-		if (particle == null)
-			return;
 		Vec3 directionVec = Vec3.atLowerCornerOf(side.getNormal());
 		for (int i = 0; i < amount; i++) {
 			Vec3 vec = VecHelper.offsetRandomly(Vec3.ZERO, r, 1)
@@ -78,8 +76,6 @@ public class FluidFX {
 
 	public static void spawnPouringLiquid(Level world, BlockPos pos, int amount, ParticleOptions particle,
 		float rimRadius, Vec3 directionVec, boolean inbound) {
-		if (particle == null)
-			return;
 		for (int i = 0; i < amount; i++) {
 			Vec3 vec = VecHelper.offsetRandomly(Vec3.ZERO, r, rimRadius * .75f);
 			vec = vec.multiply(VecHelper.axisAlingedPlaneOf(directionVec))
@@ -98,9 +94,7 @@ public class FluidFX {
 	}
 
 	private static void particle(ParticleOptions data, Vec3 pos, Vec3 motion) {
-		Level world = world();
-		if (world != null)
-			world.addParticle(data, pos.x, pos.y, pos.z, motion.x, motion.y, motion.z);
+		world().addParticle(data, pos.x, pos.y, pos.z, motion.x, motion.y, motion.z);
 	}
 
 	private static Level world() {

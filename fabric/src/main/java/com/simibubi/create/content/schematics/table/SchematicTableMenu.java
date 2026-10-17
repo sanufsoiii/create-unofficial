@@ -4,6 +4,7 @@ import com.simibubi.create.AllItems;
 import com.simibubi.create.AllMenuTypes;
 import com.simibubi.create.foundation.gui.menu.MenuBase;
 
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.SlotItemHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -13,10 +14,6 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import io.github.fabricators_of_create.porting_lib.transfer.item.SlotItemHandler;
 
 public class SchematicTableMenu extends MenuBase<SchematicTableBlockEntity> {
 
@@ -47,7 +44,7 @@ public class SchematicTableMenu extends MenuBase<SchematicTableBlockEntity> {
 
 		ItemStack stack = clickedSlot.getItem();
 		if (index < 2)
-			moveItemStackTo(stack, 2, slots.size(), true);
+			moveItemStackTo(stack, 2, slots.size(), false);
 		else
 			moveItemStackTo(stack, 0, 1, false);
 
@@ -55,12 +52,11 @@ public class SchematicTableMenu extends MenuBase<SchematicTableBlockEntity> {
 	}
 
 	@Override
-	@Environment(EnvType.CLIENT)
 	protected SchematicTableBlockEntity createOnClient(RegistryFriendlyByteBuf extraData) {
 		ClientLevel world = Minecraft.getInstance().level;
 		BlockEntity blockEntity = world.getBlockEntity(extraData.readBlockPos());
 		if (blockEntity instanceof SchematicTableBlockEntity schematicTable) {
-			schematicTable.readClient(extraData.readNbt(), extraData.registryAccess());
+			schematicTable.readClient(extraData.readNbt());
 			return schematicTable;
 		}
 		return null;
@@ -72,7 +68,7 @@ public class SchematicTableMenu extends MenuBase<SchematicTableBlockEntity> {
 
 	@Override
 	protected void addSlots() {
-		inputSlot = new SlotItemHandler(contentHolder.inventory, 0, 21, 59) {
+		inputSlot = new SlotItemHandler(contentHolder.inventory, 0, 21, 57) {
 			@Override
 			public boolean mayPlace(ItemStack stack) {
 				return AllItems.EMPTY_SCHEMATIC.isIn(stack) || AllItems.SCHEMATIC_AND_QUILL.isIn(stack)
@@ -80,7 +76,7 @@ public class SchematicTableMenu extends MenuBase<SchematicTableBlockEntity> {
 			}
 		};
 
-		outputSlot = new SlotItemHandler(contentHolder.inventory, 1, 166, 59) {
+		outputSlot = new SlotItemHandler(contentHolder.inventory, 1, 166, 57) {
 			@Override
 			public boolean mayPlace(ItemStack stack) {
 				return false;
@@ -93,12 +89,12 @@ public class SchematicTableMenu extends MenuBase<SchematicTableBlockEntity> {
 		// player Slots
 		for (int row = 0; row < 3; ++row) {
 			for (int col = 0; col < 9; ++col) {
-				this.addSlot(new Slot(player.getInventory(), col + row * 9 + 9, 38 + col * 18, 107 + row * 18));
+				this.addSlot(new Slot(player.getInventory(), col + row * 9 + 9, 38 + col * 18, 105 + row * 18));
 			}
 		}
 
 		for (int hotbarSlot = 0; hotbarSlot < 9; ++hotbarSlot) {
-			this.addSlot(new Slot(player.getInventory(), hotbarSlot, 38 + hotbarSlot * 18, 165));
+			this.addSlot(new Slot(player.getInventory(), hotbarSlot, 38 + hotbarSlot * 18, 163));
 		}
 	}
 

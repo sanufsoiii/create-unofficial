@@ -6,24 +6,32 @@ import java.util.Optional;
 import com.simibubi.create.AllRecipeTypes;
 import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.fluids.FluidFX;
+import com.simibubi.create.content.fluids.potion.PotionMixingRecipes;
 import com.simibubi.create.content.kinetics.press.MechanicalPressBlockEntity;
 import com.simibubi.create.content.processing.basin.BasinBlockEntity;
 import com.simibubi.create.content.processing.basin.BasinOperatingBlockEntity;
-import com.simibubi.create.content.processing.recipe.StandardProcessingRecipe;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipe;
 import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.advancement.CreateAdvancement;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour.TankSegment;
 import com.simibubi.create.foundation.item.SmartInventory;
+import com.simibubi.create.foundation.utility.AnimationTickHolder;
+import com.simibubi.create.foundation.utility.Couple;
+import com.simibubi.create.foundation.utility.VecHelper;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.animation.AnimationTickHolder;
-import net.createmod.catnip.data.Couple;
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -34,7 +42,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -100,20 +108,20 @@ public class MechanicalMixerBlockEntity extends BasinOperatingBlockEntity {
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		running = compound.getBoolean("Running");
 		runningTicks = compound.getInt("Ticks");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 
 		if (clientPacket && hasLevel())
 			getBasin().ifPresent(bte -> bte.setAreFluidsMoving(running && runningTicks <= 20));
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putBoolean("Running", running);
 		compound.putInt("Ticks", runningTicks);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
@@ -129,29 +137,19 @@ public class MechanicalMixerBlockEntity extends BasinOperatingBlockEntity {
 
 		float speed = Math.abs(getSpeed());
 		if (running && level != null) {
-			if (level.isClientSide) {
-				if (runningTicks == 20)
-					renderParticles();
-				tickAudio();
-			}
-
-			if (getSpeed() == 0 || !isSpeedRequirementFulfilled()) {
-				if (runningTicks < 20)
-					runningTicks = 40 - runningTicks;
-				else if (runningTicks == 20)
-					runningTicks++;
-			}
+			if (level.isClientSide && runningTicks == 20)
+				renderParticles();
 
 			if ((!level.isClientSide || isVirtual()) && runningTicks == 20) {
 				if (processingTicks < 0) {
 					float recipeSpeed = 1;
-					if (currentRecipe instanceof StandardProcessingRecipe) {
-						int t = ((StandardProcessingRecipe<?>) currentRecipe).getProcessingDuration();
+					if (currentRecipe instanceof ProcessingRecipe) {
+						int t = ((ProcessingRecipe<?>) currentRecipe).getProcessingDuration();
 						if (t != 0)
 							recipeSpeed = t / 100f;
 					}
 
-					processingTicks = Math.max((Mth.log2((int) (512 / speed))) * Mth.ceil(recipeSpeed * 15) + 1, 1);
+					processingTicks = Mth.clamp((Mth.log2((int) (512 / speed))) * Mth.ceil(recipeSpeed * 15) + 1, 1, 512);
 
 					Optional<BasinBlockEntity> basin = getBasin();
 					if (basin.isPresent()) {
@@ -160,7 +158,7 @@ public class MechanicalMixerBlockEntity extends BasinOperatingBlockEntity {
 						if (!tanks.getFirst()
 							.isEmpty()
 							|| !tanks.getSecond()
-							.isEmpty())
+								.isEmpty())
 							level.playSound(null, worldPosition, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT,
 								SoundSource.BLOCKS, .75f, speed < 65 ? .75f : 1.5f);
 					}
@@ -221,12 +219,45 @@ public class MechanicalMixerBlockEntity extends BasinOperatingBlockEntity {
 	}
 
 	@Override
-	protected boolean matchStaticFilters(RecipeHolder<? extends Recipe<?>> recipe) {
-		Recipe<?> r = recipe.value();
+	protected List<Recipe<?>> getMatchingRecipes() {
+		List<Recipe<?>> matchingRecipes = super.getMatchingRecipes();
+
+		if (!AllConfigs.server().recipes.allowBrewingInMixer.get())
+			return matchingRecipes;
+
+		Optional<BasinBlockEntity> basin = getBasin();
+		if (!basin.isPresent())
+			return matchingRecipes;
+
+		BasinBlockEntity basinBlockEntity = basin.get();
+		if (basin.isEmpty())
+			return matchingRecipes;
+
+		Storage<ItemVariant> availableItems = basinBlockEntity
+			.getItemStorage(null);
+		if (availableItems == null)
+			return matchingRecipes;
+
+		try (Transaction t = TransferUtil.getTransaction()) {
+			for (StorageView<ItemVariant> view : availableItems.nonEmptyViews()) {
+				List<MixingRecipe> list = PotionMixingRecipes.BY_ITEM.get(view.getResource().getItem());
+				if (list == null)
+					continue;
+				for (MixingRecipe mixingRecipe : list)
+					if (matchBasinRecipe(mixingRecipe))
+						matchingRecipes.add(mixingRecipe);
+			}
+		}
+
+		return matchingRecipes;
+	}
+
+	@Override
+	protected <C extends RecipeInput> boolean matchStaticFilters(Recipe<C> r) {
 		return ((r instanceof CraftingRecipe && !(r instanceof ShapedRecipe)
-			&& AllConfigs.server().recipes.allowShapelessInMixer.get() && r.getIngredients()
-			.size() > 1
-			&& !MechanicalPressBlockEntity.canCompress(r)) && !AllRecipeTypes.shouldIgnoreInAutomation(recipe)
+				 && AllConfigs.server().recipes.allowShapelessInMixer.get() && r.getIngredients()
+				.size() > 1
+				 && !MechanicalPressBlockEntity.canCompress(r)) && !AllRecipeTypes.shouldIgnoreInAutomation(r)
 			|| r.getType() == AllRecipeTypes.MIXING.getType());
 	}
 
@@ -268,7 +299,12 @@ public class MechanicalMixerBlockEntity extends BasinOperatingBlockEntity {
 		return Optional.of(AllAdvancements.MIXER);
 	}
 
+	@Override
+	@Environment(EnvType.CLIENT)
 	public void tickAudio() {
+		super.tickAudio();
+
+		// SoundEvents.BLOCK_STONE_BREAK
 		boolean slow = Math.abs(getSpeed()) < 65;
 		if (slow && AnimationTickHolder.getTicks() % 2 == 0)
 			return;

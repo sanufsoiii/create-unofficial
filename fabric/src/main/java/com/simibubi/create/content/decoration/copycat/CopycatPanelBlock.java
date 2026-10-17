@@ -3,19 +3,18 @@ package com.simibubi.create.content.decoration.copycat;
 import java.util.List;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -56,7 +55,7 @@ public class CopycatPanelBlock extends WaterloggedCopycatBlock {
 
 	@Override
 	public BlockState prepareMaterial(Level pLevel, BlockPos pPos, BlockState pState, Player pPlayer,
-									  InteractionHand pHand, BlockHitResult pHit, BlockState material) {
+			InteractionHand pHand, BlockHitResult pHit, BlockState material) {
 		if (!CopycatSpecialCases.isTrapdoorMaterial(material))
 			return super.prepareMaterial(pLevel, pPos, pState, pPlayer, pHand, pHit, material);
 
@@ -64,35 +63,34 @@ public class CopycatPanelBlock extends WaterloggedCopycatBlock {
 		if (panelFacing == Direction.DOWN)
 			material = material.setValue(TrapDoorBlock.HALF, Half.TOP);
 		if (panelFacing.getAxis() == Axis.Y)
-			return material.setValue(TrapDoorBlock.FACING, pPlayer.getDirection())
-				.setValue(TrapDoorBlock.OPEN, false);
+			return material.setValue(TrapDoorBlock.FACING, pPlayer.getDirection()).setValue(TrapDoorBlock.OPEN, false);
 
 		boolean clickedNearTop = pHit.getLocation().y - .5 > pPos.getY();
 		return material.setValue(TrapDoorBlock.OPEN, true)
-			.setValue(TrapDoorBlock.HALF, clickedNearTop ? Half.TOP : Half.BOTTOM)
-			.setValue(TrapDoorBlock.FACING, panelFacing);
+				.setValue(TrapDoorBlock.HALF, clickedNearTop ? Half.TOP : Half.BOTTOM)
+				.setValue(TrapDoorBlock.FACING, panelFacing);
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (player != null && !player.isShiftKeyDown() && player.mayBuild()) {
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult ray) {
+		
+		if (!player.isShiftKeyDown() && player.mayBuild()) {
+			ItemStack heldItem = player.getItemInHand(hand);
 			IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
-			if (placementHelper.matchesItem(stack)) {
-				placementHelper.getOffset(player, level, state, pos, hitResult)
-					.placeInWorld(level, (BlockItem) stack.getItem(), player, hand, hitResult);
+			if (placementHelper.matchesItem(heldItem)) {
+				placementHelper.getOffset(player, world, state, pos, ray).placeInWorld(world,
+						(BlockItem) heldItem.getItem(), player, hand, ray);
 				return ItemInteractionResult.SUCCESS;
 			}
 		}
-
-		return super.useItemOn(stack, state, level, pos, player, hand, hitResult);
+		
+		return super.useItemOn(stack, state, world, pos, player, hand, ray);
 	}
 
 	@Override
 	public boolean isIgnoredConnectivitySide(BlockAndTintGetter reader, BlockState state, Direction face,
-											 @Nullable BlockPos fromPos, @Nullable BlockPos toPos) {
-		if (fromPos == null || toPos == null)
-			return true;
-
+			BlockPos fromPos, BlockPos toPos) {
 		Direction facing = state.getValue(FACING);
 		BlockState toState = reader.getBlockState(toPos);
 
@@ -100,17 +98,14 @@ public class CopycatPanelBlock extends WaterloggedCopycatBlock {
 			return facing != face.getOpposite();
 
 		BlockPos diff = fromPos.subtract(toPos);
-		int coord = facing.getAxis()
-			.choose(diff.getX(), diff.getY(), diff.getZ());
-		return facing == toState.getValue(FACING)
-			.getOpposite()
-			&& !(coord != 0 && coord == facing.getAxisDirection()
-			.getStep());
+		int coord = facing.getAxis().choose(diff.getX(), diff.getY(), diff.getZ());
+		return facing == toState.getValue(FACING).getOpposite()
+				&& !(coord != 0 && coord == facing.getAxisDirection().getStep());
 	}
 
 	@Override
 	public boolean canConnectTexturesToward(BlockAndTintGetter reader, BlockPos fromPos, BlockPos toPos,
-											BlockState state) {
+			BlockState state) {
 		Direction facing = state.getValue(FACING);
 		BlockState toState = reader.getBlockState(toPos);
 
@@ -118,12 +113,10 @@ public class CopycatPanelBlock extends WaterloggedCopycatBlock {
 			return false;
 
 		BlockPos diff = fromPos.subtract(toPos);
-		int coord = facing.getAxis()
-			.choose(diff.getX(), diff.getY(), diff.getZ());
+		int coord = facing.getAxis().choose(diff.getX(), diff.getY(), diff.getZ());
 
 		if (!toState.is(this))
-			return coord != -facing.getAxisDirection()
-				.getStep();
+			return coord != -facing.getAxisDirection().getStep();
 
 		if (isOccluded(state, toState, facing))
 			return true;
@@ -135,8 +128,7 @@ public class CopycatPanelBlock extends WaterloggedCopycatBlock {
 
 	@Override
 	public boolean canFaceBeOccluded(BlockState state, Direction face) {
-		return state.getValue(FACING)
-			.getOpposite() == face;
+		return state.getValue(FACING).getOpposite() == face;
 	}
 
 	@Override
@@ -147,8 +139,7 @@ public class CopycatPanelBlock extends WaterloggedCopycatBlock {
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext pContext) {
 		BlockState stateForPlacement = super.getStateForPlacement(pContext);
-		return stateForPlacement.setValue(FACING, pContext.getNearestLookingDirection()
-			.getOpposite());
+		return stateForPlacement.setValue(FACING, pContext.getNearestLookingDirection().getOpposite());
 	}
 
 	@Override
@@ -160,10 +151,30 @@ public class CopycatPanelBlock extends WaterloggedCopycatBlock {
 	public VoxelShape getShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {
 		return AllShapes.CASING_3PX.get(pState.getValue(FACING));
 	}
-
+	
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;
+	}
+
+	@Override
+	public boolean useShapeForLightOcclusion(BlockState state) {
+		return true;
+	}
+
+	@Override
+	public boolean hidesNeighborFace(BlockGetter level, BlockPos pos, BlockState state, BlockState neighborState,
+			Direction dir) {
+		if (state.is(this) == neighborState.is(this)) {
+			if (CopycatSpecialCases.isBarsMaterial(getMaterial(level, pos))
+					&& CopycatSpecialCases.isBarsMaterial(getMaterial(level, pos.relative(dir))))
+				return state.getValue(FACING) == neighborState.getValue(FACING);
+			if (getMaterial(level, pos).skipRendering(getMaterial(level, pos.relative(dir)), dir.getOpposite()))
+				return isOccluded(state, neighborState, dir.getOpposite());
+		}
+
+		return state.getValue(FACING) == dir.getOpposite()
+				&& getMaterial(level, pos).skipRendering(neighborState, dir.getOpposite());
 	}
 
 	public static boolean isOccluded(BlockState state, BlockState other, Direction pDirection) {
@@ -202,18 +213,15 @@ public class CopycatPanelBlock extends WaterloggedCopycatBlock {
 
 		@Override
 		public PlacementOffset getOffset(Player player, Level world, BlockState state, BlockPos pos,
-										 BlockHitResult ray) {
+				BlockHitResult ray) {
 			List<Direction> directions = IPlacementHelper.orderedByDistanceExceptAxis(pos, ray.getLocation(),
-				state.getValue(FACING)
-					.getAxis(),
-				dir -> world.getBlockState(pos.relative(dir))
-					.canBeReplaced());
+					state.getValue(FACING).getAxis(), dir -> world.getBlockState(pos.relative(dir)).canBeReplaced());
 
 			if (directions.isEmpty())
 				return PlacementOffset.fail();
 			else {
 				return PlacementOffset.success(pos.relative(directions.get(0)),
-					s -> s.setValue(FACING, state.getValue(FACING)));
+						s -> s.setValue(FACING, state.getValue(FACING)));
 			}
 		}
 	}

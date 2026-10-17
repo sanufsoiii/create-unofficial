@@ -23,7 +23,7 @@ public class SteamJetParticle extends SimpleAnimatedParticle {
 	private float yaw, pitch;
 
 	protected SteamJetParticle(ClientLevel world, SteamJetParticleData data, double x, double y, double z, double dx,
-		double dy, double dz, SpriteSet sprite) {
+			double dy, double dz, SpriteSet sprite) {
 		super(world, x, y, z, sprite, world.random.nextFloat() * .5f);
 		xd = 0;
 		yd = 0;
@@ -58,13 +58,11 @@ public class SteamJetParticle extends SimpleAnimatedParticle {
 			Quaternionf quaternion = Axis.YP.rotation(yaw);
 			quaternion.mul(Axis.XP.rotation(pitch));
 			quaternion.mul(Axis.YP.rotation(f3 + Mth.PI / 2 * i + roll));
+			Vector3f vector3f1 = new Vector3f(-1.0F, -1.0F, 0.0F);
+			vector3f1.rotate(quaternion);
 
-			Vector3f[] avector3f = new Vector3f[] {
-				new Vector3f(-1.0F, -1.0F, 0.0F),
-				new Vector3f(-1.0F, 1.0F, 0.0F),
-				new Vector3f(1.0F, 1.0F, 0.0F),
-				new Vector3f(1.0F, -1.0F, 0.0F)
-			};
+			Vector3f[] avector3f = new Vector3f[] { new Vector3f(-1.0F, -1.0F, 0.0F), new Vector3f(-1.0F, 1.0F, 0.0F),
+					new Vector3f(1.0F, 1.0F, 0.0F), new Vector3f(1.0F, -1.0F, 0.0F) };
 
 			for (int j = 0; j < 4; ++j) {
 				Vector3f vector3f = avector3f[j];
@@ -75,22 +73,15 @@ public class SteamJetParticle extends SimpleAnimatedParticle {
 			}
 
 			int j = this.getLightColor(pPartialTicks);
-			pBuffer.addVertex(avector3f[0].x(), avector3f[0].y(), avector3f[0].z())
-				.setUv(f8, f6)
-				.setColor(this.rCol, this.gCol, this.bCol, this.alpha)
-				.setLight(j);
-			pBuffer.addVertex(avector3f[1].x(), avector3f[1].y(), avector3f[1].z())
-				.setUv(f8, f5)
-				.setColor(this.rCol, this.gCol, this.bCol, this.alpha)
-				.setLight(j);
-			pBuffer.addVertex(avector3f[2].x(), avector3f[2].y(), avector3f[2].z())
-				.setUv(f7, f5)
-				.setColor(this.rCol, this.gCol, this.bCol, this.alpha)
-				.setLight(j);
-			pBuffer.addVertex(avector3f[3].x(), avector3f[3].y(), avector3f[3].z())
-				.setUv(f7, f6)
-				.setColor(this.rCol, this.gCol, this.bCol, this.alpha)
-				.setLight(j);
+			pBuffer.addVertex(avector3f[0].x(), avector3f[0].y(), avector3f[0].z()).setUv(f8, f6)
+					.setColor(this.rCol, this.gCol, this.bCol, this.alpha).setLight(j);
+			pBuffer.addVertex(avector3f[1].x(), avector3f[1].y(), avector3f[1].z()).setUv(f8, f5)
+					.setColor(this.rCol, this.gCol, this.bCol, this.alpha).setLight(j);
+			pBuffer.addVertex(avector3f[2].x(), avector3f[2].y(), avector3f[2].z()).setUv(f7, f5)
+					.setColor(this.rCol, this.gCol, this.bCol, this.alpha).setLight(j);
+			pBuffer.addVertex(avector3f[3].x(), avector3f[3].y(), avector3f[3].z()).setUv(f7, f6)
+					.setColor(this.rCol, this.gCol, this.bCol, this.alpha).setLight(j);
+
 		}
 	}
 
@@ -108,7 +99,7 @@ public class SteamJetParticle extends SimpleAnimatedParticle {
 		}
 
 		public Particle createParticle(SteamJetParticleData data, ClientLevel worldIn, double x, double y, double z,
-			double xSpeed, double ySpeed, double zSpeed) {
+				double xSpeed, double ySpeed, double zSpeed) {
 			return new SteamJetParticle(worldIn, data, x, y, z, xSpeed, ySpeed, zSpeed, this.spriteSet);
 		}
 	}

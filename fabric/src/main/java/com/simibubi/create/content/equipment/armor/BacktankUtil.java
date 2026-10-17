@@ -8,24 +8,26 @@ import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.AllEnchantments;
 import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.AllTags;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.Create;
+import com.simibubi.create.foundation.utility.Components;
+import com.simibubi.create.foundation.utility.Lang;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
+import io.github.fabricators_of_create.porting_lib_ufo.util.EnvExecutor;
+import net.fabricmc.api.EnvType;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.Holder;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 
 public class BacktankUtil {
 
@@ -35,7 +37,7 @@ public class BacktankUtil {
 		addBacktankSupplier(entity -> {
 			List<ItemStack> stacks = new ArrayList<>();
 			for (ItemStack itemStack : entity.getArmorSlots())
-				if (AllTags.AllItemTags.PRESSURIZED_AIR_SOURCES.matches(itemStack))
+				if (!itemStack.isEmpty() && AllTags.AllItemTags.PRESSURIZED_AIR_SOURCES.matches(itemStack))
 					stacks.add(itemStack);
 
 			return stacks;
@@ -53,6 +55,7 @@ public class BacktankUtil {
 					all.add(stack);
 		}
 
+		// Sort with ascending order (we want to prioritize the most empty so things actually run out)
 		all.sort((a, b) -> Float.compare(getAir(a), getAir(b)));
 
 		return all;
@@ -63,14 +66,19 @@ public class BacktankUtil {
 	}
 
 	public static int getAir(ItemStack backtank) {
-		return Math.min(backtank.getOrDefault(AllDataComponents.BACKTANK_AIR, 0), maxAir(backtank));
+		return backtank.has(AllDataComponents.AIR_TANK) ? backtank.get(AllDataComponents.AIR_TANK) : 0;
+		//CompoundTag tag = backtank.getOrCreateTag();
+		//return Math.min(tag.getFloat("Air"), maxAir(backtank));
 	}
 
 	public static void consumeAir(LivingEntity entity, ItemStack backtank, int i) {
+		//CompoundTag tag = backtank.getOrCreateTag();
 		int maxAir = maxAir(backtank);
 		int air = getAir(backtank);
 		int newAir = Math.max(air - i, 0);
-		backtank.set(AllDataComponents.BACKTANK_AIR, Math.min(newAir, maxAir));
+		backtank.set(AllDataComponents.AIR_TANK, Math.min(newAir, maxAir));
+		//tag.putFloat("Air", );
+		//backtank.setTag(tag);
 
 		if (!(entity instanceof ServerPlayer player))
 			return;
@@ -86,28 +94,20 @@ public class BacktankUtil {
 			return;
 
 		boolean depleted = threshold == 1;
-		MutableComponent component = CreateLang.translateDirect(depleted ? "backtank.depleted" : "backtank.low");
+		MutableComponent component = Lang.translateDirect(depleted ? "backtank.depleted" : "backtank.low");
 
 		AllSoundEvents.DENY.play(player.level(), null, player.blockPosition(), 1, 1.25f);
 		AllSoundEvents.STEAM.play(player.level(), null, player.blockPosition(), .5f, .5f);
 
 		player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 40, 10));
 		player.connection.send(new ClientboundSetSubtitleTextPacket(
-			Component.literal("\u26A0 ").withStyle(depleted ? ChatFormatting.RED : ChatFormatting.GOLD)
+			Components.literal("\u26A0 ").withStyle(depleted ? ChatFormatting.RED : ChatFormatting.GOLD)
 				.append(component.withStyle(ChatFormatting.GRAY))));
-		player.connection.send(new ClientboundSetTitleTextPacket(CommonComponents.EMPTY));
+		player.connection.send(new ClientboundSetTitleTextPacket(Components.immutableEmpty()));
 	}
 
 	public static int maxAir(ItemStack backtank) {
-		int enchantLevel = 0;
-		ItemEnchantments enchants = backtank.getEnchantments();
-		for (Entry<Holder<Enchantment>> entry : enchants.entrySet()) {
-			if (entry.getKey().is(AllEnchantments.CAPACITY)) {
-				enchantLevel = entry.getIntValue();
-				break;
-			}
-		}
-		return maxAir(enchantLevel);
+		return maxAir(EnchantmentHelper.getItemEnchantmentLevel(Create.getHolderForEnchantment(AllEnchantments.CAPACITY), backtank));
 	}
 
 	public static int maxAir(int enchantLevel) {
@@ -127,13 +127,75 @@ public class BacktankUtil {
 		List<ItemStack> backtanks = getAllWithAir(entity);
 		if (backtanks.isEmpty())
 			return false;
-		int cost = Math.max(maxAirWithoutEnchants() / usesPerTank, 1);
-		consumeAir(entity, backtanks.getFirst(), cost);
+		float cost = ((float) maxAirWithoutEnchants()) / usesPerTank;
+		consumeAir(entity, backtanks.get(0), (int)cost);
 		return true;
 	}
 
+	// For Air-using tools
+
+	public static boolean isBarVisible(ItemStack stack, int usesPerTank) {
+		if (usesPerTank == 0)
+			return false;
+		Player player = EnvExecutor.callWhenOn(EnvType.CLIENT, () -> () -> Minecraft.getInstance().player);
+		if (player == null)
+			return false;
+		List<ItemStack> backtanks = getAllWithAir(player);
+		if (backtanks.isEmpty())
+			return stack.isDamaged();
+		return true;
+	}
+
+	public static int getBarWidth(ItemStack stack, int usesPerTank) {
+		if (usesPerTank == 0)
+			return 13;
+		Player player = EnvExecutor.callWhenOn(EnvType.CLIENT, () -> () -> Minecraft.getInstance().player);
+		if (player == null)
+			return 13;
+
+		List<ItemStack> backtanks = getAllWithAir(player);
+
+		if (backtanks.isEmpty())
+			return Math.round(13.0F - (float) stack.getDamageValue() / stack.getMaxDamage() * 13.0F);
+
+		if (backtanks.size() == 1)
+			return backtanks.get(0)
+				.getItem()
+				.getBarWidth(backtanks.get(0));
+
+		// If there is more than one backtank, average the bar widths.
+		int sumBarWidth = backtanks.stream()
+			.map(backtank -> backtank.getItem()
+				.getBarWidth(backtank))
+			.reduce(0, Integer::sum);
+
+		return Math.round((float) sumBarWidth / backtanks.size());
+	}
+
+	public static int getBarColor(ItemStack stack, int usesPerTank) {
+		if (usesPerTank == 0)
+			return 0;
+		Player player = EnvExecutor.callWhenOn(EnvType.CLIENT, () -> () -> Minecraft.getInstance().player);
+		if (player == null)
+			return 0;
+		List<ItemStack> backtanks = getAllWithAir(player);
+
+		// Fallback colour
+		if (backtanks.isEmpty())
+			return Mth.hsvToRgb(Math.max(0.0F, 1.0F - (float) stack.getDamageValue() / stack.getMaxDamage()) / 3.0F,
+				1.0F, 1.0F);
+
+		// Just return the "first" backtank for the bar color since that's the one we are consuming from
+		return backtanks.get(0)
+			.getItem()
+			.getBarColor(backtanks.get(0));
+	}
+
+	/**
+	 * Use this method to add custom entry points to the backtank item stack supplier, e.g. getting them from custom
+	 * slots or items.
+	 */
 	public static void addBacktankSupplier(Function<LivingEntity, List<ItemStack>> supplier) {
 		BACKTANK_SUPPLIERS.add(supplier);
 	}
-
 }

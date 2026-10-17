@@ -16,23 +16,25 @@ import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehavi
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour.TransportedResult;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
+import com.simibubi.create.content.logistics.funnel.AbstractFunnelBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import io.github.fabricators_of_create.porting_lib.transfer.callbacks.TransactionCallback;
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
-import net.createmod.catnip.math.VecHelper;
-import net.createmod.catnip.nbt.NBTHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.callbacks.TransactionCallback;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.util.ItemStackUtil;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -40,6 +42,7 @@ import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 public class DepotBehaviour extends BlockEntityBehaviour {
@@ -61,6 +64,7 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 	SnapshotParticipant<Data> snapshotParticipant = new SnapshotParticipant<>() {
 		@Override
 		protected Data createSnapshot() {
+			// incoming stacks are not mutated during transfer, no need to deep copy
 			return new Data(new ArrayList<>(incoming), heldItem == null ? null : heldItem.fullCopy());
 		}
 
@@ -90,10 +94,9 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 		incoming = new ArrayList<>();
 		itemHandler = new DepotItemHandler(this);
 		processingOutputBuffer = new ItemStackHandler(8) {
-			@Override
 			protected void onContentsChanged(int slot) {
 				be.notifyUpdate();
-			}
+			};
 		};
 	}
 
@@ -121,7 +124,7 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 			TransportedItemStack ts = iterator.next();
 			if (!tick(ts))
 				continue;
-			if (world != null && world.isClientSide && !blockEntity.isVirtual())
+			if (world.isClientSide && !blockEntity.isVirtual())
 				continue;
 			if (heldItem == null) {
 				heldItem = ts;
@@ -144,7 +147,7 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 
 		BlockPos pos = blockEntity.getBlockPos();
 
-		if (world != null && world.isClientSide)
+		if (world.isClientSide)
 			return;
 		if (handleBeltFunnelOutput())
 			return;
@@ -166,6 +169,7 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 			return;
 		}
 
+		// fabric: might be set to null in processing
 		if (heldItem == null) {
 			blockEntity.sendData();
 			return;
@@ -189,6 +193,43 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 	}
 
 	private boolean handleBeltFunnelOutput() {
+		BlockState funnel = getWorld().getBlockState(getPos().above());
+		Direction funnelFacing = AbstractFunnelBlock.getFunnelFacing(funnel);
+		if (funnelFacing == null || !canFunnelsPullFrom.test(funnelFacing.getOpposite()))
+			return false;
+
+		for (int slot = 0; slot < processingOutputBuffer.getSlotCount(); slot++) {
+			ItemStack previousItem = processingOutputBuffer.getStackInSlot(slot);
+			if (previousItem.isEmpty())
+				continue;
+			ItemStack afterInsert = blockEntity.getBehaviour(DirectBeltInputBehaviour.TYPE)
+				.tryExportingToBeltFunnel(previousItem, null, false);
+			if (afterInsert == null)
+				return false;
+			if (previousItem.getCount() != afterInsert.getCount()) {
+				processingOutputBuffer.setStackInSlot(slot, afterInsert);
+				blockEntity.notifyUpdate();
+				return true;
+			}
+		}
+
+		ItemStack previousItem = heldItem.stack;
+		if (previousItem.isEmpty()) { // fabric: this is not allowed
+			return false;
+		}
+		ItemStack afterInsert = blockEntity.getBehaviour(DirectBeltInputBehaviour.TYPE)
+			.tryExportingToBeltFunnel(previousItem, null, false);
+		if (afterInsert == null)
+			return false;
+		if (previousItem.getCount() != afterInsert.getCount()) {
+			if (afterInsert.isEmpty())
+				heldItem = null;
+			else
+				heldItem.stack = afterInsert;
+			blockEntity.notifyUpdate();
+			return true;
+		}
+
 		return false;
 	}
 
@@ -197,13 +238,11 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 		super.destroy();
 		Level level = getWorld();
 		BlockPos pos = getPos();
-		if (level != null) {
-			ItemHelper.dropContents(level, pos, processingOutputBuffer);
-			for (TransportedItemStack transportedItemStack : incoming)
-				Block.popResource(level, pos, transportedItemStack.stack);
-			if (!getHeldItemStack().isEmpty())
-				Block.popResource(level, pos, getHeldItemStack());
-		}
+		ItemHelper.dropContents(level, pos, processingOutputBuffer);
+		for (TransportedItemStack transportedItemStack : incoming)
+			Block.popResource(level, pos, transportedItemStack.stack);
+		if (!getHeldItemStack().isEmpty())
+			Block.popResource(level, pos, getHeldItemStack());
 	}
 
 	@Override
@@ -212,23 +251,23 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		if (heldItem != null)
-			compound.put("HeldItem", heldItem.serializeNBT(registries));
-		compound.put("OutputBuffer", processingOutputBuffer.serializeNBT(registries));
+			compound.put("HeldItem", heldItem.serializeNBT());
+		compound.put("OutputBuffer", processingOutputBuffer.serializeNBT());
 		if (canMergeItems() && !incoming.isEmpty())
-			compound.put("Incoming", NBTHelper.writeCompoundList(incoming, s -> s.serializeNBT(registries)));
+			compound.put("Incoming", NBTHelper.writeCompoundList(incoming, TransportedItemStack::serializeNBT));
 	}
 
 	@Override
-	public void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void read(CompoundTag compound, boolean clientPacket) {
 		heldItem = null;
 		if (compound.contains("HeldItem"))
-			heldItem = TransportedItemStack.read(compound.getCompound("HeldItem"), registries);
-		processingOutputBuffer.deserializeNBT(registries, compound.getCompound("OutputBuffer"));
+			heldItem = TransportedItemStack.read(compound.getCompound("HeldItem"));
+		processingOutputBuffer.deserializeNBT(compound.getCompound("OutputBuffer"));
 		if (canMergeItems()) {
 			ListTag list = compound.getList("Incoming", Tag.TAG_COMPOUND);
-			incoming = NBTHelper.readCompoundList(list, t -> TransportedItemStack.read(t, registries));
+			incoming = NBTHelper.readCompoundList(list, TransportedItemStack::read);
 		}
 	}
 
@@ -252,7 +291,8 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 		int cumulativeStackSize = 0;
 		cumulativeStackSize += getHeldItemStack().getCount();
 		for (int slot = 0; slot < processingOutputBuffer.getSlotCount(); slot++)
-			cumulativeStackSize += processingOutputBuffer.getStackInSlot(slot).getCount();
+			cumulativeStackSize += processingOutputBuffer.getStackInSlot(slot)
+				.getCount();
 		return cumulativeStackSize;
 	}
 
@@ -281,7 +321,7 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 			ItemStack returned = ItemStack.EMPTY;
 			snapshotParticipant.updateSnapshots(ctx);
 			if (remainingSpace < inserted.getCount()) {
-				returned = heldItem.stack.copyWithCount(inserted.getCount() - remainingSpace);
+				returned = ItemHandlerHelper.copyStackWithSize(heldItem.stack, inserted.getCount() - remainingSpace);
 				TransportedItemStack copy = heldItem.copy();
 				copy.stack.setCount(remainingSpace);
 				if (this.heldItem != null)
@@ -298,7 +338,8 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 		}
 
 		if (this.isEmpty()) {
-			if (heldItem.insertedFrom.getAxis().isHorizontal())
+			if (heldItem.insertedFrom.getAxis()
+					.isHorizontal())
 				TransactionCallback.onSuccess(ctx, () -> AllSoundEvents.DEPOT_SLIDE.playOnServer(getWorld(), getPos()));
 			else
 				TransactionCallback.onSuccess(ctx, () -> AllSoundEvents.DEPOT_PLOP.playOnServer(getWorld(), getPos()));
@@ -323,6 +364,10 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 		this.heldItem.prevBeltPosition = 0.5f;
 	}
 
+//	public <T> LazyOptional<T> getItemCapability(Capability<T> cap, Direction side) {
+//		return lazyItemHandler.cast();
+//	}
+
 	private boolean isOccupied(Direction side) {
 		if (!getHeldItemStack().isEmpty() && !canMergeItems())
 			return true;
@@ -341,7 +386,8 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 
 		int size = transportedStack.stack.getCount();
 		transportedStack = transportedStack.copy();
-		transportedStack.beltPosition = side.getAxis().isVertical() ? .5f : 0;
+		transportedStack.beltPosition = side.getAxis()
+			.isVertical() ? .5f : 0;
 		transportedStack.insertedFrom = side;
 		transportedStack.prevSideOffset = transportedStack.sideOffset;
 		transportedStack.prevBeltPosition = transportedStack.beltPosition;
@@ -401,7 +447,8 @@ public class DepotBehaviour extends BlockEntityBehaviour {
 
 	public boolean isOutputEmpty() {
 		for (int i = 0; i < processingOutputBuffer.getSlotCount(); i++)
-			if (!processingOutputBuffer.getStackInSlot(i).isEmpty())
+			if (!processingOutputBuffer.getStackInSlot(i)
+				.isEmpty())
 				return false;
 		return true;
 	}

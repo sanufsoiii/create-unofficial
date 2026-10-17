@@ -23,3 +23,7 @@ dependencies {
     // Annotations (JSR-305)
     compileOnly "com.google.code.findbugs:jsr305:3.0.2"
 }
+
+tasks.withType(Jar).configureEach {
+    exclude("com/simibubi/create/Create.class")
+}

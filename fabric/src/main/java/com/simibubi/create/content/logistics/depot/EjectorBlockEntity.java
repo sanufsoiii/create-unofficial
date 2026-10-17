@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
+import com.jozufozu.flywheel.util.transform.TransformStack;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllPackets;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehaviour;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
@@ -17,26 +19,33 @@ import com.simibubi.create.content.logistics.funnel.FunnelBlock;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.utility.AngleHelper;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Lang;
+import com.simibubi.create.foundation.utility.LongAttached;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.NbtFixer;
+import com.simibubi.create.foundation.utility.Pair;
+import com.simibubi.create.foundation.utility.VecHelper;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import dev.engine_room.flywheel.lib.transform.TransformStack;
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
-import net.createmod.catnip.data.IntAttached;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.data.Pair;
-import net.createmod.catnip.math.AngleHelper;
-import net.createmod.catnip.math.VecHelper;
-import net.createmod.catnip.nbt.NBTHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
@@ -55,7 +64,6 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.ClipContext.Block;
 import net.minecraft.world.level.ClipContext.Fluid;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.ObserverBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -68,7 +76,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 
 public class EjectorBlockEntity extends KineticBlockEntity implements SidedStorageBlockEntity {
 
-	List<IntAttached<ItemStack>> launchedItems;
+	List<LongAttached<ItemStack>> launchedItems;
 	ScrollValueBehaviour maxStackSize;
 	DepotBehaviour depotBehaviour;
 	EntityLauncher launcher;
@@ -99,19 +107,13 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 		powered = false;
 	}
 
-	@Nullable
-	@Override
-	public Storage<ItemVariant> getItemStorage(@Nullable Direction direction) {
-		return depotBehaviour != null ? depotBehaviour.itemHandler : null;
-	}
-
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		super.addBehaviours(behaviours);
 		behaviours.add(depotBehaviour = new DepotBehaviour(this));
 
 		maxStackSize =
-			new ScrollValueBehaviour(CreateLang.translateDirect("weighted_ejector.stack_size"), this, new EjectorSlot())
+			new ScrollValueBehaviour(Lang.translateDirect("weighted_ejector.stack_size"), this, new EjectorSlot())
 				.between(0, 64)
 				.withFormatter(i -> i == 0 ? "*" : String.valueOf(i));
 		behaviours.add(maxStackSize);
@@ -157,8 +159,6 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 				continue;
 			if (entity instanceof ItemEntity)
 				continue;
-			if (entity.getType().getDescriptionId().contains("package"))
-				continue;
 			if (entity.getPistonPushReaction() == PushReaction.IGNORE)
 				continue;
 
@@ -175,6 +175,11 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 
 			Player playerEntity = (Player) entity;
 
+			if (launcher.getHorizontalDistance() * launcher.getHorizontalDistance()
+				+ launcher.getVerticalDistance() * launcher.getVerticalDistance() >= 25 * 25)
+				AllPackets.getChannel()
+					.sendToServer(new EjectorAwardPacket(worldPosition));
+
 			if (!(playerEntity.getItemBySlot(EquipmentSlot.CHEST)
 				.getItem() instanceof ElytraItem))
 				continue;
@@ -184,6 +189,8 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 			playerEntity.setDeltaMovement(playerEntity.getDeltaMovement()
 				.scale(.75f));
 			deployElytra(playerEntity);
+			AllPackets.getChannel()
+				.sendToServer(new EjectorElytraPacket(worldPosition));
 		}
 
 		if (doLogic) {
@@ -231,8 +238,10 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 
 			ItemStackHandler outputs = depotBehaviour.processingOutputBuffer;
 			for (int i = 0; i < outputs.getSlotCount(); i++) {
-				ItemStack remainder =
-					directOutput.tryExportingToBeltFunnel(outputs.getStackInSlot(i), funnelFacing, false);
+				ItemStack stack = outputs.getStackInSlot(i);
+				if (stack.isEmpty())
+					continue;
+				ItemStack remainder = directOutput.tryExportingToBeltFunnel(stack, funnelFacing, false);
 				if (remainder != null)
 					outputs.setStackInSlot(i, remainder);
 			}
@@ -259,12 +268,14 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 		depotBehaviour.incoming.clear();
 
 		ItemStackHandler outputs = depotBehaviour.processingOutputBuffer;
-		for (int i = 0; i < outputs.getSlotCount(); i++) {
-			ItemStack stack = outputs.getStackInSlot(i);
-			if (!stack.isEmpty()) {
-				addToLaunchedItems(stack.copy());
-				outputs.setStackInSlot(i, ItemStack.EMPTY);
+		try (Transaction t = TransferUtil.getTransaction()) {
+			for (StorageView<ItemVariant> view : outputs.nonEmptyViews()) {
+				ItemVariant var = view.getResource();
+				long extracted = view.extract(view.getResource(), 64, t);
+				if (extracted != 0)
+					addToLaunchedItems(var.toStack(ItemHelper.truncateLong(extracted)));
 			}
+			t.commit();
 		}
 	}
 
@@ -273,7 +284,7 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 			scanCooldown = AllConfigs.server().kinetics.ejectorScanInterval.get();
 			trackedItem = stack;
 		}
-		return launchedItems.add(IntAttached.withZero(stack));
+		return launchedItems.add(LongAttached.withZero(stack));
 	}
 
 	protected Direction getFacing() {
@@ -300,17 +311,17 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 			activateDeferred();
 		}
 
-		for (Iterator<IntAttached<ItemStack>> iterator = launchedItems.iterator(); iterator.hasNext();) {
-			IntAttached<ItemStack> intAttached = iterator.next();
+		for (Iterator<LongAttached<ItemStack>> iterator = launchedItems.iterator(); iterator.hasNext();) {
+			LongAttached<ItemStack> LongAttached = iterator.next();
 			boolean hit = false;
-			if (intAttached.getSecond() == trackedItem)
-				hit = scanTrajectoryForObstacles(intAttached.getFirst());
+			if (LongAttached.getSecond() == trackedItem)
+				hit = scanTrajectoryForObstacles(LongAttached.getFirst());
 			float maxTime = earlyTarget != null ? Math.min(earlyTargetTime, totalTime) : totalTime;
-			if (hit || intAttached.exceeds((int) maxTime)) {
-				placeItemAtTarget(doLogic, maxTime, intAttached);
+			if (hit || LongAttached.exceeds((int) maxTime)) {
+				placeItemAtTarget(doLogic, maxTime, LongAttached);
 				iterator.remove();
 			}
-			intAttached.increment();
+			LongAttached.increment();
 		}
 
 		if (state == State.LAUNCHING) {
@@ -357,7 +368,7 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 			notifyUpdate();
 	}
 
-	private boolean scanTrajectoryForObstacles(int time) {
+	private boolean scanTrajectoryForObstacles(long time) {
 		if (time <= 2)
 			return false;
 
@@ -437,25 +448,25 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 		notifyUpdate();
 	}
 
-	protected void placeItemAtTarget(boolean doLogic, float maxTime, IntAttached<ItemStack> intAttached) {
+	protected void placeItemAtTarget(boolean doLogic, float maxTime, LongAttached<ItemStack> LongAttached) {
 		if (!doLogic)
 			return;
-		if (intAttached.getSecond() == trackedItem)
+		if (LongAttached.getSecond() == trackedItem)
 			trackedItem = null;
 
 		DirectBeltInputBehaviour targetOpenInv = getTargetOpenInv();
 		if (targetOpenInv != null) {
-			ItemStack remainder = targetOpenInv.handleInsertion(intAttached.getValue(), Direction.UP, false);
-			intAttached.setSecond(remainder);
+			ItemStack remainder = targetOpenInv.handleInsertion(LongAttached.getValue(), Direction.UP, false);
+			LongAttached.setSecond(remainder);
 		}
 
-		if (intAttached.getValue()
+		if (LongAttached.getValue()
 			.isEmpty())
 			return;
 
 		Vec3 ejectVec = earlyTarget != null ? earlyTarget.getFirst() : getLaunchedItemLocation(maxTime);
 		Vec3 ejectMotionVec = getLaunchedItemMotion(maxTime);
-		ItemEntity item = new ItemEntity(level, ejectVec.x, ejectVec.y, ejectVec.z, intAttached.getValue());
+		ItemEntity item = new ItemEntity(level, ejectVec.x, ejectVec.y, ejectVec.z, LongAttached.getValue());
 		item.setDeltaMovement(ejectMotionVec);
 		item.setDefaultPickUpDelay();
 		level.addFreshEntity(item);
@@ -484,10 +495,10 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 	}
 
 	public void dropFlyingItems() {
-		for (IntAttached<ItemStack> intAttached : launchedItems) {
-			Vec3 ejectVec = getLaunchedItemLocation(intAttached.getFirst());
-			Vec3 ejectMotionVec = getLaunchedItemMotion(intAttached.getFirst());
-			ItemEntity item = new ItemEntity(level, 0, 0, 0, intAttached.getValue());
+		for (LongAttached<ItemStack> LongAttached : launchedItems) {
+			Vec3 ejectVec = getLaunchedItemLocation(LongAttached.getFirst());
+			Vec3 ejectMotionVec = getLaunchedItemMotion(LongAttached.getFirst());
+			ItemEntity item = new ItemEntity(level, 0, 0, 0, LongAttached.getValue());
 			item.setPosRaw(ejectVec.x, ejectVec.y, ejectVec.z);
 			item.setDeltaMovement(ejectMotionVec);
 			item.setDefaultPickUpDelay();
@@ -510,15 +521,15 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(compound, registries, clientPacket);
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		super.write(compound, clientPacket);
 		compound.putInt("HorizontalDistance", launcher.getHorizontalDistance());
 		compound.putInt("VerticalDistance", launcher.getVerticalDistance());
 		compound.putBoolean("Powered", powered);
 		NBTHelper.writeEnum(compound, "State", state);
 		compound.put("Lid", lidProgress.writeNBT());
 		compound.put("LaunchedItems",
-			NBTHelper.writeCompoundList(launchedItems, ia -> ia.serializeNBT(s -> (CompoundTag) s.saveOptional(registries))));
+			NBTHelper.writeCompoundList(launchedItems, ia -> ia.serializeNBT(NBTSerializer::serializeNBTCompound)));
 
 		if (earlyTarget != null) {
 			compound.put("EarlyTarget", VecHelper.writeNBT(earlyTarget.getFirst()));
@@ -528,15 +539,15 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 	}
 
 	@Override
-	public void writeSafe(CompoundTag compound, HolderLookup.Provider registries) {
-		super.writeSafe(compound, registries);
+	public void writeSafe(CompoundTag compound) {
+		super.writeSafe(compound);
 		compound.putInt("HorizontalDistance", launcher.getHorizontalDistance());
 		compound.putInt("VerticalDistance", launcher.getVerticalDistance());
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		super.read(compound, reg, clientPacket);
 		int horizontalDistance = compound.getInt("HorizontalDistance");
 		int verticalDistance = compound.getInt("VerticalDistance");
 
@@ -549,14 +560,15 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 		powered = compound.getBoolean("Powered");
 		state = NBTHelper.readEnum(compound, "State", State.class);
 		lidProgress.readNBT(compound.getCompound("Lid"), false);
-		launchedItems = NBTHelper.readCompoundList(compound.getList("LaunchedItems", Tag.TAG_COMPOUND),
-			nbt -> IntAttached.read(nbt, t -> ItemStack.parseOptional(registries, t)));
+		launchedItems = NBTHelper.readCompoundList(compound.getList("LaunchedItems", Tag.TAG_COMPOUND), 
+				nbt -> LongAttached.read(nbt, 
+						comp -> ItemStack.parseOptional(Create.getRegistryAccess(), comp)));
 
 		earlyTarget = null;
 		earlyTargetTime = 0;
 		if (compound.contains("EarlyTarget")) {
 			earlyTarget = Pair.of(VecHelper.readNBT(compound.getList("EarlyTarget", Tag.TAG_DOUBLE)),
-					NBTHelper.readBlockPos(compound, "EarlyTargetPos"));
+				NbtFixer.readBlockPos(compound, "EarlyTargetPos"));
 			earlyTargetTime = compound.getFloat("EarlyTargetTime");
 		}
 
@@ -586,6 +598,11 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 			.above(launcher.getVerticalDistance());
 	}
 
+	@Override
+	public Storage<ItemVariant> getItemStorage(@Nullable Direction face) {
+		return depotBehaviour.itemHandler;
+	}
+
 	public float getLidProgress(float pt) {
 		return lidProgress.getValue(pt);
 	}
@@ -595,9 +612,9 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 	}
 
 	@Override
+	@Environment(EnvType.CLIENT)
 	public AABB getRenderBoundingBox() {
-		return new AABB(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY,
-			Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+		return INFINITE_EXTENT_AABB;
 	}
 
 	private static abstract class EntityHack extends Entity {
@@ -616,21 +633,21 @@ public class EjectorBlockEntity extends KineticBlockEntity implements SidedStora
 	private class EjectorSlot extends ValueBoxTransform.Sided {
 
 		@Override
-		public Vec3 getLocalOffset(LevelAccessor level, BlockPos pos, BlockState state) {
+		public Vec3 getLocalOffset(BlockState state) {
 			if (direction != Direction.UP)
-				return super.getLocalOffset(level, pos, state);
+				return super.getLocalOffset(state);
 			return new Vec3(.5, 10.5 / 16f, .5).add(VecHelper.rotate(VecHelper.voxelSpace(0, 0, -5), angle(state), Axis.Y));
 		}
 
 		@Override
-		public void rotate(LevelAccessor level, BlockPos pos, BlockState state, PoseStack ms) {
+		public void rotate(BlockState state, PoseStack ms) {
 			if (direction != Direction.UP) {
-				super.rotate(level, pos, state, ms);
+				super.rotate(state, ms);
 				return;
 			}
-			TransformStack.of(ms)
-				.rotateYDegrees(angle(state))
-				.rotateXDegrees(90);
+			TransformStack.cast(ms)
+				.rotateY(angle(state))
+				.rotateX(90);
 		}
 
 		protected float angle(BlockState state) {

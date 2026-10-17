@@ -4,17 +4,15 @@ import static com.simibubi.create.content.redstone.diodes.BrassDiodeBlock.POWERI
 
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.simibubi.create.content.equipment.clipboard.ClipboardCloneable;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.Lang;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -33,16 +31,12 @@ public abstract class BrassDiodeBlockEntity extends SmartBlockEntity implements 
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
-		maxState = new BrassDiodeScrollValueBehaviour(CreateLang.translateDirect("logistics.redstone_interval"), this,
-			new BrassDiodeScrollSlot()).between(2, 60 * 20 * 60);
+		maxState = new BrassDiodeScrollValueBehaviour(Lang.translateDirect("logistics.redstone_interval"), this,
+				new BrassDiodeScrollSlot()).between(2, 60 * 20 * 60);
 		maxState.withFormatter(this::format);
 		maxState.withCallback(this::onMaxDelayChanged);
-		maxState.setValue(defaultValue());
+		maxState.setValue(2);
 		behaviours.add(maxState);
-	}
-
-	protected int defaultValue() {
-		return 2;
 	}
 
 	public float getProgress() {
@@ -72,15 +66,15 @@ public abstract class BrassDiodeBlockEntity extends SmartBlockEntity implements 
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		state = compound.getInt("State");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("State", state);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	private String format(int value) {
@@ -97,7 +91,7 @@ public abstract class BrassDiodeBlockEntity extends SmartBlockEntity implements 
 	}
 
 	@Override
-	public boolean readFromClipboard(@NotNull HolderLookup.Provider registries, CompoundTag tag, Player player, Direction side, boolean simulate) {
+	public boolean readFromClipboard(CompoundTag tag, Player player, Direction side, boolean simulate) {
 		if (!tag.contains("Inverted"))
 			return false;
 		if (simulate)
@@ -109,9 +103,8 @@ public abstract class BrassDiodeBlockEntity extends SmartBlockEntity implements 
 	}
 
 	@Override
-	public boolean writeToClipboard(@NotNull HolderLookup.Provider registries, CompoundTag tag, Direction side) {
-		tag.putBoolean("Inverted", getBlockState().getOptionalValue(BrassDiodeBlock.INVERTED)
-			.orElse(false));
+	public boolean writeToClipboard(CompoundTag tag, Direction side) {
+		tag.putBoolean("Inverted", getBlockState().getOptionalValue(BrassDiodeBlock.INVERTED).orElse(false));
 		return true;
 	}
 

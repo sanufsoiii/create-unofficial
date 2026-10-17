@@ -2,6 +2,8 @@ package com.simibubi.create.content.kinetics.speedController;
 
 import java.util.function.Predicate;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
@@ -9,10 +11,10 @@ import com.simibubi.create.content.kinetics.base.HorizontalAxisKineticBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.CogWheelBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
@@ -32,6 +34,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class SpeedControllerBlock extends HorizontalAxisKineticBlock implements IBE<SpeedControllerBlockEntity> {
 
@@ -64,16 +67,16 @@ public class SpeedControllerBlock extends HorizontalAxisKineticBlock implements 
 			Player player, InteractionHand hand, BlockHitResult ray) {
 		
 		ItemStack heldItem = player.getItemInHand(hand);
-		if (heldItem.isEmpty())
+		if(heldItem.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION; 
 		
 		IPlacementHelper helper = PlacementHelpers.get(placementHelperId);
 		if (helper.matchesItem(heldItem))
 			return helper.getOffset(player, world, state, pos, ray).placeInWorld(world, (BlockItem) heldItem.getItem(), player, hand, ray);
 
-		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
 	}
-
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
 			BlockHitResult ray) {
@@ -84,6 +87,7 @@ public class SpeedControllerBlock extends HorizontalAxisKineticBlock implements 
 			return helper.getOffset(player, world, state, pos, ray).placeInWorld(world, (BlockItem) heldItem.getItem(), player, InteractionHand.MAIN_HAND, ray).result();
 
 		return InteractionResult.PASS;
+		
 	}
 
 	@Override

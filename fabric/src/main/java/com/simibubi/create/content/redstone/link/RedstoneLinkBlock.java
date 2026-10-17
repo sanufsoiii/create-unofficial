@@ -4,14 +4,19 @@ import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
+import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
+import io.github.fabricators_of_create.porting_lib_ufo.block.ConnectableRedstoneBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.BlockGetter;
@@ -28,49 +33,38 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public class RedstoneLinkBlock extends WrenchableDirectionalBlock implements IBE<RedstoneLinkBlockEntity> {
+public class RedstoneLinkBlock extends WrenchableDirectionalBlock
+		implements IBE<RedstoneLinkBlockEntity>, ConnectableRedstoneBlock {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 	public static final BooleanProperty RECEIVER = BooleanProperty.create("receiver");
 
 	public RedstoneLinkBlock(Properties properties) {
 		super(properties);
-		registerDefaultState(defaultBlockState().setValue(POWERED, false)
-			.setValue(RECEIVER, false));
+		registerDefaultState(defaultBlockState().setValue(POWERED, false).setValue(RECEIVER, false));
 	}
 
 	@Override
-	public void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos,
-		boolean isMoving) {
-		if (level.isClientSide)
+	public void neighborChanged(BlockState state, Level worldIn, BlockPos pos, Block blockIn, BlockPos fromPos,
+			boolean isMoving) {
+		if (worldIn.isClientSide)
 			return;
 
 		Direction blockFacing = state.getValue(FACING);
 		if (fromPos.equals(pos.relative(blockFacing.getOpposite()))) {
-			if (!canSurvive(state, level, pos)) {
-				level.destroyBlock(pos, true);
+			if (!canSurvive(state, worldIn, pos)) {
+				worldIn.destroyBlock(pos, true);
 				return;
 			}
 		}
 
-		if (!level.getBlockTicks()
-			.willTickThisTick(pos, this))
-			level.scheduleTick(pos, this, 1);
+		if (!worldIn.getBlockTicks().willTickThisTick(pos, this))
+			worldIn.scheduleTick(pos, this, 0);
 	}
 
 	@Override
-	public void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource r) {
-		updateTransmittedSignal(state, level, pos);
-
-		if (state.getValue(RECEIVER))
-			return;
-		Direction attachedFace = state.getValue(RedstoneLinkBlock.FACING)
-			.getOpposite();
-		BlockPos attachedPos = pos.relative(attachedFace);
-		level.blockUpdated(pos, level.getBlockState(pos)
-			.getBlock());
-		level.blockUpdated(attachedPos, level.getBlockState(attachedPos)
-			.getBlock());
+	public void tick(BlockState state, ServerLevel worldIn, BlockPos pos, RandomSource r) {
+		updateTransmittedSignal(state, worldIn, pos);
 	}
 
 	@Override
@@ -80,35 +74,28 @@ public class RedstoneLinkBlock extends WrenchableDirectionalBlock implements IBE
 		updateTransmittedSignal(state, worldIn, pos);
 	}
 
-	@Override
-	public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pMovedByPiston) {
-		IBE.onRemove(pState, pLevel, pPos, pNewState);
-	}
-
-	public void updateTransmittedSignal(BlockState state, Level level, BlockPos pos) {
-		if (level.isClientSide)
+	public void updateTransmittedSignal(BlockState state, Level worldIn, BlockPos pos) {
+		if (worldIn.isClientSide)
 			return;
 		if (state.getValue(RECEIVER))
 			return;
 
-		int power = getPower(level, state, pos);
+		int power = getPower(worldIn, pos);
 
 		boolean previouslyPowered = state.getValue(POWERED);
 		if (previouslyPowered != power > 0)
-			level.setBlock(pos, state.cycle(POWERED), Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, state.cycle(POWERED), 2);
 
 		int transmit = power;
-		withBlockEntityDo(level, pos, be -> be.transmit(transmit));
+		withBlockEntityDo(worldIn, pos, be -> be.transmit(transmit));
 	}
 
-	private static int getPower(Level level, BlockState state, BlockPos pos) {
+	private int getPower(Level worldIn, BlockPos pos) {
 		int power = 0;
 		for (Direction direction : Iterate.directions)
-			power = Math.max(level.getSignal(pos.relative(direction), direction), power);
-		for (Direction direction : Iterate.directions) {
-			if (state.getValue(FACING).getOpposite() != direction)
-				power = Math.max(level.getSignal(pos.relative(direction), Direction.UP), power);
-		}
+			power = Math.max(worldIn.getSignal(pos.relative(direction), direction), power);
+		for (Direction direction : Iterate.directions)
+			power = Math.max(worldIn.getSignal(pos.relative(direction), Direction.UP), power);
 		return power;
 	}
 
@@ -128,8 +115,7 @@ public class RedstoneLinkBlock extends WrenchableDirectionalBlock implements IBE
 	public int getSignal(BlockState state, BlockGetter blockAccess, BlockPos pos, Direction side) {
 		if (!state.getValue(RECEIVER))
 			return 0;
-		return getBlockEntityOptional(blockAccess, pos).map(RedstoneLinkBlockEntity::getReceivedSignal)
-			.orElse(0);
+		return getBlockEntityOptional(blockAccess, pos).map(RedstoneLinkBlockEntity::getReceivedSignal).orElse(0);
 	}
 
 	@Override
@@ -137,37 +123,46 @@ public class RedstoneLinkBlock extends WrenchableDirectionalBlock implements IBE
 		builder.add(POWERED, RECEIVER);
 		super.createBlockStateDefinition(builder);
 	}
-
+	
 	@Override
-	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-		if (player.isShiftKeyDown() && toggleMode(state, level, pos) == InteractionResult.SUCCESS) {
-			level.scheduleTick(pos, this, 1);
-			return InteractionResult.SUCCESS;
-		}
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult hitResult) {
+		
+		if(stack.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		if (player.isShiftKeyDown() && !AdventureUtil.isAdventure(player))
+			return toggleMode(state, worldIn, pos);
+		return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		if (player.isShiftKeyDown() && !AdventureUtil.isAdventure(player))
+			return toggleMode(state, worldIn, pos).result();
 		return InteractionResult.PASS;
+		
 	}
 
-	public InteractionResult toggleMode(BlockState state, Level level, BlockPos pos) {
-		if (level.isClientSide)
-			return InteractionResult.SUCCESS;
+	public ItemInteractionResult toggleMode(BlockState state, Level worldIn, BlockPos pos) {
+		if (worldIn.isClientSide)
+			return ItemInteractionResult.SUCCESS;
 
-		return onBlockEntityUse(level, pos, be -> {
+		return onBlockEntityUse(worldIn, pos, be -> {
 			Boolean wasReceiver = state.getValue(RECEIVER);
-			boolean blockPowered = level.hasNeighborSignal(pos);
-			level.setBlock(pos, state.cycle(RECEIVER)
-				.setValue(POWERED, blockPowered), Block.UPDATE_ALL);
-			be.transmit(wasReceiver ? 0 : getPower(level, state, pos));
-			return InteractionResult.SUCCESS;
+			boolean blockPowered = worldIn.hasNeighborSignal(pos);
+			worldIn.setBlock(pos, state.cycle(RECEIVER).setValue(POWERED, blockPowered), 3);
+			be.transmit(wasReceiver ? 0 : getPower(worldIn, pos));
+			return ItemInteractionResult.SUCCESS;
 		});
 	}
 
 	@Override
 	public InteractionResult onWrenched(BlockState state, UseOnContext context) {
-		if (toggleMode(state, context.getLevel(), context.getClickedPos()) == InteractionResult.SUCCESS) {
-			context.getLevel()
-				.scheduleTick(context.getClickedPos(), this, 1);
+		if (toggleMode(state, context.getLevel(), context.getClickedPos()).result() == InteractionResult.SUCCESS)
 			return InteractionResult.SUCCESS;
-		}
 		return super.onWrenched(state, context);
 	}
 
@@ -176,14 +171,14 @@ public class RedstoneLinkBlock extends WrenchableDirectionalBlock implements IBE
 		return originalState;
 	}
 
+	@Override
 	public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, Direction side) {
 		return side != null;
 	}
 
 	@Override
 	public boolean canSurvive(BlockState state, LevelReader worldIn, BlockPos pos) {
-		BlockPos neighbourPos = pos.relative(state.getValue(FACING)
-			.getOpposite());
+		BlockPos neighbourPos = pos.relative(state.getValue(FACING).getOpposite());
 		BlockState neighbour = worldIn.getBlockState(neighbourPos);
 		return !neighbour.canBeReplaced();
 	}

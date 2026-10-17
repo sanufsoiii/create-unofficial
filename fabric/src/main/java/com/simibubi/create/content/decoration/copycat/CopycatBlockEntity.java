@@ -3,39 +3,41 @@ package com.simibubi.create.content.decoration.copycat;
 import java.util.List;
 
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.api.contraption.transformable.TransformableBlockEntity;
-import com.simibubi.create.api.schematic.nbt.PartialSafeNBT;
-import com.simibubi.create.api.schematic.requirement.SpecialBlockEntityItemRequirement;
+import com.simibubi.create.content.contraptions.ITransformableBlockEntity;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.redstone.RoseQuartzLampBlock;
+import com.simibubi.create.content.schematics.requirement.ISpecialBlockEntityItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement.ItemUseType;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.IPartialSafeNBT;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
+import net.fabricmc.fabric.api.rendering.data.v1.RenderAttachmentBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.world.Clearable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.TrapDoorBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 public class CopycatBlockEntity extends SmartBlockEntity
-	implements SpecialBlockEntityItemRequirement, TransformableBlockEntity, PartialSafeNBT, Clearable {
+	implements ISpecialBlockEntityItemRequirement, ITransformableBlockEntity, IPartialSafeNBT, RenderAttachmentBlockEntity {
 
-	private BlockState material = AllBlocks.COPYCAT_BASE.getDefaultState();
-	private ItemStack consumedItem = ItemStack.EMPTY;
+	private BlockState material;
+	private ItemStack consumedItem;
 
 	public CopycatBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
+		material = AllBlocks.COPYCAT_BASE.getDefaultState();
+		consumedItem = ItemStack.EMPTY;
 	}
 
 	public BlockState getMaterial() {
@@ -55,7 +57,7 @@ public class CopycatBlockEntity extends SmartBlockEntity
 				BlockState neighbourState = level.getBlockState(neighbour);
 				if (neighbourState != wrapperState)
 					continue;
-				if (!(level.getBlockEntity(neighbour) instanceof CopycatBlockEntity cbe))
+				if (!(level.getBlockEntity(neighbour)instanceof CopycatBlockEntity cbe))
 					continue;
 				BlockState otherMaterial = cbe.getMaterial();
 				if (!otherMaterial.is(blockState.getBlock()))
@@ -101,19 +103,22 @@ public class CopycatBlockEntity extends SmartBlockEntity
 	}
 
 	public void setConsumedItem(ItemStack stack) {
-		consumedItem = stack.copyWithCount(1);
+		consumedItem = ItemHandlerHelper.copyStackWithSize(stack, 1);
 		setChanged();
 	}
 
 	private void redraw() {
-		if (level != null) {
+		// fabric: no need for requestModelDataUpdate
+		if (hasLevel()) {
 			level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 16);
+			level.getChunkSource()
+				.getLightEngine()
+				.checkBlock(worldPosition);
 		}
 	}
 
 	@Override
-	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
-	}
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
 
 	@Override
 	public ItemRequirement getRequiredItems(BlockState state) {
@@ -123,13 +128,13 @@ public class CopycatBlockEntity extends SmartBlockEntity
 	}
 
 	@Override
-	public void transform(BlockEntity be, StructureTransform transform) {
+	public void transform(StructureTransform transform) {
 		material = transform.apply(material);
 		notifyUpdate();
 	}
 
 	@Override
-	protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag tag, Provider registries, boolean clientPacket) {
 		super.read(tag, registries, clientPacket);
 
 		consumedItem = ItemStack.parseOptional(registries, tag.getCompound("Item"));
@@ -161,28 +166,28 @@ public class CopycatBlockEntity extends SmartBlockEntity
 	}
 
 	@Override
-	public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
-		super.writeSafe(tag, registries);
+	public void writeSafe(CompoundTag tag) {
+		super.writeSafe(tag);
 
-		ItemStack stackWithoutComponents = new ItemStack(consumedItem.getItemHolder(), consumedItem.getCount(), DataComponentPatch.EMPTY);
+		ItemStack stackWithoutNBT = new ItemStack(consumedItem.getItem(), consumedItem.getCount());
 
-		write(tag, registries, stackWithoutComponents, material);
+		write(tag, stackWithoutNBT, material);
 	}
 
 	@Override
-	protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(tag, registries, clientPacket);
-		write(tag, registries, consumedItem, material);
+	protected void write(CompoundTag tag, boolean clientPacket) {
+		super.write(tag, clientPacket);
+		write(tag, consumedItem, material);
 	}
 
-	protected void write(CompoundTag tag, HolderLookup.Provider registries, ItemStack stack, BlockState material) {
-		tag.put("Item", stack.saveOptional(registries));
+	protected void write(CompoundTag tag, ItemStack stack, BlockState material) {
+		tag.put("Item", NBTSerializer.serializeNBT(stack));
 		tag.put("Material", NbtUtils.writeBlockState(material));
 	}
 
 	@Override
-	public void clearContent() {
-		material = AllBlocks.COPYCAT_BASE.getDefaultState();
-		consumedItem = ItemStack.EMPTY;
+	public BlockState getRenderAttachmentData() {
+		return material;
 	}
+
 }

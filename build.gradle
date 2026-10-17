@@ -41,6 +41,7 @@ subprojects {
         maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" } // ForgeConfigAPIPort for Ponder
         maven { url = "https://mvn.devos.one/snapshots" } // Registrate fabric & Porting Lib
         maven { url = "https://repo.sleeping.town/" }
+        maven { url = "https://maven.terraformersmc.com/" }
         maven { url = "https://jitpack.io" }
     }
 
@@ -64,12 +65,14 @@ subprojects {
         options.release = 21
     }
 
-    // Exclude all ARR assets so that compiled mod jars contain ZERO copyrighted assets
+    // Exclude ARR textures so that compiled mod jars contain ZERO copyrighted textures
     tasks.withType(ProcessResources).configureEach {
-        exclude("assets/create/**")
+        exclude("assets/create/textures/block/**", "assets/create/textures/item/**", "assets/create/textures/entity/**")
+        exclude("**/*.bbmodel", "**/*.lnk")
     }
 
     tasks.withType(Jar).configureEach {
-        exclude("assets/create/**")
+        exclude("assets/create/textures/block/**", "assets/create/textures/item/**", "assets/create/textures/entity/**")
+        exclude("**/*.bbmodel", "**/*.lnk")
     }
 }

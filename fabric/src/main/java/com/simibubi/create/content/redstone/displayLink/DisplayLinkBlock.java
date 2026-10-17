@@ -1,21 +1,29 @@
 package com.simibubi.create.content.redstone.displayLink;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.NotNull;
-
-import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
+import com.simibubi.create.content.redstone.displayLink.source.DisplaySource;
+import com.simibubi.create.content.redstone.displayLink.source.RedstonePowerDisplaySource;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
+import com.simibubi.create.foundation.gui.ScreenOpener;
+import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Lang;
 
-import net.createmod.catnip.data.Iterate;
+import com.tterrag.registrate.fabric.EnvExecutor;
+
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -24,7 +32,6 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -35,12 +42,12 @@ import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 public class DisplayLinkBlock extends WrenchableDirectionalBlock implements IBE<DisplayLinkBlockEntity> {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
-
-	public static final MapCodec<DisplayLinkBlock> CODEC = simpleCodec(DisplayLinkBlock::new);
 
 	public DisplayLinkBlock(Properties p_i48415_1_) {
 		super(p_i48415_1_);
@@ -60,13 +67,17 @@ public class DisplayLinkBlock extends WrenchableDirectionalBlock implements IBE<
 		AdvancementBehaviour.setPlacedBy(pLevel, pPos, pPlacer);
 	}
 
-	@Override
-	public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pMovedByPiston) {
-		IBE.onRemove(pState, pLevel, pPos, pNewState);
+	public static void notifyGatherers(LevelAccessor level, BlockPos pos) {
+		forEachAttachedGatherer(level, pos, DisplayLinkBlockEntity::updateGatheredData);
 	}
 
-	public static void notifyGatherers(LevelAccessor level, BlockPos pos) {
-		forEachAttachedGatherer(level, pos, DisplayLinkBlockEntity::tickSource);
+	@SuppressWarnings("unchecked")
+	public static <T extends DisplaySource> void sendToGatherers(LevelAccessor level, BlockPos pos,
+		BiConsumer<DisplayLinkBlockEntity, T> callback, Class<T> type) {
+		forEachAttachedGatherer(level, pos, dgte -> {
+			if (type.isInstance(dgte.activeSource))
+				callback.accept(dgte, (T) dgte.activeSource);
+		});
 	}
 
 	private static void forEachAttachedGatherer(LevelAccessor level, BlockPos pos,
@@ -79,6 +90,8 @@ public class DisplayLinkBlock extends WrenchableDirectionalBlock implements IBE<
 
 			BlockEntity blockEntity = level.getBlockEntity(offsetPos);
 			if (!(blockEntity instanceof DisplayLinkBlockEntity dlbe))
+				continue;
+			if (dlbe.activeSource == null)
 				continue;
 			if (dlbe.getDirection() != d.getOpposite())
 				continue;
@@ -93,10 +106,14 @@ public class DisplayLinkBlock extends WrenchableDirectionalBlock implements IBE<
 		if (worldIn.isClientSide)
 			return;
 
+		if (fromPos.equals(pos.relative(state.getValue(FACING)
+			.getOpposite())))
+			sendToGatherers(worldIn, fromPos, (dlte, p) -> dlte.tickSource(), RedstonePowerDisplaySource.class);
+
 		boolean powered = shouldBePowered(state, worldIn, pos);
 		boolean previouslyPowered = state.getValue(POWERED);
 		if (previouslyPowered != powered) {
-			worldIn.setBlock(pos, state.cycle(POWERED), Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, state.cycle(POWERED), 2);
 			if (!powered)
 				withBlockEntityDo(worldIn, pos, DisplayLinkBlockEntity::onNoLongerPowered);
 		}
@@ -119,12 +136,45 @@ public class DisplayLinkBlock extends WrenchableDirectionalBlock implements IBE<
 	protected void createBlockStateDefinition(Builder<Block, BlockState> builder) {
 		super.createBlockStateDefinition(builder.add(POWERED));
 	}
-
+	
 	@Override
-	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-		if (player == null || player.isShiftKeyDown())
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level pLevel, BlockPos pPos,
+			Player pPlayer, InteractionHand hand, BlockHitResult hitResult) {
+		
+		if(stack.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		if (pPlayer == null || AdventureUtil.isAdventure(pPlayer))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		if (pPlayer.isShiftKeyDown())
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		EnvExecutor.runWhenOn(EnvType.CLIENT,
+			() -> () -> withBlockEntityDo(pLevel, pPos, be -> this.displayScreen(be, pPlayer)));
+		return ItemInteractionResult.SUCCESS;
+		
+	}
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level pLevel, BlockPos pPos, Player pPlayer,
+			BlockHitResult hitResult) {
+		
+		if (pPlayer == null || AdventureUtil.isAdventure(pPlayer))
 			return InteractionResult.PASS;
+		if (pPlayer.isShiftKeyDown())
+			return InteractionResult.PASS;
+		EnvExecutor.runWhenOn(EnvType.CLIENT,
+			() -> () -> withBlockEntityDo(pLevel, pPos, be -> this.displayScreen(be, pPlayer)));
 		return InteractionResult.SUCCESS;
+		
+	}
+
+	@Environment(value = EnvType.CLIENT)
+	protected void displayScreen(DisplayLinkBlockEntity be, Player player) {
+		if (!(player instanceof LocalPlayer))
+			return;
+		if (be.targetOffset.equals(BlockPos.ZERO)) {
+			player.displayClientMessage(Lang.translateDirect("display_link.invalid"), true);
+			return;
+		}
+		ScreenOpener.open(new DisplayLinkScreen(be));
 	}
 
 	@Override
@@ -147,8 +197,4 @@ public class DisplayLinkBlock extends WrenchableDirectionalBlock implements IBE<
 		return AllBlockEntityTypes.DISPLAY_LINK.get();
 	}
 
-	@Override
-	protected @NotNull MapCodec<? extends DirectionalBlock> codec() {
-		return CODEC;
-	}
 }

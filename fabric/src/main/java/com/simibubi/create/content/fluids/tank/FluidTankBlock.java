@@ -15,9 +15,9 @@ import com.simibubi.create.foundation.fluid.FluidHelper;
 import com.simibubi.create.foundation.fluid.FluidHelper.FluidExchange;
 import com.simibubi.create.foundation.utility.Lang;
 
-import io.github.fabricators_of_create.porting_lib.block.CustomSoundTypeBlock;
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomSoundTypeBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributes;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
@@ -104,7 +104,7 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 			return;
 		if (moved)
 			return;
-		// fabric: delay connectivity if placing NBT
+		// fabric: see comment in FluidTankItem
 		Consumer<FluidTankBlockEntity> consumer = FluidTankItem.IS_PLACING_NBT
 				? FluidTankBlockEntity::queueConnectivityUpdate
 				: FluidTankBlockEntity::updateConnectivity;
@@ -115,6 +115,18 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 	protected void createBlockStateDefinition(Builder<Block, BlockState> p_206840_1_) {
 		p_206840_1_.add(TOP, BOTTOM, SHAPE, LIGHT_LEVEL);
 	}
+
+	// Handled via LIGHT_LEVEL state property
+//	@Override
+//	public int getLightEmission(BlockState state, BlockGetter world, BlockPos pos) {
+//		FluidTankBlockEntity tankAt = ConnectivityHandler.partAt(getBlockEntityType(), world, pos);
+//		if (tankAt == null)
+//			return 0;
+//		FluidTankBlockEntity controllerBE = tankAt.getControllerBE();
+//		if (controllerBE == null || !controllerBE.window)
+//			return 0;
+//		return tankAt.luminosity;
+//	}
 
 	@Override
 	public InteractionResult onWrenched(BlockState state, UseOnContext context) {
@@ -144,11 +156,11 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 			withBlockEntityDo(pLevel, pCurrentPos, FluidTankBlockEntity::updateBoilerTemperature);
 		return pState;
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
 			Player player, InteractionHand hand, BlockHitResult ray) {
-
+		
 		ItemStack heldItem = player.getItemInHand(hand);
 		boolean onClient = world.isClientSide;
 
@@ -187,7 +199,7 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 
 		if (exchange == FluidExchange.ITEM_TO_TANK) {
 			if (creative && !onClient) {
-				FluidStack fluidInItem = GenericItemEmptying.emptyItem(world, heldItem, true).getLeft();
+				FluidStack fluidInItem = GenericItemEmptying.emptyItem(world, heldItem, true).getFirst();
 				if (!fluidInItem.isEmpty() && fluidTank instanceof CreativeSmartFluidTank)
 					((CreativeSmartFluidTank) fluidTank).setContainedFluid(fluidInItem);
 			}
@@ -216,16 +228,16 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 			world.playSound(null, pos, soundevent, SoundSource.BLOCKS, .5f, pitch);
 		}
 
-		if (!FluidStack.isSameFluidSameComponents(fluidInTank, prevFluidInTank)) {
+		if (!fluidInTank.isFluidEqual(prevFluidInTank)) {
 			if (be instanceof FluidTankBlockEntity) {
-				FluidTankBlockEntity controllerBE = be.getControllerBE();
+				FluidTankBlockEntity controllerBE = ((FluidTankBlockEntity) be).getControllerBE();
 				if (controllerBE != null) {
 					if (fluidState != null && onClient) {
 						BlockParticleOption blockParticleData = new BlockParticleOption(ParticleTypes.BLOCK,
 								fluidState);
 						float level = (float) fluidInTank.getAmount() / TransferUtil.firstCapacity(fluidTank);
 
-						boolean reversed = FluidVariantAttributes.isLighterThanAir(fluidInTank.getVariant());
+						boolean reversed = FluidVariantAttributes.isLighterThanAir(fluidInTank.getType());
 						if (reversed)
 							level = 1 - level;
 
@@ -245,12 +257,13 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 		}
 
 		return ItemInteractionResult.SUCCESS;
+		
 	}
-
+	
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
 			BlockHitResult ray) {
-
+		
 		ItemStack heldItem = ItemStack.EMPTY;
 		boolean onClient = world.isClientSide;
 
@@ -289,7 +302,7 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 
 		if (exchange == FluidExchange.ITEM_TO_TANK) {
 			if (creative && !onClient) {
-				FluidStack fluidInItem = GenericItemEmptying.emptyItem(world, heldItem, true).getLeft();
+				FluidStack fluidInItem = GenericItemEmptying.emptyItem(world, heldItem, true).getFirst();
 				if (!fluidInItem.isEmpty() && fluidTank instanceof CreativeSmartFluidTank)
 					((CreativeSmartFluidTank) fluidTank).setContainedFluid(fluidInItem);
 			}
@@ -318,16 +331,16 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 			world.playSound(null, pos, soundevent, SoundSource.BLOCKS, .5f, pitch);
 		}
 
-		if (!FluidStack.isSameFluidSameComponents(fluidInTank, prevFluidInTank)) {
+		if (!fluidInTank.isFluidEqual(prevFluidInTank)) {
 			if (be instanceof FluidTankBlockEntity) {
-				FluidTankBlockEntity controllerBE = be.getControllerBE();
+				FluidTankBlockEntity controllerBE = ((FluidTankBlockEntity) be).getControllerBE();
 				if (controllerBE != null) {
 					if (fluidState != null && onClient) {
 						BlockParticleOption blockParticleData = new BlockParticleOption(ParticleTypes.BLOCK,
 								fluidState);
 						float level = (float) fluidInTank.getAmount() / TransferUtil.firstCapacity(fluidTank);
 
-						boolean reversed = FluidVariantAttributes.isLighterThanAir(fluidInTank.getVariant());
+						boolean reversed = FluidVariantAttributes.isLighterThanAir(fluidInTank.getType());
 						if (reversed)
 							level = 1 - level;
 
@@ -347,6 +360,7 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 		}
 
 		return InteractionResult.SUCCESS;
+		
 	}
 
 	@Override
@@ -421,6 +435,7 @@ public class FluidTankBlock extends Block implements IWrenchable, IBE<FluidTankB
 		}
 	}
 
+	// Tanks are less noisy when placed in batch
 	public static final SoundType SILENCED_METAL = new SoundType(0.1F, 1.5F, SoundEvents.METAL_BREAK,
 			SoundEvents.METAL_STEP, SoundEvents.METAL_PLACE, SoundEvents.METAL_HIT, SoundEvents.METAL_FALL);
 

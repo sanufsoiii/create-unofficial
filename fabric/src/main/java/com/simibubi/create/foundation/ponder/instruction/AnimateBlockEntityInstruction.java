@@ -8,10 +8,9 @@ import com.simibubi.create.content.contraptions.bearing.IBearingBlockEntity;
 import com.simibubi.create.content.contraptions.pulley.PulleyBlockEntity;
 import com.simibubi.create.content.kinetics.deployer.DeployerBlockEntity;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlockEntity;
+import com.simibubi.create.foundation.ponder.PonderScene;
+import com.simibubi.create.foundation.ponder.PonderWorld;
 
-import net.createmod.ponder.api.level.PonderLevel;
-import net.createmod.ponder.foundation.PonderScene;
-import net.createmod.ponder.foundation.instruction.TickingInstruction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
@@ -22,8 +21,8 @@ public class AnimateBlockEntityInstruction extends TickingInstruction {
 	protected double target;
 	protected final BlockPos location;
 
-	private final BiConsumer<PonderLevel, Float> setter;
-	private final Function<PonderLevel, Float> getter;
+	private BiConsumer<PonderWorld, Float> setter;
+	private Function<PonderWorld, Float> getter;
 
 	public static AnimateBlockEntityInstruction bearing(BlockPos location, float totalDelta, int ticks) {
 		return new AnimateBlockEntityInstruction(location, totalDelta, ticks,
@@ -56,7 +55,7 @@ public class AnimateBlockEntityInstruction extends TickingInstruction {
 	}
 
 	protected AnimateBlockEntityInstruction(BlockPos location, float totalDelta, int ticks,
-											BiConsumer<PonderLevel, Float> setter, Function<PonderLevel, Float> getter) {
+		BiConsumer<PonderWorld, Float> setter, Function<PonderWorld, Float> getter) {
 		super(false, ticks);
 		this.location = location;
 		this.setter = setter;
@@ -75,7 +74,7 @@ public class AnimateBlockEntityInstruction extends TickingInstruction {
 	@Override
 	public void tick(PonderScene scene) {
 		super.tick(scene);
-		PonderLevel world = scene.getWorld();
+		PonderWorld world = scene.getWorld();
 		float current = getter.apply(world);
 		float next = (float) (remainingTicks == 0 ? target : current + deltaPerTick);
 		setter.accept(world, next);
@@ -83,7 +82,7 @@ public class AnimateBlockEntityInstruction extends TickingInstruction {
 			setter.accept(world, next);
 	}
 
-	private static <T> Optional<T> castIfPresent(PonderLevel world, BlockPos pos, Class<T> beType) {
+	private static <T> Optional<T> castIfPresent(PonderWorld world, BlockPos pos, Class<T> beType) {
 		BlockEntity blockEntity = world.getBlockEntity(pos);
 		if (beType.isInstance(blockEntity))
 			return Optional.of(beType.cast(blockEntity));

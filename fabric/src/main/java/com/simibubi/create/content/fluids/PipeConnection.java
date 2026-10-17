@@ -1,23 +1,24 @@
 package com.simibubi.create.content.fluids;
 
 import java.util.Optional;
+import net.minecraft.util.RandomSource;
 import java.util.function.Predicate;
 
+import com.simibubi.create.Create;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.BlockFace;
+import com.simibubi.create.foundation.utility.Couple;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.VecHelper;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.tterrag.registrate.fabric.EnvExecutor;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.data.Couple;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.math.BlockFace;
-import net.createmod.catnip.math.VecHelper;
-import net.createmod.catnip.platform.CatnipServices;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.FloatTag;
@@ -26,7 +27,6 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -122,7 +122,7 @@ public class PipeConnection {
 		// Manage existing flow
 		Flow flow = this.flow.get();
 		FluidStack provided = flow.inbound ? flowSource.provideFluid(extractionPredicate) : internalFluid;
-		if (!hasPressure() || provided.isEmpty() || !FluidStack.isSameFluidSameComponents(provided, flow.fluid)) {
+		if (!hasPressure() || provided.isEmpty() || !provided.isFluidEqual(flow.fluid)) {
 			this.flow = Optional.empty();
 			return true;
 		}
@@ -211,7 +211,7 @@ public class PipeConnection {
 			flow.complete = true;
 	}
 
-	public void serializeNBT(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+	public void serializeNBT(CompoundTag tag, boolean clientPacket) {
 		CompoundTag connectionData = new CompoundTag();
 		tag.put(side.getName(), connectionData);
 
@@ -223,13 +223,11 @@ public class PipeConnection {
 		}
 
 		if (hasOpenEnd())
-			connectionData.put("OpenEnd", ((OpenEndedPipe) source.get()).serializeNBT(registries));
+			connectionData.put("OpenEnd", ((OpenEndedPipe) source.get()).serializeNBT());
 
 		if (hasFlow()) {
 			Flow flow = this.flow.get();
-			CompoundTag flowData = new CompoundTag();
-			CompoundTag fluidTag = (CompoundTag) FluidStack.CODEC.encode(flow.fluid, RegistryOps.create(NbtOps.INSTANCE, registries), new CompoundTag()).getOrThrow();
-			flowData.put("Fluid", fluidTag);
+			CompoundTag flowData = (CompoundTag)FluidStack.CODEC.encode(flow.fluid, RegistryOps.create(NbtOps.INSTANCE, Create.getRegistryAccess()), new CompoundTag()).getOrThrow();
 			flowData.putBoolean("In", flow.inbound);
 			if (!flow.complete)
 				flowData.put("Progress", flow.progress.writeNBT());
@@ -242,7 +240,7 @@ public class PipeConnection {
 		return source.orElse(null) instanceof OpenEndedPipe;
 	}
 
-	public void deserializeNBT(CompoundTag tag, HolderLookup.Provider registries, BlockPos blockEntityPos, boolean clientPacket) {
+	public void deserializeNBT(CompoundTag tag, BlockPos blockEntityPos, boolean clientPacket) {
 		CompoundTag connectionData = tag.getCompound(side.getName());
 
 		if (connectionData.contains("Pressure")) {
@@ -253,14 +251,11 @@ public class PipeConnection {
 
 		source = Optional.empty();
 		if (connectionData.contains("OpenEnd"))
-			source = Optional.of(OpenEndedPipe.fromNBT(connectionData.getCompound("OpenEnd"), registries, blockEntityPos));
+			source = Optional.of(OpenEndedPipe.fromNBT(connectionData.getCompound("OpenEnd"), blockEntityPos));
 
 		if (connectionData.contains("Flow")) {
 			CompoundTag flowData = connectionData.getCompound("Flow");
-			FluidStack fluid = flowData.contains("Fluid")
-				? FluidStack.CODEC.decode(RegistryOps.create(NbtOps.INSTANCE, registries), flowData.getCompound("Fluid"))
-					.result().map(com.mojang.datafixers.util.Pair::getFirst).orElse(FluidStack.EMPTY)
-				: FluidStack.EMPTY;
+			FluidStack fluid = FluidStack.parseOptional(Create.getRegistryAccess(), flowData);
 			boolean inbound = flowData.getBoolean("In");
 			if (!flow.isPresent()) {
 				flow = Optional.of(new Flow(inbound, fluid));
@@ -368,11 +363,11 @@ public class PipeConnection {
 	public static final RandomSource r = RandomSource.create();
 
 	public void spawnSplashOnRim(Level world, BlockPos pos, FluidStack fluid) {
-		CatnipServices.PLATFORM.executeOnClientOnly(() -> () -> spawnSplashOnRimInner(world, pos, fluid));
+		EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> spawnSplashOnRimInner(world, pos, fluid));
 	}
 
 	public void spawnParticles(Level world, BlockPos pos, FluidStack fluid) {
-		CatnipServices.PLATFORM.executeOnClientOnly(() -> () -> spawnParticlesInner(world, pos, fluid));
+		EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> spawnParticlesInner(world, pos, fluid));
 	}
 
 	@Environment(EnvType.CLIENT)
@@ -427,5 +422,67 @@ public class PipeConnection {
 			return false;
 		return true;
 	}
+
+//	void visualizePressure(BlockPos pos) {
+//		if (!hasPressure())
+//			return;
+//
+//		pressure.forEachWithContext((pressure, inbound) -> {
+//			if (inbound)
+//				return;
+//
+//			Vector3d directionVec = new Vector3d(side.getDirectionVec());
+//			Vector3d scaleVec = directionVec.scale(-.25f * side.getAxisDirection()
+//				.getOffset());
+//			directionVec = directionVec.scale(inbound ? .35f : .45f);
+//			CreateClient.outliner.chaseAABB("pressure" + pos.toShortString() + side.getName() + String.valueOf(inbound),
+//				FluidPropagator.smallCenter.offset(directionVec.add(new Vector3d(pos)))
+//					.grow(scaleVec.x, scaleVec.y, scaleVec.z)
+//					.expand(0, pressure / 64f, 0)
+//					.grow(1 / 64f));
+//		});
+//	}
+//
+//	void visualizeFlow(BlockPos pos) {
+//		if (!hasFlow())
+//			return;
+//
+//		Vector3d directionVec = new Vector3d(side.getDirectionVec());
+//		float size = 1 / 4f;
+//		float length = .5f;
+//		Flow flow = this.flow.get();
+//		boolean inbound = flow.inbound;
+//		FluidStack fluid = flow.fluid;
+//
+//		if (flow.progress == null)
+//			return;
+//		float value = flow.progress.getValue();
+//		Vector3d start = directionVec.scale(inbound ? .5 : .5f - length);
+//		Vector3d offset = directionVec.scale(length * (inbound ? -1 : 1))
+//			.scale(value);
+//
+//		Vector3d scale = new Vector3d(1, 1, 1).subtract(directionVec.scale(side.getAxisDirection()
+//			.getOffset()))
+//			.scale(size);
+//		AABB bb = new AABB(start, start.add(offset)).offset(VecHelper.getCenterOf(pos))
+//			.grow(scale.x, scale.y, scale.z);
+//
+//		int color = 0x7fdbda;
+//		if (!fluid.isEmpty()) {
+//			Fluid fluid2 = fluid.getFluid();
+//			if (fluid2 == Fluids.WATER)
+//				color = 0x1D4D9B;
+//			else if (fluid2 == Fluids.LAVA)
+//				color = 0xFF773D;
+//			else
+//				color = fluid2.getAttributes()
+//					.getColor(fluid);
+//		}
+//
+//		CreateClient.outliner.chaseAABB(this, bb)
+//			.withFaceTexture(AllSpecialTextures.SELECTION)
+//			.colored(color)
+//			.lineWidth(0);
+//	}
 
 }

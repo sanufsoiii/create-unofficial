@@ -2,7 +2,8 @@ package com.simibubi.create.content.logistics.tunnel;
 
 import static net.minecraft.world.level.block.Block.box;
 
-import net.createmod.catnip.math.VoxelShaper;
+import com.simibubi.create.foundation.utility.VoxelShaper;
+
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.level.block.state.BlockState;
@@ -47,6 +48,7 @@ public class BeltTunnelShapes {
 		if (shape == BeltTunnelBlock.Shape.T_RIGHT)
 			return TEE.get(axis == Direction.Axis.Z ? Direction.WEST : Direction.SOUTH);
 
+		// something went wrong
 		return Shapes.block();
 	}
 }

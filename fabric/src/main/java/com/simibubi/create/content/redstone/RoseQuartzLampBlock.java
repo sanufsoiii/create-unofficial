@@ -8,26 +8,33 @@ import java.util.function.BiConsumer;
 
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.redstone.diodes.BrassDiodeBlock;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
+import io.github.fabricators_of_create.porting_lib_ufo.block.WeakPowerCheckingBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.SignalGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.phys.BlockHitResult;
 
-public class RoseQuartzLampBlock extends Block implements IWrenchable {
+public class RoseQuartzLampBlock extends Block implements IWrenchable, WeakPowerCheckingBlock {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 	public static final BooleanProperty POWERING = BrassDiodeBlock.POWERING;
@@ -53,6 +60,11 @@ public class RoseQuartzLampBlock extends Block implements IWrenchable {
 	}
 
 	@Override
+    public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
+        return false;
+    }
+
+	@Override
 	public void neighborChanged(BlockState pState, Level pLevel, BlockPos pPos, Block pBlock, BlockPos pFromPos,
 		boolean pIsMoving) {
 		if (pLevel.isClientSide)
@@ -62,18 +74,18 @@ public class RoseQuartzLampBlock extends Block implements IWrenchable {
 		if (isPowered == pLevel.hasNeighborSignal(pPos))
 			return;
 		if (isPowered) {
-			pLevel.setBlock(pPos, pState.cycle(POWERED), Block.UPDATE_CLIENTS);
+			pLevel.setBlock(pPos, pState.cycle(POWERED), 2);
 			return;
 		}
 
 		forEachInCluster(pLevel, pPos, (currentPos, currentState) -> {
-			pLevel.setBlock(currentPos, currentState.setValue(POWERING, false), Block.UPDATE_CLIENTS);
+			pLevel.setBlock(currentPos, currentState.setValue(POWERING, false), 2);
 			scheduleActivation(pLevel, currentPos);
 		});
 
 		pLevel.setBlock(pPos, pState.setValue(POWERED, true)
 			.setValue(POWERING, true)
-			.setValue(ACTIVATE, true), Block.UPDATE_CLIENTS);
+			.setValue(ACTIVATE, true), 2);
 		pLevel.updateNeighborsAt(pPos, this);
 		scheduleActivation(pLevel, pPos);
 	}
@@ -121,6 +133,8 @@ public class RoseQuartzLampBlock extends Block implements IWrenchable {
 			return 0;
 		if (toState.is(Blocks.COMPARATOR))
 			return getDistanceToPowered(pLevel, pPos, pDirection);
+//		if (toState.is(Blocks.REDSTONE_WIRE))
+//			return 0;
 		return pState.getValue(POWERING) ? 15 : 0;
 	}
 
@@ -144,10 +158,26 @@ public class RoseQuartzLampBlock extends Block implements IWrenchable {
 
 		if (wasPowering || shouldBePowering) {
 			pLevel.setBlock(pPos, pState.setValue(ACTIVATE, false)
-				.setValue(POWERING, shouldBePowering), Block.UPDATE_CLIENTS);
+				.setValue(POWERING, shouldBePowering), 2);
 		}
 
 		pLevel.updateNeighborsAt(pPos, this);
+	}
+
+	@Override
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult hitResult) {
+		
+		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		return InteractionResult.PASS;
+		
 	}
 
 	@Override

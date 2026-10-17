@@ -1,20 +1,16 @@
 package com.simibubi.create.content.logistics.tunnel;
 
-import java.util.Collections;
-import java.util.Iterator;
-
 import com.simibubi.create.foundation.item.ItemHelper;
 
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
-import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.world.item.ItemStack;
 
 public class BrassTunnelItemHandler implements SingleSlotStorage<ItemVariant> {
 
-	private final BrassTunnelBlockEntity blockEntity;
+	private BrassTunnelBlockEntity blockEntity;
 
 	public BrassTunnelItemHandler(BrassTunnelBlockEntity be) {
 		this.blockEntity = be;
@@ -31,19 +27,10 @@ public class BrassTunnelItemHandler implements SingleSlotStorage<ItemVariant> {
 
 		if (!blockEntity.canTakeItems())
 			return 0;
+		int toInsert = Math.min(ItemHelper.truncateLong(maxAmount), resource.getItem().getDefaultMaxStackSize());
 
-		ItemStack stack = resource.toStack(ItemHelper.truncateLong(maxAmount));
-		long inserted = Math.min(stack.getCount(), stack.getMaxStackSize());
-		if (inserted <= 0)
-			return 0;
-
-		transaction.addCloseCallback((t, result) -> {
-			if (result.wasCommitted()) {
-				ItemStack toDistribute = resource.toStack((int) inserted);
-				blockEntity.setStackToDistribute(toDistribute, null);
-			}
-		});
-		return inserted;
+		blockEntity.setStackToDistribute(resource.toStack(toInsert), null, transaction);
+		return toInsert;
 	}
 
 	@Override
@@ -56,27 +43,29 @@ public class BrassTunnelItemHandler implements SingleSlotStorage<ItemVariant> {
 
 	@Override
 	public boolean isResourceBlank() {
-		return blockEntity.getStackToDistribute().isEmpty();
+		return getResource().isBlank();
 	}
 
 	@Override
 	public ItemVariant getResource() {
-		return ItemVariant.of(blockEntity.getStackToDistribute());
+		return ItemVariant.of(getStack());
 	}
 
 	@Override
 	public long getAmount() {
-		return blockEntity.getStackToDistribute().getCount();
+		ItemStack stack = getStack();
+		return stack.isEmpty() ? 0 : stack.getCount();
 	}
 
 	@Override
 	public long getCapacity() {
-		ItemStack stack = blockEntity.getStackToDistribute();
-		return stack.isEmpty() ? 64 : stack.getMaxStackSize();
+		return getStack().getMaxStackSize();
 	}
 
-	@Override
-	public Iterator<StorageView<ItemVariant>> iterator() {
-		return Collections.<StorageView<ItemVariant>>singletonList(this).iterator();
+	public ItemStack getStack() {
+		ItemStack stack = blockEntity.stackToDistribute;
+		if (stack.isEmpty())
+			return ItemStack.EMPTY;
+		return stack;
 	}
 }

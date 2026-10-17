@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.kinetics.belt.BeltBlock;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity.CasingType;
@@ -12,12 +13,12 @@ import com.simibubi.create.content.kinetics.belt.BeltSlope;
 import com.simibubi.create.content.kinetics.belt.item.BeltConnectorItem;
 import com.simibubi.create.content.kinetics.simpleRelays.AbstractSimpleShaftBlock;
 import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.NbtFixer;
 
-import net.createmod.catnip.nbt.NBTHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.HolderGetter;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
@@ -58,7 +59,6 @@ public abstract class LaunchedItem {
 			ticksRemaining--;
 			return false;
 		}
-
 		if (world.isClientSide)
 			return false;
 
@@ -66,29 +66,29 @@ public abstract class LaunchedItem {
 		return true;
 	}
 
-	public CompoundTag serializeNBT(HolderLookup.Provider registries) {
+	public CompoundTag serializeNBT() {
 		CompoundTag c = new CompoundTag();
 		c.putInt("TotalTicks", totalTicks);
 		c.putInt("TicksLeft", ticksRemaining);
-		c.put("Stack", stack.saveOptional(registries));
+		c.put("Stack", NBTSerializer.serializeNBT(stack));
 		c.put("Target", NbtUtils.writeBlockPos(target));
 		return c;
 	}
 
-	public static LaunchedItem fromNBT(CompoundTag c, HolderLookup.Provider registries, HolderGetter<Block> holderGetter) {
+	public static LaunchedItem fromNBT(CompoundTag c, HolderGetter<Block> holderGetter) {
 		LaunchedItem launched = c.contains("Length") ? new LaunchedItem.ForBelt()
 			: c.contains("BlockState") ? new LaunchedItem.ForBlockState() : new LaunchedItem.ForEntity();
-		launched.readNBT(c, registries, holderGetter);
+		launched.readNBT(c, holderGetter);
 		return launched;
 	}
 
 	abstract void place(Level world);
 
-	void readNBT(CompoundTag c, HolderLookup.Provider registries, HolderGetter<Block> holderGetter) {
-		target = NBTHelper.readBlockPos(c, "Target");
+	void readNBT(CompoundTag c, HolderGetter<Block> holderGetter) {
+		target = NbtFixer.readBlockPos(c, "Target");
 		ticksRemaining = c.getInt("TicksLeft");
 		totalTicks = c.getInt("TotalTicks");
-		stack = ItemStack.parseOptional(registries, c.getCompound("Stack"));
+		stack = ItemStack.parseOptional(Create.getRegistryAccess(), c.getCompound("Stack"));
 	}
 
 	public static class ForBlockState extends LaunchedItem {
@@ -104,8 +104,8 @@ public abstract class LaunchedItem {
 		}
 
 		@Override
-		public CompoundTag serializeNBT(HolderLookup.Provider registries) {
-			CompoundTag serializeNBT = super.serializeNBT(registries);
+		public CompoundTag serializeNBT() {
+			CompoundTag serializeNBT = super.serializeNBT();
 			serializeNBT.put("BlockState", NbtUtils.writeBlockState(state));
 			if (data != null) {
 				data.remove("x");
@@ -118,8 +118,8 @@ public abstract class LaunchedItem {
 		}
 
 		@Override
-		void readNBT(CompoundTag nbt, HolderLookup.Provider registries, HolderGetter<Block> holderGetter) {
-			super.readNBT(nbt, registries, holderGetter);
+		void readNBT(CompoundTag nbt, HolderGetter<Block> holderGetter) {
+			super.readNBT(nbt, holderGetter);
 			state = NbtUtils.readBlockState(holderGetter, nbt.getCompound("BlockState"));
 			if (nbt.contains("Data", Tag.TAG_COMPOUND)) {
 				data = nbt.getCompound("Data");
@@ -140,8 +140,8 @@ public abstract class LaunchedItem {
 		public ForBelt() {}
 
 		@Override
-		public CompoundTag serializeNBT(HolderLookup.Provider registries) {
-			CompoundTag serializeNBT = super.serializeNBT(registries);
+		public CompoundTag serializeNBT() {
+			CompoundTag serializeNBT = super.serializeNBT();
 			serializeNBT.putInt("Length", length);
 			serializeNBT.putIntArray("Casing", Arrays.stream(casings)
 				.map(CasingType::ordinal)
@@ -150,14 +150,14 @@ public abstract class LaunchedItem {
 		}
 
 		@Override
-		void readNBT(CompoundTag nbt, HolderLookup.Provider registries, HolderGetter<Block> holderGetter) {
+		void readNBT(CompoundTag nbt, HolderGetter<Block> holderGetter) {
 			length = nbt.getInt("Length");
 			int[] intArray = nbt.getIntArray("Casing");
 			casings = new CasingType[length];
 			for (int i = 0; i < casings.length; i++)
 				casings[i] = i >= intArray.length ? CasingType.NONE
 					: CasingType.values()[Mth.clamp(intArray[i], 0, CasingType.values().length - 1)];
-			super.readNBT(nbt, registries, holderGetter);
+			super.readNBT(nbt, holderGetter);
 		}
 
 		public ForBelt(BlockPos start, BlockPos target, ItemStack stack, BlockState state, CasingType[] casings) {
@@ -220,19 +220,16 @@ public abstract class LaunchedItem {
 		}
 
 		@Override
-		public CompoundTag serializeNBT(HolderLookup.Provider registries) {
-			CompoundTag serializeNBT = super.serializeNBT(registries);
-			if (entity != null) {
-				CompoundTag entityTag = new CompoundTag();
-				entity.save(entityTag);
-				serializeNBT.put("Entity", entityTag);
-			}
+		public CompoundTag serializeNBT() {
+			CompoundTag serializeNBT = super.serializeNBT();
+			if (entity != null)
+				serializeNBT.put("Entity", NBTSerializer.serializeNBT(entity));
 			return serializeNBT;
 		}
 
 		@Override
-		void readNBT(CompoundTag nbt, HolderLookup.Provider registries, HolderGetter<Block> holderGetter) {
-			super.readNBT(nbt, registries, holderGetter);
+		void readNBT(CompoundTag nbt, HolderGetter<Block> holderGetter) {
+			super.readNBT(nbt, holderGetter);
 			if (nbt.contains("Entity"))
 				deferredTag = nbt.getCompound("Entity");
 		}

@@ -6,18 +6,18 @@ import java.util.Optional;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllRecipeTypes;
 import com.simibubi.create.content.processing.recipe.ProcessingOutput;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder.ProcessingRecipeParams;
 import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.advancement.CreateAdvancement;
-import com.simibubi.create.foundation.recipe.RecipeWrapper;
+import com.simibubi.create.foundation.utility.AdventureUtil;
 import com.simibubi.create.foundation.utility.BlockHelper;
 
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -26,6 +26,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -35,11 +36,10 @@ import net.minecraft.world.phys.BlockHitResult;
 
 public class ManualApplicationRecipe extends ItemApplicationRecipe {
 
-	public static void init() {
-		UseBlockCallback.EVENT.register(ManualApplicationRecipe::onRightClickBlock);
-	}
+	public static InteractionResult manualApplicationRecipesApplyInWorld(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {
+		if (AdventureUtil.isAdventure(player))
+			return InteractionResult.PASS;
 
-	public static InteractionResult onRightClickBlock(Player player, Level level, InteractionHand hand, BlockHitResult hitResult) {
 		ItemStack heldItem = player.getItemInHand(hand);
 		BlockPos pos = hitResult.getBlockPos();
 		BlockState blockState = level.getBlockState(pos);
@@ -49,8 +49,8 @@ public class ManualApplicationRecipe extends ItemApplicationRecipe {
 		if (blockState.isAir())
 			return InteractionResult.PASS;
 
-		RecipeType<Recipe<RecipeWrapper>> type = AllRecipeTypes.ITEM_APPLICATION.getType();
-		Optional<RecipeHolder<Recipe<RecipeWrapper>>> foundRecipe = level.getRecipeManager()
+		RecipeType<Recipe<RecipeInput>> type = AllRecipeTypes.ITEM_APPLICATION.getType();
+		Optional<RecipeHolder<Recipe<RecipeInput>>> foundRecipe = level.getRecipeManager()
 			.getAllRecipesFor(type)
 			.stream()
 			.filter(r -> {
@@ -63,6 +63,9 @@ public class ManualApplicationRecipe extends ItemApplicationRecipe {
 		if (foundRecipe.isEmpty())
 			return InteractionResult.PASS;
 
+//		event.setCancellationResult(InteractionResult.SUCCESS);
+//		event.setCanceled(true);
+
 		if (level.isClientSide())
 			return InteractionResult.SUCCESS;
 
@@ -70,31 +73,20 @@ public class ManualApplicationRecipe extends ItemApplicationRecipe {
 		ManualApplicationRecipe recipe = (ManualApplicationRecipe) foundRecipe.get().value();
 		level.destroyBlock(pos, false);
 
-		BlockState transformedBlock = recipe.transformBlock(blockState, level.random);
-		level.setBlock(pos, transformedBlock, Block.UPDATE_ALL);
-		recipe.rollResults(level.random)
+		BlockState transformedBlock = recipe.transformBlock(blockState);
+		level.setBlock(pos, transformedBlock, 3);
+		recipe.rollResults()
 			.forEach(stack -> Block.popResource(level, pos, stack));
 
-		boolean creative = player.isCreative();
+		boolean creative = player != null && player.isCreative();
 		boolean unbreakable = heldItem.has(DataComponents.UNBREAKABLE);
 		boolean keepHeld = recipe.shouldKeepHeldItem() || creative;
 
 		if (!unbreakable && !keepHeld) {
-			if (heldItem.getMaxDamage() > 0) {
+			if (heldItem.isDamageableItem())
 				heldItem.hurtAndBreak(1, player, EquipmentSlot.MAINHAND);
-			} else {
-				ItemStack leftover = heldItem.getItem().hasCraftingRemainingItem()
-					? new ItemStack(heldItem.getItem().getCraftingRemainingItem())
-					: ItemStack.EMPTY;
+			else
 				heldItem.shrink(1);
-				if (heldItem.isEmpty()) {
-					player.setItemInHand(hand, leftover);
-				} else {
-					if (!player.getInventory().add(leftover)) {
-						player.drop(leftover, false);
-					}
-				}
-			}
 		}
 
 		awardAdvancements(player, transformedBlock);
@@ -118,23 +110,22 @@ public class ManualApplicationRecipe extends ItemApplicationRecipe {
 		advancement.awardTo(player);
 	}
 
-	public ManualApplicationRecipe(ItemApplicationRecipeParams params) {
+	public ManualApplicationRecipe(ProcessingRecipeParams params) {
 		super(AllRecipeTypes.ITEM_APPLICATION, params);
 	}
 
-	public static RecipeHolder<DeployerApplicationRecipe> asDeploying(RecipeHolder<?> recipe) {
-		ManualApplicationRecipe mar = (ManualApplicationRecipe) recipe.value();
-		ResourceLocation id = AllRecipeTypes.CAN_BE_AUTOMATED.test(recipe) ?
-			recipe.id().withSuffix("_using_deployer") : recipe.id();
-		ItemApplicationRecipe.Builder<DeployerApplicationRecipe> builder =
-			new ItemApplicationRecipe.Builder<>(DeployerApplicationRecipe::new, id)
-				.require(mar.ingredients.get(0))
-				.require(mar.ingredients.get(1));
+	public static DeployerApplicationRecipe asDeploying(Recipe<?> recipe) {
+		ManualApplicationRecipe mar = (ManualApplicationRecipe) recipe;
+		ProcessingRecipeBuilder<DeployerApplicationRecipe> builder =
+			new ProcessingRecipeBuilder<>(DeployerApplicationRecipe::new,
+				ResourceLocation.fromNamespaceAndPath(mar.id.getNamespace(), mar.id.getPath() + "_using_deployer"))
+					.require(mar.ingredients.get(0))
+					.require(mar.ingredients.get(1));
 		for (ProcessingOutput output : mar.results)
 			builder.output(output);
 		if (mar.shouldKeepHeldItem())
 			builder.toolNotConsumed();
-		return new RecipeHolder<>(id, builder.build());
+		return builder.build();
 	}
 
 	public boolean testBlock(BlockState in) {
@@ -143,9 +134,9 @@ public class ManualApplicationRecipe extends ItemApplicationRecipe {
 				.asItem()));
 	}
 
-	public BlockState transformBlock(BlockState in, RandomSource randomSource) {
+	public BlockState transformBlock(BlockState in) {
 		ProcessingOutput mainOutput = results.get(0);
-		ItemStack output = mainOutput.rollOutput(randomSource);
+		ItemStack output = mainOutput.rollOutput();
 		if (output.getItem() instanceof BlockItem bi)
 			return BlockHelper.copyProperties(in, bi.getBlock()
 				.defaultBlockState());
@@ -153,8 +144,8 @@ public class ManualApplicationRecipe extends ItemApplicationRecipe {
 	}
 
 	@Override
-	public List<ItemStack> rollResults(RandomSource randomSource) {
-		return rollResults(getRollableResultsExceptBlock(), randomSource);
+	public List<ItemStack> rollResults() {
+		return rollResults(getRollableResultsExceptBlock());
 	}
 
 	public List<ProcessingOutput> getRollableResultsExceptBlock() {
@@ -164,4 +155,5 @@ public class ManualApplicationRecipe extends ItemApplicationRecipe {
 			return results.subList(1, results.size());
 		return results;
 	}
+
 }

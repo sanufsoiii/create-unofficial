@@ -1,11 +1,14 @@
 package com.simibubi.create.content.logistics.funnel;
 
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
+import com.simibubi.create.foundation.block.render.ReducedDestroyEffects;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
@@ -16,6 +19,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -30,7 +34,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 
 public abstract class AbstractFunnelBlock extends Block
-	implements IBE<FunnelBlockEntity>, IWrenchable, ProperWaterloggedBlock {
+	implements IBE<FunnelBlockEntity>, IWrenchable, ProperWaterloggedBlock, ReducedDestroyEffects {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
@@ -39,6 +43,11 @@ public abstract class AbstractFunnelBlock extends Block
 		registerDefaultState(defaultBlockState().setValue(POWERED, false)
 			.setValue(WATERLOGGED, false));
 	}
+
+//	@Environment(EnvType.CLIENT)
+//	public void initializeClient(Consumer<IClientBlockExtensions> consumer) {
+//		consumer.accept(new ReducedDestroyEffects());
+//	}
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
@@ -53,7 +62,7 @@ public abstract class AbstractFunnelBlock extends Block
 
 	@Override
 	public BlockState updateShape(BlockState pState, Direction pDirection, BlockState pNeighborState,
-								  LevelAccessor pLevel, BlockPos pCurrentPos, BlockPos pNeighborPos) {
+		LevelAccessor pLevel, BlockPos pCurrentPos, BlockPos pNeighborPos) {
 		updateWater(pLevel, pState, pCurrentPos);
 		return pState;
 	}
@@ -69,23 +78,23 @@ public abstract class AbstractFunnelBlock extends Block
 	}
 
 	@Override
-	public void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos,
-								boolean isMoving) {
-		if (level.isClientSide)
+	public void neighborChanged(BlockState state, Level worldIn, BlockPos pos, Block blockIn, BlockPos fromPos,
+		boolean isMoving) {
+		if (worldIn.isClientSide)
 			return;
-		InvManipulationBehaviour behaviour = BlockEntityBehaviour.get(level, pos, InvManipulationBehaviour.TYPE);
+		InvManipulationBehaviour behaviour = BlockEntityBehaviour.get(worldIn, pos, InvManipulationBehaviour.TYPE);
 		if (behaviour != null)
 			behaviour.onNeighborChanged(fromPos);
-		if (!level.getBlockTicks()
+		if (!worldIn.getBlockTicks()
 			.willTickThisTick(pos, this))
-			level.scheduleTick(pos, this, 1);
+			worldIn.scheduleTick(pos, this, 0);
 	}
 
 	@Override
 	public void tick(BlockState state, ServerLevel worldIn, BlockPos pos, RandomSource r) {
 		boolean previouslyPowered = state.getValue(POWERED);
 		if (previouslyPowered != worldIn.hasNeighborSignal(pos))
-			worldIn.setBlock(pos, state.cycle(POWERED), Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, state.cycle(POWERED), 2);
 	}
 
 	public static ItemStack tryInsert(Level worldIn, BlockPos pos, ItemStack toInsert, boolean simulate) {
@@ -101,7 +110,8 @@ public abstract class AbstractFunnelBlock extends Block
 
 		if (!simulate && insert.getCount() != toInsert.getCount()) {
 			BlockEntity blockEntity = worldIn.getBlockEntity(pos);
-			if (blockEntity instanceof FunnelBlockEntity funnelBlockEntity) {
+			if (blockEntity instanceof FunnelBlockEntity) {
+				FunnelBlockEntity funnelBlockEntity = (FunnelBlockEntity) blockEntity;
 				funnelBlockEntity.onTransfer(toInsert);
 				if (funnelBlockEntity.hasFlap())
 					funnelBlockEntity.flap(true);
@@ -144,6 +154,6 @@ public abstract class AbstractFunnelBlock extends Block
 
 	public BlockEntityType<? extends FunnelBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.FUNNEL.get();
-	}
+	};
 
 }

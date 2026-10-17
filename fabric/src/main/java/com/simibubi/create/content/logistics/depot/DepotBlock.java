@@ -1,5 +1,7 @@
 package com.simibubi.create.content.logistics.depot;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
@@ -10,6 +12,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -28,6 +31,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class DepotBlock extends Block implements IBE<DepotBlockEntity>, IWrenchable, ProperWaterloggedBlock {
 
@@ -35,24 +39,24 @@ public class DepotBlock extends Block implements IBE<DepotBlockEntity>, IWrencha
 		super(p_i48440_1_);
 		registerDefaultState(defaultBlockState().setValue(WATERLOGGED, false));
 	}
-
+	
 	@Override
 	protected void createBlockStateDefinition(Builder<Block, BlockState> pBuilder) {
 		super.createBlockStateDefinition(pBuilder.add(WATERLOGGED));
 	}
-
+	
 	@Override
 	public FluidState getFluidState(BlockState pState) {
 		return fluidState(pState);
 	}
-
+	
 	@Override
 	public BlockState updateShape(BlockState pState, Direction pDirection, BlockState pNeighborState,
 		LevelAccessor pLevel, BlockPos pCurrentPos, BlockPos pNeighborPos) {
 		updateWater(pLevel, pState, pCurrentPos);
 		return pState;
 	}
-
+	
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext pContext) {
 		return withWater(super.getStateForPlacement(pContext), pContext);
@@ -68,15 +72,29 @@ public class DepotBlock extends Block implements IBE<DepotBlockEntity>, IWrencha
 	public Class<DepotBlockEntity> getBlockEntityClass() {
 		return DepotBlockEntity.class;
 	}
-
+	
 	@Override
 	public BlockEntityType<? extends DepotBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.DEPOT.get();
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		return SharedDepotBlockMethods.onUse(stack, state, level, pos, player, hand, hitResult);
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult ray) {
+		
+		if(stack.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+		return SharedDepotBlockMethods.onUse(stack, state, world, pos, player, hand, ray);
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
+			BlockHitResult ray) {
+		
+		return SharedDepotBlockMethods.onUse(ItemStack.EMPTY, state, world, pos, player, InteractionHand.MAIN_HAND, ray).result();
+		
 	}
 
 	@Override
@@ -99,7 +117,7 @@ public class DepotBlock extends Block implements IBE<DepotBlockEntity>, IWrencha
 	public int getAnalogOutputSignal(BlockState blockState, Level worldIn, BlockPos pos) {
 		return SharedDepotBlockMethods.getComparatorInputOverride(blockState, worldIn, pos);
 	}
-
+	
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;

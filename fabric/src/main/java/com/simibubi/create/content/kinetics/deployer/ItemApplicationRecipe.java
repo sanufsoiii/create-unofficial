@@ -1,32 +1,35 @@
 package com.simibubi.create.content.kinetics.deployer;
 
-import com.mojang.serialization.MapCodec;
-import com.simibubi.create.AllRecipeTypes;
-import com.simibubi.create.content.processing.recipe.ProcessingRecipe;
-import com.simibubi.create.content.processing.recipe.ProcessingRecipeParams;
-import com.simibubi.create.foundation.recipe.IRecipeTypeInfo;
-import com.simibubi.create.foundation.recipe.RecipeWrapper;
+import java.util.List;
+import java.util.Optional;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
+import com.mojang.serialization.Codec;
+import com.simibubi.create.AllRecipeTypes;
+import com.simibubi.create.content.processing.recipe.ProcessingCodecBuilder;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipe;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder.ProcessingRecipeParams;
+
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.level.Level;
 
-public class ItemApplicationRecipe extends ProcessingRecipe<RecipeWrapper, ItemApplicationRecipeParams> {
+public class ItemApplicationRecipe extends ProcessingRecipe<RecipeInput> {
 
-	private boolean keepHeldItem;
+	public boolean keepHeldItem;
 
-	public ItemApplicationRecipe(IRecipeTypeInfo type, ItemApplicationRecipeParams params) {
+	public ItemApplicationRecipe(AllRecipeTypes type, ProcessingRecipeParams params) {
 		super(type, params);
 		keepHeldItem = params.keepHeldItem;
 	}
 
 	@Override
-	public boolean matches(RecipeWrapper inv, Level p_77569_2_) {
-		return getProcessedItem().test(inv.getItem(0)) && getRequiredHeldItem().test(inv.getItem(1));
+	public boolean matches(RecipeInput inv, Level p_77569_2_) {
+		return ingredients.get(0)
+			.test(inv.getItem(0))
+			&& ingredients.get(1)
+				.test(inv.getItem(1));
 	}
 
 	@Override
@@ -44,78 +47,47 @@ public class ItemApplicationRecipe extends ProcessingRecipe<RecipeWrapper, ItemA
 	}
 
 	public Ingredient getRequiredHeldItem() {
-		if (ingredients.size() < 2)
-			throw new IllegalStateException("Item Application Recipe has no tool!");
+		if (ingredients.isEmpty())
+			throw new IllegalStateException("Item Application Recipe: " + id.toString() + " has no tool!");
 		return ingredients.get(1);
 	}
 
 	public Ingredient getProcessedItem() {
-		if (ingredients.isEmpty())
-			throw new IllegalStateException("Item Application Recipe has no ingredient!");
+		if (ingredients.size() < 2)
+			throw new IllegalStateException("Item Application Recipe: " + id.toString() + " has no ingredient!");
 		return ingredients.get(0);
 	}
-
-	@FunctionalInterface
-	public interface Factory<R extends ItemApplicationRecipe> extends ProcessingRecipe.Factory<ItemApplicationRecipeParams, R> {
-		R create(ItemApplicationRecipeParams params);
+	
+	public static ProcessingCodecBuilder getCodecIA() {
+		ProcessingCodecBuilder pcb = ProcessingCodecBuilder.getDefaultBuilder();
+		return pcb.addField(Codec.BOOL.optionalFieldOf("keepHeldItem").forGetter((O) -> (Optional)pcb.getGetterList(O).get(4)));
 	}
 
-	public static class Builder<R extends ItemApplicationRecipe> {
-		protected Factory<R> factory;
-		protected ResourceLocation recipeId;
-		protected ItemApplicationRecipeParams params;
-
-		public Builder(Factory<R> factory, ResourceLocation recipeId) {
-			this.factory = factory;
-			this.recipeId = recipeId;
-			this.params = new ItemApplicationRecipeParams();
-		}
-
-		public Builder<R> require(Ingredient ingredient) {
-			params.ingredients.add(ingredient);
-			return this;
-		}
-
-		public Builder<R> require(net.minecraft.tags.TagKey<net.minecraft.world.item.Item> tag) {
-			return require(Ingredient.of(tag));
-		}
-
-		public Builder<R> output(com.simibubi.create.content.processing.recipe.ProcessingOutput output) {
-			params.results.add(output);
-			return this;
-		}
-
-		public Builder<R> output(ItemStack output) {
-			return output(new com.simibubi.create.content.processing.recipe.ProcessingOutput(output, 1.0f));
-		}
-
-		public Builder<R> toolNotConsumed() {
-			params.keepHeldItem = true;
-			return this;
-		}
-
-		public R build() {
-			return factory.create(params);
-		}
+	@Override
+	public void readAdditional(List<Object> args) {
+		super.readAdditional(args);
+		keepHeldItem = false;
+		if(((Optional)args.get(0)).isPresent()) 
+			keepHeldItem = (Boolean)((Optional)args.get(0)).get();
+		//keepHeldItem = GsonHelper.getAsBoolean(json, "keepHeldItem", false);
 	}
 
-	public static class Serializer<R extends ItemApplicationRecipe> implements RecipeSerializer<R> {
-		private final MapCodec<R> codec;
-		private final StreamCodec<RegistryFriendlyByteBuf, R> streamCodec;
-
-		public Serializer(ProcessingRecipe.Factory<ItemApplicationRecipeParams, R> factory) {
-			this.codec = ProcessingRecipe.codec(factory, ItemApplicationRecipeParams.CODEC);
-			this.streamCodec = ProcessingRecipe.streamCodec(factory, ItemApplicationRecipeParams.STREAM_CODEC);
-		}
-
-		@Override
-		public MapCodec<R> codec() {
-			return codec;
-		}
-
-		@Override
-		public StreamCodec<RegistryFriendlyByteBuf, R> streamCodec() {
-			return streamCodec;
-		}
+	@Override
+	public void writeAdditional(List<Object> args) {
+		super.writeAdditional(args);
+		args.add(keepHeldItem ? Optional.of(keepHeldItem) : Optional.empty());
 	}
+
+	@Override
+	public void readAdditional(FriendlyByteBuf buffer) {
+		super.readAdditional(buffer);
+		keepHeldItem = buffer.readBoolean();
+	}
+
+	@Override
+	public void writeAdditional(FriendlyByteBuf buffer) {
+		super.writeAdditional(buffer);
+		buffer.writeBoolean(keepHeldItem);
+	}
+
 }

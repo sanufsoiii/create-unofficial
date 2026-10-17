@@ -1,11 +1,11 @@
 package com.simibubi.create.content.kinetics.flywheel;
 
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -26,13 +26,13 @@ public class FlywheelBlockEntity extends KineticBlockEntity {
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(compound, registries, clientPacket);
+	public void write(CompoundTag compound, boolean clientPacket) {
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		super.read(compound, reg, clientPacket);
 		if (clientPacket)
 			visualSpeed.chase(getGeneratedSpeed(), 1 / 64f, Chaser.EXP);
 	}

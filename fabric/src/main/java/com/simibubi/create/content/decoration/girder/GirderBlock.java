@@ -13,11 +13,15 @@ import com.simibubi.create.content.decoration.placard.PlacardBlock;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.logistics.chute.AbstractChuteBlock;
+import com.simibubi.create.content.redstone.nixieTube.NixieTubeBlock;
+import com.simibubi.create.content.trains.display.FlapDisplayBlock;
+import com.simibubi.create.content.trains.track.TrackBlock;
+import com.simibubi.create.content.trains.track.TrackShape;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -91,42 +95,66 @@ public class GirderBlock extends Block implements SimpleWaterloggedBlock, IWrenc
 	public VoxelShape getBlockSupportShape(BlockState pState, BlockGetter pReader, BlockPos pPos) {
 		return Shapes.or(super.getBlockSupportShape(pState, pReader, pPos), AllShapes.EIGHT_VOXEL_POLE.get(Axis.Y));
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (player == null)
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState pState, Level pLevel, BlockPos pPos,
+			Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
+		
+		if (pPlayer == null)
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 
-		if (AllBlocks.SHAFT.isIn(stack)) {
-			KineticBlockEntity.switchToBlockState(level, pos, AllBlocks.METAL_GIRDER_ENCASED_SHAFT.getDefaultState()
-				.setValue(WATERLOGGED, state.getValue(WATERLOGGED))
-				.setValue(TOP, state.getValue(TOP))
-				.setValue(BOTTOM, state.getValue(BOTTOM))
-				.setValue(GirderEncasedShaftBlock.HORIZONTAL_AXIS, state.getValue(X) || hitResult.getDirection()
+		ItemStack itemInHand = pPlayer.getItemInHand(pHand);
+		if(itemInHand.isEmpty()) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+		if (AllBlocks.SHAFT.isIn(itemInHand)) {
+			KineticBlockEntity.switchToBlockState(pLevel, pPos, AllBlocks.METAL_GIRDER_ENCASED_SHAFT.getDefaultState()
+				.setValue(WATERLOGGED, pState.getValue(WATERLOGGED))
+				.setValue(TOP, pState.getValue(TOP))
+				.setValue(BOTTOM, pState.getValue(BOTTOM))
+				.setValue(GirderEncasedShaftBlock.HORIZONTAL_AXIS, pState.getValue(X) || pHit.getDirection()
 					.getAxis() == Axis.Z ? Axis.Z : Axis.X));
 
-			level.playSound(null, pos, SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.BLOCKS, 0.5f, 1.25f);
-			if (!level.isClientSide && !player.isCreative()) {
-				stack.shrink(1);
-				if (stack.isEmpty())
-					player.setItemInHand(hand, ItemStack.EMPTY);
+			pLevel.playSound(null, pPos, SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.BLOCKS, 0.5f, 1.25f);
+			if (!pLevel.isClientSide && !pPlayer.isCreative()) {
+				itemInHand.shrink(1);
+				if (itemInHand.isEmpty())
+					pPlayer.setItemInHand(pHand, ItemStack.EMPTY);
 			}
 
 			return ItemInteractionResult.SUCCESS;
 		}
 
-		if (AllItems.WRENCH.isIn(stack) && !player.isShiftKeyDown()) {
-			if (GirderWrenchBehavior.handleClick(level, pos, state, hitResult))
-				return ItemInteractionResult.sidedSuccess(level.isClientSide);
+		if (AllItems.WRENCH.isIn(itemInHand) && !pPlayer.isShiftKeyDown()) {
+			if (GirderWrenchBehavior.handleClick(pLevel, pPos, pState, pHit))
+				return ItemInteractionResult.sidedSuccess(pLevel.isClientSide);
 			return ItemInteractionResult.FAIL;
 		}
 
 		IPlacementHelper helper = PlacementHelpers.get(placementHelperId);
-		if (helper.matchesItem(stack))
-			return helper.getOffset(player, level, state, pos, hitResult)
-				.placeInWorld(level, (BlockItem) stack.getItem(), player, hand, hitResult);
+		if (helper.matchesItem(itemInHand))
+			return helper.getOffset(pPlayer, pLevel, pState, pPos, pHit)
+				.placeInWorld(pLevel, (BlockItem) itemInHand.getItem(), pPlayer, pHand, pHit);
 
-		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer,
+			BlockHitResult pHit) {
+		
+		if (pPlayer == null)
+			return InteractionResult.PASS;
+
+		ItemStack itemInHand = ItemStack.EMPTY;
+
+		IPlacementHelper helper = PlacementHelpers.get(placementHelperId);
+		if (helper.matchesItem(itemInHand))
+			return helper.getOffset(pPlayer, pLevel, pState, pPos, pHit)
+				.placeInWorld(pLevel, (BlockItem) itemInHand.getItem(), pPlayer, InteractionHand.MAIN_HAND, pHit).result();
+
+		return InteractionResult.PASS;
+		
 	}
 
 	@Override
@@ -191,7 +219,7 @@ public class GirderBlock extends Block implements SimpleWaterloggedBlock, IWrenc
 		for (Direction d : Iterate.directions)
 			state = updateState(level, pos, state, d);
 
-		return state.setValue(WATERLOGGED, ifluidstate.getType() == Fluids.WATER);
+		return state.setValue(WATERLOGGED, Boolean.valueOf(ifluidstate.getType() == Fluids.WATER));
 	}
 
 	public static BlockState updateState(LevelAccessor level, BlockPos pos, BlockState state, Direction d) {
@@ -209,10 +237,22 @@ public class GirderBlock extends Block implements SimpleWaterloggedBlock, IWrenc
 			state = state.setValue(updateProperty, true);
 		else if (sideState.getBlock() == state.getBlock() && sideState.getValue(updateProperty))
 			state = state.setValue(updateProperty, true);
+		else if (sideState.getBlock() instanceof NixieTubeBlock && NixieTubeBlock.getFacing(sideState) == d)
+			state = state.setValue(updateProperty, true);
 		else if (sideState.getBlock() instanceof PlacardBlock && PlacardBlock.connectedDirection(sideState) == d)
 			state = state.setValue(updateProperty, true);
 		else if (isFacingBracket(level, pos, d))
 			state = state.setValue(updateProperty, true);
+
+		for (Direction d2 : Iterate.directionsInAxis(axis == Axis.X ? Axis.Z : Axis.X)) {
+			BlockState above = level.getBlockState(pos.above()
+				.relative(d2));
+			if (AllTags.AllBlockTags.GIRDABLE_TRACKS.matches(above)) {
+				TrackShape shape = above.getValue(TrackBlock.SHAPE);
+				if (shape == (axis == Axis.X ? TrackShape.XO : TrackShape.ZO))
+					state = state.setValue(updateProperty, true);
+			}
+		}
 
 		return state;
 	}
@@ -241,6 +281,10 @@ public class GirderBlock extends Block implements SimpleWaterloggedBlock, IWrenc
 		else if (isGirder(sideState))
 			canAttach = true;
 		else if (sideState.hasProperty(WallBlock.UP) && sideState.getValue(WallBlock.UP))
+			canAttach = true;
+		else if (sideState.getBlock() instanceof NixieTubeBlock && NixieTubeBlock.getFacing(sideState) == d)
+			canAttach = true;
+		else if (sideState.getBlock() instanceof FlapDisplayBlock)
 			canAttach = true;
 		else if (sideState.getBlock() instanceof LanternBlock
 			&& (d == Direction.DOWN) == (sideState.getValue(LanternBlock.HANGING)))
@@ -285,7 +329,7 @@ public class GirderBlock extends Block implements SimpleWaterloggedBlock, IWrenc
 		return x ? z ? AllShapes.GIRDER_CROSS : AllShapes.GIRDER_BEAM.get(Axis.X)
 			: z ? AllShapes.GIRDER_BEAM.get(Axis.Z) : AllShapes.EIGHT_VOXEL_POLE.get(Axis.Y);
 	}
-
+	
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;
@@ -302,6 +346,8 @@ public class GirderBlock extends Block implements SimpleWaterloggedBlock, IWrenc
 		BlockState blockState = world.getBlockState(relative);
 		if (blockState.isAir())
 			return false;
+		if (blockState.getBlock() instanceof NixieTubeBlock && NixieTubeBlock.getFacing(blockState) == side)
+			return true;
 		if (isFacingBracket(world, pos, side))
 			return true;
 		if (blockState.getBlock() instanceof PlacardBlock && PlacardBlock.connectedDirection(blockState) == side)

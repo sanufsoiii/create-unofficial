@@ -1,15 +1,16 @@
 package com.simibubi.create.content.kinetics.chainDrive;
 
 import com.simibubi.create.AllBlockEntityTypes;
-import com.simibubi.create.api.contraption.transformable.TransformableBlock;
+import com.simibubi.create.content.contraptions.ITransformableBlock;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.kinetics.base.DirectionalAxisKineticBlock;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.base.RotatedPillarKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Lang;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.lang.Lang;
+import io.github.fabricators_of_create.porting_lib_ufo.block.WeakPowerCheckingBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -33,7 +34,7 @@ import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.material.PushReaction;
 
 public class ChainDriveBlock extends RotatedPillarKineticBlock
-	implements IBE<KineticBlockEntity>, TransformableBlock {
+	implements IBE<KineticBlockEntity>, ITransformableBlock, WeakPowerCheckingBlock {
 
 	public static final Property<Part> PART = EnumProperty.create("part", Part.class);
 	public static final BooleanProperty CONNECTED_ALONG_FIRST_COORDINATE =
@@ -44,13 +45,10 @@ public class ChainDriveBlock extends RotatedPillarKineticBlock
 		registerDefaultState(defaultBlockState().setValue(PART, Part.NONE));
 	}
 
-	public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
-		return false;
-	}
-
-	public PushReaction getPistonPushReaction(BlockState state) {
-		return PushReaction.NORMAL;
-	}
+	@Override
+    public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
+        return false;
+    }
 
 	@Override
 	protected void createBlockStateDefinition(Builder<Block, BlockState> builder) {
@@ -139,6 +137,8 @@ public class ChainDriveBlock extends RotatedPillarKineticBlock
 
 	@Override
 	public BlockState updateAfterWrenched(BlockState newState, UseOnContext context) {
+//		Blocks.AIR.getDefaultState()
+//			.updateNeighbors(context.getWorld(), context.getPos(), 1);
 		Axis axis = newState.getValue(AXIS);
 		newState = defaultBlockState().setValue(AXIS, axis);
 		if (newState.hasProperty(BlockStateProperties.POWERED))
@@ -152,6 +152,7 @@ public class ChainDriveBlock extends RotatedPillarKineticBlock
 			newState = updateShape(newState, facing, context.getLevel()
 				.getBlockState(offset), context.getLevel(), pos, offset);
 		}
+//		newState.updateNeighbors(context.getWorld(), context.getPos(), 1 | 2);
 		return newState;
 	}
 

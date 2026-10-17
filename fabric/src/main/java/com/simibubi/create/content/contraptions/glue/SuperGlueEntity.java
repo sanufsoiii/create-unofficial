@@ -4,24 +4,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import dev.architectury.extensions.network.EntitySpawnExtension;
-
-import org.jetbrains.annotations.NotNull;
-
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllEntityTypes;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.api.contraption.BlockMovementChecks;
-import com.simibubi.create.api.schematic.requirement.SpecialEntityItemRequirement;
+import com.simibubi.create.content.contraptions.BlockMovementChecks;
 import com.simibubi.create.content.contraptions.bearing.BearingBlock;
 import com.simibubi.create.content.contraptions.chassis.AbstractChassisBlock;
 import com.simibubi.create.content.kinetics.base.DirectionalKineticBlock;
+import com.simibubi.create.content.schematics.requirement.ISpecialEntityItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement.ItemUseType;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.entity.IEntityAdditionalSpawnData;
+import io.github.fabricators_of_create.porting_lib_ufo.entity.PortingLibEntity;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -29,19 +28,20 @@ import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.syncher.SynchedEntityData.Builder;
+import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.MoverType;
-import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -51,24 +51,27 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public class SuperGlueEntity extends Entity implements EntitySpawnExtension, SpecialEntityItemRequirement {
+public class SuperGlueEntity extends Entity
+		implements IEntityAdditionalSpawnData, ISpecialEntityItemRequirement {
 
 	public static AABB span(BlockPos startPos, BlockPos endPos) {
-		return new AABB(Vec3.atLowerCornerOf(startPos), Vec3.atLowerCornerOf(endPos)).expandTowards(1, 1, 1);
+		return AABB.encapsulatingFullBlocks(startPos, endPos);
+		//NOT SURE
 	}
 
 	public static boolean isGlued(LevelAccessor level, BlockPos blockPos, Direction direction,
-		Set<SuperGlueEntity> cached) {
+								  Set<SuperGlueEntity> cached) {
 		BlockPos targetPos = blockPos.relative(direction);
 		if (cached != null)
 			for (SuperGlueEntity glueEntity : cached)
 				if (glueEntity.contains(blockPos) && glueEntity.contains(targetPos))
 					return true;
 		for (SuperGlueEntity glueEntity : level.getEntitiesOfClass(SuperGlueEntity.class,
-			span(blockPos, targetPos).inflate(16))) {
+				span(blockPos, targetPos).inflate(16))) {
 			if (!glueEntity.contains(blockPos) || !glueEntity.contains(targetPos))
 				continue;
 			if (cached != null)
@@ -108,7 +111,8 @@ public class SuperGlueEntity extends Entity implements EntitySpawnExtension, Spe
 	}
 
 	@Override
-	protected void defineSynchedData(SynchedEntityData.Builder builder) {}
+	protected void defineSynchedData(Builder var1) {
+	}
 
 	public static boolean isValidFace(Level world, BlockPos pos, Direction direction) {
 		BlockState state = world.getBlockState(pos);
@@ -161,13 +165,7 @@ public class SuperGlueEntity extends Entity implements EntitySpawnExtension, Spe
 
 	@Override
 	public void tick() {
-		xRotO = getXRot();
-		yRotO = getYRot();
-		walkDistO = walkDist;
-		xo = getX();
-		yo = getY();
-		zo = getZ();
-
+		super.tick();
 		if (getBoundingBox().getXsize() == 0)
 			discard();
 	}
@@ -178,7 +176,7 @@ public class SuperGlueEntity extends Entity implements EntitySpawnExtension, Spe
 		setPosRaw(x, y, z);
 		Vec3 center = bb.getCenter();
 		setBoundingBox(bb.move(-center.x, -bb.minY, -center.z)
-			.move(x, y, z));
+				.move(x, y, z));
 	}
 
 	@Override
@@ -192,11 +190,16 @@ public class SuperGlueEntity extends Entity implements EntitySpawnExtension, Spe
 		if (!level().isClientSide && isAlive() && x * x + y * y + z * z > 0.0D)
 			discard();
 	}
-
+	
 	@Override
-	public @NotNull EntityDimensions getDimensions(@NotNull Pose pose) {
-		return super.getDimensions(pose).withEyeHeight(0.0F);
+	public double getEyeY() {
+		return 0.0F;
 	}
+
+//	@Override
+//	protected float getEyeHeight(Pose poseIn, EntityDimensions sizeIn) {
+//		
+//	}
 
 	public void playPlaceSound() {
 		AllSoundEvents.SLIME_ADDED.playFrom(this, 0.5F, 0.75F);
@@ -254,23 +257,34 @@ public class SuperGlueEntity extends Entity implements EntitySpawnExtension, Spe
 	}
 
 	@Override
-	public void thunderHit(ServerLevel world, LightningBolt lightningBolt) {}
+	public void thunderHit(ServerLevel world, LightningBolt lightningBolt) {
+	}
 
 	@Override
-	public void refreshDimensions() {}
+	public void refreshDimensions() {
+	}
+
+	public static FabricEntityTypeBuilder<?> build(FabricEntityTypeBuilder<?> builder) {
+//		@SuppressWarnings("unchecked")
+//		EntityType.Builder<SuperGlueEntity> entityBuilder = (EntityType.Builder<SuperGlueEntity>) builder;
+		return builder;
+	}
 
 	@Override
-	public void saveAdditionalSpawnData(net.minecraft.network.FriendlyByteBuf buffer) {
+	public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity ent) {
+		return PortingLibEntity.getEntitySpawningPacket(this, ent);
+	}
+
+	@Override
+	public void writeSpawnData(FriendlyByteBuf buffer) {
 		CompoundTag compound = new CompoundTag();
 		addAdditionalSaveData(compound);
 		buffer.writeNbt(compound);
 	}
 
 	@Override
-	public void loadAdditionalSpawnData(net.minecraft.network.FriendlyByteBuf additionalData) {
-		CompoundTag nbt = additionalData.readNbt();
-		if (nbt != null)
-			readAdditionalSaveData(nbt);
+	public void readSpawnData(FriendlyByteBuf additionalData) {
+		readAdditionalSaveData(additionalData.readNbt());
 	}
 
 	@Override
@@ -278,15 +292,28 @@ public class SuperGlueEntity extends Entity implements EntitySpawnExtension, Spe
 		return new ItemRequirement(ItemUseType.DAMAGE, AllItems.SUPER_GLUE.get());
 	}
 
-	public boolean contains(BlockPos pos) {
-		AABB bb = getBoundingBox();
-		return pos.getX() >= bb.minX && pos.getX() < bb.maxX && pos.getY() >= bb.minY && pos.getY() < bb.maxY
-			&& pos.getZ() >= bb.minZ && pos.getZ() < bb.maxZ;
+	@Override
+	public boolean isIgnoringBlockTriggers() {
+		return true;
 	}
 
-	public boolean isVisible() {
-		return false;
+	public boolean contains(BlockPos pos) {
+		return getBoundingBox().contains(Vec3.atCenterOf(pos));
 	}
+
+	@Override
+	public PushReaction getPistonPushReaction() {
+		return PushReaction.IGNORE;
+	}
+
+//	public void setPortalEntrancePos() {
+//		portalEntrancePos = blockPosition();
+//	}
+//
+//	@Override
+//	public PortalInfo findDimensionEntryPoint(ServerLevel pDestination) {
+//		return super.findDimensionEntryPoint(pDestination);
+//	}
 
 	public void spawnParticles() {
 		AABB bb = getBoundingBox();
@@ -300,26 +327,26 @@ public class SuperGlueEntity extends Entity implements EntitySpawnExtension, Spe
 			AxisDirection positive = AxisDirection.POSITIVE;
 			double max = axis.choose(extents.x, extents.y, extents.z);
 			Vec3 normal = Vec3.atLowerCornerOf(Direction.fromAxisAndDirection(axis, positive)
-				.getNormal());
+					.getNormal());
 			for (Axis axis2 : Iterate.axes) {
 				if (axis2 == axis)
 					continue;
 				double max2 = axis2.choose(extents.x, extents.y, extents.z);
 				Vec3 normal2 = Vec3.atLowerCornerOf(Direction.fromAxisAndDirection(axis2, positive)
-					.getNormal());
+						.getNormal());
 				for (Axis axis3 : Iterate.axes) {
 					if (axis3 == axis2 || axis3 == axis)
 						continue;
 					double max3 = axis3.choose(extents.x, extents.y, extents.z);
 					Vec3 normal3 = Vec3.atLowerCornerOf(Direction.fromAxisAndDirection(axis3, positive)
-						.getNormal());
+							.getNormal());
 
 					for (int i = 0; i <= max * 2; i++) {
 						for (int o1 : Iterate.zeroAndOne) {
 							for (int o2 : Iterate.zeroAndOne) {
 								Vec3 v = origin.add(normal.scale(i / 2f))
-									.add(normal2.scale(max2 * o1))
-									.add(normal3.scale(max3 * o2));
+										.add(normal2.scale(max2 * o1))
+										.add(normal3.scale(max3 * o2));
 
 								slevel.sendParticles(ParticleTypes.ITEM_SLIME, v.x, v.y, v.z, 1, 0, 0, 0, 0);
 

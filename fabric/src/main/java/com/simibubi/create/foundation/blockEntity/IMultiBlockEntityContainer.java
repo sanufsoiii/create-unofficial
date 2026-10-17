@@ -1,14 +1,15 @@
 package com.simibubi.create.foundation.blockEntity;
 
-import org.jetbrains.annotations.Nullable;
-
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.fluid.FluidTank;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+
+import javax.annotation.Nullable;
+
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.fluid.FluidTank;
 
 public interface IMultiBlockEntityContainer {
 
@@ -45,7 +46,8 @@ public interface IMultiBlockEntityContainer {
 	// multiblock structural information
 	Direction.Axis getMainConnectionAxis();
 
-	default Direction.Axis getMainAxisOf(BlockEntity be) {
+	default Direction.Axis getMainAxisOf(BlockEntity be) { // this feels redundant, but it gives us a default to use
+															// when defining ::getMainConnectionAxis
 		BlockState state = be.getBlockState();
 
 		Direction.Axis axis;
@@ -80,6 +82,7 @@ public interface IMultiBlockEntityContainer {
 	}
 
 	public interface Fluid extends IMultiBlockEntityContainer {
+		// done here rather than through the Capability to allow greater flexibility
 		default boolean hasTank() {
 			return false;
 		}

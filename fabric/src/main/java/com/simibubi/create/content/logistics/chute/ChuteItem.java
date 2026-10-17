@@ -13,23 +13,26 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class ChuteItem extends BlockItem {
 
-	public ChuteItem(Block block, Properties properties) {
-		super(block, properties);
+	public ChuteItem(Block p_i48527_1_, Properties p_i48527_2_) {
+		super(p_i48527_1_, p_i48527_2_);
 	}
 
 	@Override
 	public InteractionResult place(BlockPlaceContext context) {
 		Direction face = context.getClickedFace();
-		BlockPos placedOnPos = context.getClickedPos().relative(face.getOpposite());
+		BlockPos placedOnPos = context.getClickedPos()
+			.relative(face.getOpposite());
 		Level world = context.getLevel();
 		BlockState placedOnState = world.getBlockState(placedOnPos);
 
 		if (!AbstractChuteBlock.isChute(placedOnState) || context.isSecondaryUseActive())
 			return super.place(context);
-		if (face.getAxis().isVertical())
+		if (face.getAxis()
+			.isVertical())
 			return super.place(context);
 
-		BlockPos correctPos = context.getClickedPos().above();
+		BlockPos correctPos = context.getClickedPos()
+			.above();
 
 		BlockState blockState = world.getBlockState(correctPos);
 		if (blockState.canBeReplaced())

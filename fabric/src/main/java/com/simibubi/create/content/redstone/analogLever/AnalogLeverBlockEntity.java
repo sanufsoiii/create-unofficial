@@ -2,15 +2,15 @@ package com.simibubi.create.content.redstone.analogLever;
 
 import java.util.List;
 
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.Lang;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -29,18 +29,18 @@ public class AnalogLeverBlockEntity extends SmartBlockEntity implements IHaveGog
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("State", state);
 		compound.putInt("ChangeTimer", lastChange);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		state = compound.getInt("State");
 		lastChange = compound.getInt("ChangeTimer");
 		clientState.chase(state, 0.2f, Chaser.EXP);
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
 	@Override
@@ -58,6 +58,7 @@ public class AnalogLeverBlockEntity extends SmartBlockEntity implements IHaveGog
 	@Override
 	public void initialize() {
 		super.initialize();
+
 	}
 
 	private void updateOutput() {
@@ -79,7 +80,8 @@ public class AnalogLeverBlockEntity extends SmartBlockEntity implements IHaveGog
 
 	@Override
 	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
-		CreateLang.translate("tooltip.analogStrength", this.state).forGoggles(tooltip);
+		tooltip.add(componentSpacing.plainCopy().append(Lang.translateDirect("tooltip.analogStrength", this.state)));
+
 		return true;
 	}
 

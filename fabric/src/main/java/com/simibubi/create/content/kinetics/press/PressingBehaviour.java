@@ -3,18 +3,19 @@ package com.simibubi.create.content.kinetics.press;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllSoundEvents;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
-import com.simibubi.create.content.processing.basin.BasinBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.nbt.NBTHelper;
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -70,30 +71,30 @@ public class PressingBehaviour extends BeltProcessingBehaviour {
 	}
 
 	@Override
-	public void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void read(CompoundTag compound, boolean clientPacket) {
 		running = compound.getBoolean("Running");
 		mode = Mode.values()[compound.getInt("Mode")];
 		finished = compound.getBoolean("Finished");
 		prevRunningTicks = runningTicks = compound.getInt("Ticks");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, clientPacket);
 
 		if (clientPacket) {
 			NBTHelper.iterateCompoundList(compound.getList("ParticleItems", Tag.TAG_COMPOUND),
-				c -> particleItems.add(ItemStack.parseOptional(registries, c)));
+				c -> particleItems.add(ItemStack.parseOptional(Create.getRegistryAccess(), c)));
 			spawnParticles();
 		}
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putBoolean("Running", running);
 		compound.putInt("Mode", mode.ordinal());
 		compound.putBoolean("Finished", finished);
 		compound.putInt("Ticks", runningTicks);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 
 		if (clientPacket) {
-			compound.put("ParticleItems", NBTHelper.writeCompoundList(particleItems, s -> (CompoundTag) s.saveOptional(registries)));
+			compound.put("ParticleItems", NBTHelper.writeCompoundList(particleItems, NBTSerializer::serializeNBTCompound));
 			particleItems.clear();
 		}
 	}
@@ -145,7 +146,7 @@ public class PressingBehaviour extends BeltProcessingBehaviour {
 					if (BlockEntityBehaviour.get(level, worldPosition.below(2),
 						TransportedItemStackHandlerBehaviour.TYPE) != null)
 						return;
-					if (BasinBlock.isBasin(level, worldPosition.below(2)))
+					if (AllBlocks.BASIN.has(level.getBlockState(worldPosition.below(2))))
 						return;
 
 					for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class,

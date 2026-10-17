@@ -4,21 +4,28 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.simibubi.create.AllDataComponents;
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.AllTags.AllItemTags;
+import com.simibubi.create.Create;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.mounted.CartAssemblerBlockItem;
+import com.simibubi.create.content.equipment.sandPaper.SandPaperItem;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.deployer.DeployerBlockEntity.Mode;
+import com.simibubi.create.content.trains.track.ITrackBlock;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.utility.BlockHelper;
 import com.simibubi.create.foundation.utility.worldWrappers.WrappedWorld;
 
-import io.github.fabricators_of_create.porting_lib.item.UseFirstBehaviorItem;
-import io.github.fabricators_of_create.porting_lib.mixin.accessors.common.accessor.BucketItemAccessor;
+import io.github.fabricators_of_create.porting_lib_ufo.item.UseFirstBehaviorItem;
+import io.github.fabricators_of_create.porting_lib_ufo.mixin.accessors.common.accessor.BucketItemAccessor;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -109,7 +116,8 @@ public class DeployerHandler {
 				.getBlock() == ((BlockItem) held.getItem()).getBlock())
 				return false;
 
-		if (held.getItem() instanceof BucketItem bucketItem) {
+		if (held.getItem() instanceof BucketItem) {
+			BucketItem bucketItem = (BucketItem) held.getItem();
 			Fluid fluid = ((BucketItemAccessor) bucketItem).port_lib$getContent();
 			if (fluid != Fluids.EMPTY && world.getFluidState(targetPos)
 				.getType() == fluid)
@@ -125,23 +133,23 @@ public class DeployerHandler {
 
 	static void activate(DeployerFakePlayer player, Vec3 vec, BlockPos clickedPos, Vec3 extensionVector, Mode mode) {
 		Multimap<Holder<Attribute>, AttributeModifier> attributeModifiers = HashMultimap.create();
-		if (player.getMainHandItem().get(DataComponents.ATTRIBUTE_MODIFIERS) != null)
+		if(player.getMainHandItem().get(DataComponents.ATTRIBUTE_MODIFIERS) != null)
 			player.getMainHandItem().get(DataComponents.ATTRIBUTE_MODIFIERS).modifiers()
 				.forEach(ent -> attributeModifiers.put(ent.attribute(), ent.modifier()));
 		addTransientAttributeModifiers(player.getAttributes(), attributeModifiers);
 		activateInner(player, vec, clickedPos, extensionVector, mode);
 		addTransientAttributeModifiers(player.getAttributes(), attributeModifiers);
 	}
-
-	public static void addTransientAttributeModifiers(AttributeMap attrs, Multimap<Holder<Attribute>, AttributeModifier> map) {
-		map.forEach((attribute, attributeModifier) -> {
-			AttributeInstance attributeInstance = attrs.getInstance(attribute);
-			if (attributeInstance != null) {
-				attributeInstance.removeModifier(attributeModifier.id());
-				attributeInstance.addTransientModifier(attributeModifier);
-			}
-		});
-	}
+	
+	 public static void addTransientAttributeModifiers(AttributeMap attrs, Multimap<Holder<Attribute>, AttributeModifier> map) {
+	        map.forEach((attribute, attributeModifier) -> {
+	            AttributeInstance attributeInstance = attrs.getInstance(attribute);
+	            if (attributeInstance != null) {
+	                attributeInstance.removeModifier(attributeModifier.id());
+	                attributeInstance.addTransientModifier((AttributeModifier)attributeModifier);
+	            }
+	        });
+	    }
 
 	private static void activateInner(DeployerFakePlayer player, Vec3 vec, BlockPos clickedPos, Vec3 extensionVector,
 		Mode mode) {
@@ -157,17 +165,20 @@ public class DeployerHandler {
 		final Level world = player.level();
 		List<Entity> entities = world.getEntitiesOfClass(Entity.class, new AABB(clickedPos))
 			.stream()
-			.filter(e -> !e.getClass().getName().contains("Contraption"))
+			.filter(e -> !(e instanceof AbstractContraptionEntity))
 			.collect(Collectors.toList());
 		InteractionHand hand = InteractionHand.MAIN_HAND;
 		if (!entities.isEmpty()) {
 			Entity entity = entities.get(world.random.nextInt(entities.size()));
+			List<ItemEntity> capturedDrops = new ArrayList<>();
 			boolean success = false;
+			entity.captureDrops(capturedDrops);
 
 			// Use on entity
 			if (mode == Mode.USE) {
 				InteractionResult cancelResult = UseEntityCallback.EVENT.invoker().interact(player, world, hand, entity, new EntityHitResult(entity));
 				if (cancelResult == InteractionResult.FAIL) {
+					entity.captureDrops(null);
 					return;
 				}
 				if (cancelResult == null || cancelResult == InteractionResult.PASS) {
@@ -208,13 +219,9 @@ public class DeployerHandler {
 				success = true;
 			}
 
-			List<ItemEntity> droppedItems = world.getEntitiesOfClass(ItemEntity.class, new AABB(clickedPos).inflate(1.5));
-			for (ItemEntity dropped : droppedItems) {
-				if (dropped.isAlive()) {
-					player.getInventory().placeItemBackInInventory(dropped.getItem());
-					dropped.discard();
-				}
-			}
+			entity.captureDrops(null);
+			capturedDrops.forEach(e -> player.getInventory()
+					.placeItemBackInInventory(e.getItem()));
 			if (success)
 				return;
 		}
@@ -245,6 +252,7 @@ public class DeployerHandler {
 				return;
 			if (BlockHelper.extinguishFire(world, player, clickedPos, face))
 				return;
+//			if (actionResult != InteractionResult.FAIL) // fabric: checked above
 			clickedState.attack(world, clickedPos, player);
 			if (stack.isEmpty())
 				return;
@@ -295,7 +303,7 @@ public class DeployerHandler {
 		boolean holdingSomething = !player.getMainHandItem()
 			.isEmpty();
 		boolean flag1 =
-			!(player.isShiftKeyDown() && holdingSomething);
+			!(player.isShiftKeyDown() && holdingSomething)/* || (stack.doesSneakBypassUse(world, clickedPos, player))*/;
 
 		// Use on block
 		if (useBlock != null && flag1
@@ -322,13 +330,13 @@ public class DeployerHandler {
 		InteractionResult onItemUse = stack.useOn(itemusecontext);
 		if (onItemUse.consumesAction()) {
 			if (stack.getItem() instanceof BlockItem bi
-				&& bi.getBlock() instanceof BaseRailBlock)
+				&& (bi.getBlock() instanceof BaseRailBlock || bi.getBlock() instanceof ITrackBlock))
 				player.placedTracks = true;
 			return;
 		}
 
-		if (item instanceof BlockItem
-			&& !clickedState.canBeReplaced(new BlockPlaceContext(itemusecontext)))
+		if (item instanceof BlockItem && !(item instanceof CartAssemblerBlockItem)
+				&& !clickedState.canBeReplaced(new BlockPlaceContext(itemusecontext)))
 			return;
 		if (item == Items.ENDER_PEARL)
 			return;
@@ -337,7 +345,7 @@ public class DeployerHandler {
 
 		// buckets create their own ray, We use a fake wall to contain the active area
 		Level itemUseWorld = world;
-		if (item instanceof BucketItem)
+		if (item instanceof BucketItem || item instanceof SandPaperItem)
 			itemUseWorld = new ItemUseWorld(world, face, pos);
 
 		InteractionResultHolder<ItemStack> onItemRightClick = item.use(itemUseWorld, player, hand);
@@ -345,6 +353,12 @@ public class DeployerHandler {
 		if (resultStack != stack || resultStack.getCount() != stack.getCount() || resultStack.getUseDuration(player) > 0
 			|| resultStack.getDamageValue() != stack.getDamageValue()) {
 			player.setItemInHand(hand, onItemRightClick.getObject());
+		}
+
+		if (stack.getItem() instanceof SandPaperItem && stack.has(AllDataComponents.POLISHING)) {
+			player.spawnedItemEffects = ItemStack.parseOptional(Create.getRegistryAccess(), 
+					stack.get(AllDataComponents.POLISHING).getCompound("Polishing"));
+			AllSoundEvents.SANDING_SHORT.playOnServer(world, pos, .25f, 1f);
 		}
 
 		if (!player.getUseItem()
@@ -355,6 +369,8 @@ public class DeployerHandler {
 	}
 
 	public static boolean tryHarvestBlock(ServerPlayer player, ServerPlayerGameMode interactionManager, BlockPos pos) {
+		// <> PlayerInteractionManager#tryHarvestBlock
+
 		ServerLevel world = player.serverLevel();
 		BlockState blockstate = world.getBlockState(pos);
 		GameType gameType = interactionManager.getGameModeForPlayer();
@@ -363,13 +379,19 @@ public class DeployerHandler {
 			return false;
 
 		BlockEntity blockEntity = world.getBlockEntity(pos);
+//		if (player.getMainHandItem()
+//			.onBlockStartBreak(pos, player))
+//			return false;
 		if (player.blockActionRestricted(world, pos, gameType))
 			return false;
 
 		ItemStack prevHeldItem = player.getMainHandItem();
+		ItemStack heldItem = prevHeldItem.copy();
 
 		boolean canHarvest = player.hasCorrectToolForDrops(blockstate) && player.mayBuild();
 		prevHeldItem.mineBlock(world, blockstate, pos, player);
+//		if (prevHeldItem.isEmpty() && !heldItem.isEmpty())
+//			net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, heldItem, InteractionHand.MAIN_HAND);
 
 		BlockPos posUp = pos.above();
 		BlockState stateUp = world.getBlockState(posUp);
@@ -377,6 +399,7 @@ public class DeployerHandler {
 			&& blockstate.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.LOWER
 			&& stateUp.getBlock() == blockstate.getBlock()
 			&& stateUp.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.UPPER) {
+			// hack to prevent DoublePlantBlock from dropping a duplicate item
 			world.setBlock(pos, Blocks.AIR.defaultBlockState(), 35);
 			world.setBlock(posUp, Blocks.AIR.defaultBlockState(), 35);
 		} else {
@@ -405,6 +428,8 @@ public class DeployerHandler {
 
 	protected static InteractionResult safeOnBeehiveUse(BlockState state, Level world, BlockPos pos, Player player,
 		InteractionHand hand) {
+		// <> BeehiveBlock#onUse
+
 		BeehiveBlock block = (BeehiveBlock) state.getBlock();
 		ItemStack prevHeldItem = player.getItemInHand(hand);
 		int honeyLevel = state.getValue(BeehiveBlock.HONEY_LEVEL);
@@ -415,6 +440,7 @@ public class DeployerHandler {
 		if (prevHeldItem.getItem() == Items.SHEARS) {
 			world.playSound(player, player.getX(), player.getY(), player.getZ(), SoundEvents.BEEHIVE_SHEAR,
 				SoundSource.NEUTRAL, 1.0F, 1.0F);
+			// <> BeehiveBlock#dropHoneycomb
 			player.getInventory().placeItemBackInInventory(new ItemStack(Items.HONEYCOMB, 3));
 			prevHeldItem.hurtAndBreak(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
 			success = true;

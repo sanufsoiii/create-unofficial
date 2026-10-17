@@ -5,7 +5,8 @@ import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsFormatter;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.Components;
+import com.simibubi.create.foundation.utility.Lang;
 
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -24,17 +25,15 @@ public class BrassDiodeScrollValueBehaviour extends ScrollValueBehaviour {
 	@Override
 	public ValueSettingsBoard createBoard(Player player, BlockHitResult hitResult) {
 		return new ValueSettingsBoard(label, 60, 10,
-			CreateLang.translatedOptions("generic.unit", "ticks", "seconds", "minutes"),
+			Lang.translatedOptions("generic.unit", "ticks", "seconds", "minutes"),
 			new ValueSettingsFormatter(this::formatSettings));
 	}
 
 	@Override
-	public void onShortInteract(Player player, InteractionHand hand, Direction side, BlockHitResult hitResult) {
-		if (getWorld().isClientSide)
-			return;
+	public void onShortInteract(Player player, InteractionHand hand, Direction side) {
 		BlockState blockState = blockEntity.getBlockState();
-		if (blockState.getBlock() instanceof BrassDiodeBlock bdb)
-			bdb.toggle(getWorld(), getPos(), blockState, player, hand);
+		if (blockState.getBlock()instanceof BrassDiodeBlock bdb)
+			bdb.toggle(player.getItemInHand(hand), getWorld(), getPos(), blockState, player, hand);
 	}
 
 	@Override
@@ -68,13 +67,13 @@ public class BrassDiodeScrollValueBehaviour extends ScrollValueBehaviour {
 
 	public MutableComponent formatSettings(ValueSettings settings) {
 		int value = Math.max(1, settings.value());
-		return Component.literal(switch (settings.row()) {
+		return Components.literal(switch (settings.row()) {
 		case 0 -> Math.max(2, value) + "t";
 		case 1 -> "0:" + (value < 10 ? "0" : "") + value;
 		default -> value + ":00";
 		});
 	}
-
+	
 	@Override
 	public String getClipboardKey() {
 		return "Timings";

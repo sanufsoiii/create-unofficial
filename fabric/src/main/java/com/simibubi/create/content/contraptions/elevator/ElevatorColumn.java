@@ -7,15 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.Couple;
+import com.simibubi.create.foundation.utility.IntAttached;
+import com.simibubi.create.foundation.utility.LongAttached;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.WorldAttached;
 
-import net.createmod.catnip.data.Couple;
-import net.createmod.catnip.data.IntAttached;
-import net.createmod.catnip.data.WorldAttached;
-import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -33,7 +34,6 @@ public class ElevatorColumn {
 	protected List<Integer> contacts;
 	protected int targetedYLevel;
 	protected boolean isActive;
-	protected boolean targetAvailable;
 
 	@Nullable
 	public static ElevatorColumn get(LevelAccessor level, ColumnCoords coords) {
@@ -50,7 +50,6 @@ public class ElevatorColumn {
 		this.level = level;
 		this.coords = coords;
 		contacts = new ArrayList<>();
-		targetAvailable = false;
 	}
 
 	public void markDirty() {
@@ -62,10 +61,11 @@ public class ElevatorColumn {
 	}
 
 	public void floorReached(LevelAccessor level, String name) {
-		getContacts().forEach(p -> {
-			if (level.getBlockEntity(p) instanceof ElevatorContactBlockEntity ecbe)
-				ecbe.updateDisplayedFloor(name);
-		});
+		getContacts().stream()
+			.forEach(p -> {
+				if (level.getBlockEntity(p) instanceof ElevatorContactBlockEntity ecbe)
+					ecbe.updateDisplayedFloor(name);
+			});
 	}
 
 	public int namesListVersion;
@@ -114,11 +114,6 @@ public class ElevatorColumn {
 
 	public void target(int yLevel) {
 		targetedYLevel = yLevel;
-		targetAvailable = true;
-	}
-
-	public boolean isTargetAvailable() {
-		return targetAvailable;
 	}
 
 	public int getTargetedYLevel() {

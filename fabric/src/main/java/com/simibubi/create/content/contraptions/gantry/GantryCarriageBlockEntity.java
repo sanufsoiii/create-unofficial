@@ -1,16 +1,23 @@
 package com.simibubi.create.content.contraptions.gantry;
 
+import java.util.List;
+
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.contraptions.AssemblyException;
+import com.simibubi.create.content.contraptions.ContraptionCollider;
 import com.simibubi.create.content.contraptions.IDisplayAssemblyExceptions;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.gantry.GantryShaftBlock;
 import com.simibubi.create.content.kinetics.gantry.GantryShaftBlockEntity;
+import com.simibubi.create.content.kinetics.transmission.sequencer.SequencerInstructions;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -18,11 +25,22 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class GantryCarriageBlockEntity extends KineticBlockEntity implements IDisplayAssemblyExceptions {
 
-	public boolean assembleNextTick;
+	boolean assembleNextTick;
 	protected AssemblyException lastException;
 
 	public GantryCarriageBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
 		super(typeIn, pos, state);
+	}
+	
+	@Override
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+		super.addBehaviours(behaviours);
+		registerAwardables(behaviours, AllAdvancements.CONTRAPTION_ACTORS);
+	}
+
+	@Override
+	public void onSpeedChanged(float previousSpeed) {
+		super.onSpeedChanged(previousSpeed);
 	}
 
 	public void checkValidGantryShaft() {
@@ -60,24 +78,74 @@ public class GantryCarriageBlockEntity extends KineticBlockEntity implements IDi
 	}
 
 	private void tryAssemble() {
-		// Stage 1 stub: full contraption assembly belongs to Stage 2
+		BlockState blockState = getBlockState();
+		if (!(blockState.getBlock() instanceof GantryCarriageBlock))
+			return;
+
+		Direction direction = blockState.getValue(GantryCarriageBlock.FACING);
+		GantryContraption contraption = new GantryContraption(direction);
+
+		BlockEntity blockEntity = level.getBlockEntity(worldPosition.relative(direction.getOpposite()));
+		if (!(blockEntity instanceof GantryShaftBlockEntity shaftBE))
+			return;
+		BlockState shaftState = shaftBE.getBlockState();
+		if (!AllBlocks.GANTRY_SHAFT.has(shaftState))
+			return;
+
+		float pinionMovementSpeed = shaftBE.getPinionMovementSpeed();
+		Direction shaftOrientation = shaftState.getValue(GantryShaftBlock.FACING);
+		Direction movementDirection = shaftOrientation;
+		if (pinionMovementSpeed < 0)
+			movementDirection = movementDirection.getOpposite();
+
+		try {
+			lastException = null;
+			if (!contraption.assemble(level, worldPosition))
+				return;
+
+			sendData();
+		} catch (AssemblyException e) {
+			lastException = e;
+			sendData();
+			return;
+		}
+		if (ContraptionCollider.isCollidingWithWorld(level, contraption, worldPosition.relative(movementDirection),
+			movementDirection))
+			return;
+		
+		if (contraption.containsBlockBreakers())
+			award(AllAdvancements.CONTRAPTION_ACTORS);
+
+		contraption.removeBlocksFromWorld(level, BlockPos.ZERO);
+		GantryContraptionEntity movedContraption =
+			GantryContraptionEntity.create(level, contraption, shaftOrientation);
+		BlockPos anchor = worldPosition;
+		movedContraption.setPos(anchor.getX(), anchor.getY(), anchor.getZ());
+		AllSoundEvents.CONTRAPTION_ASSEMBLE.playOnServer(level, worldPosition);
+		level.addFreshEntity(movedContraption);
+
+		if (shaftBE.sequenceContext != null
+			&& shaftBE.sequenceContext.instruction() == SequencerInstructions.TURN_DISTANCE)
+			movedContraption.limitMovement(shaftBE.sequenceContext.getEffectiveValue(shaftBE.getTheoreticalSpeed()));
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		AssemblyException.write(compound, registries, lastException);
-		super.write(compound, registries, clientPacket);
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		AssemblyException.write(compound, lastException);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		lastException = AssemblyException.read(compound, registries);
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		lastException = AssemblyException.read(compound);
+		super.read(compound, reg, clientPacket);
 	}
 
+	@Override
 	public float propagateRotationTo(KineticBlockEntity target, BlockState stateFrom, BlockState stateTo, BlockPos diff,
 		boolean connectedViaAxes, boolean connectedViaCogs) {
-		float defaultModifier = 1.0f;
+		float defaultModifier =
+			super.propagateRotationTo(target, stateFrom, stateTo, diff, connectedViaAxes, connectedViaCogs);
 
 		if (connectedViaAxes)
 			return defaultModifier;

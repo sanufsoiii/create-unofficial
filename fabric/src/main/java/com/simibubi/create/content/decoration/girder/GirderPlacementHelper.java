@@ -5,11 +5,11 @@ import java.util.function.Predicate;
 
 import com.google.common.base.Predicates;
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.Create;
+import com.simibubi.create.content.equipment.extendoGrip.ExtendoGripItem;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -82,7 +82,7 @@ public class GirderPlacementHelper implements IPlacementHelper {
 			int range = AllConfigs.server().equipment.placementAssistRange.get();
 			if (player != null) {
 				AttributeInstance reach = player.getAttribute(Attributes.BLOCK_INTERACTION_RANGE);
-				if (reach != null && reach.hasModifier(Create.asResource("single_range_attribute_modifier")))
+				if (reach != null && reach.hasModifier(ExtendoGripItem.singleRangeAttributeModifier.id()))
 					range += 4;
 			}
 			int poles = attachedPoles(world, pos, dir);

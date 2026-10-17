@@ -3,13 +3,13 @@ package com.simibubi.create.content.logistics.chute;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.content.logistics.funnel.FunnelBlock;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Lang;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
@@ -42,17 +42,11 @@ import net.minecraft.world.phys.BlockHitResult;
 
 public class ChuteBlock extends AbstractChuteBlock implements ProperWaterloggedBlock {
 
-	public static final MapCodec<ChuteBlock> CODEC = simpleCodec(ChuteBlock::new);
 	public static final Property<Shape> SHAPE = EnumProperty.create("shape", Shape.class);
 	public static final DirectionProperty FACING = BlockStateProperties.FACING_HOPPER;
 
-	@Override
-	protected MapCodec<? extends Block> codec() {
-		return CODEC;
-	}
-
-	public ChuteBlock(Properties properties) {
-		super(properties);
+	public ChuteBlock(Properties p_i48440_1_) {
+		super(p_i48440_1_);
 		registerDefaultState(defaultBlockState().setValue(SHAPE, Shape.NORMAL)
 			.setValue(FACING, Direction.DOWN)
 			.setValue(WATERLOGGED, false));
@@ -81,10 +75,10 @@ public class ChuteBlock extends AbstractChuteBlock implements ProperWaterloggedB
 	public boolean isTransparent(BlockState state) {
 		return state.getValue(SHAPE) == Shape.WINDOW;
 	}
-
+	
 	@Override
-	public FluidState getFluidState(BlockState state) {
-		return fluidState(state);
+	public FluidState getFluidState(BlockState pState) {
+		return fluidState(pState);
 	}
 
 	@Override
@@ -107,13 +101,14 @@ public class ChuteBlock extends AbstractChuteBlock implements ProperWaterloggedB
 				state.setValue(SHAPE, shape != Shape.NORMAL ? Shape.NORMAL : Shape.WINDOW));
 		return InteractionResult.SUCCESS;
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
 			Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (stack.isEmpty())
+		
+		if(stack.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-
+		
 		Shape shape = state.getValue(SHAPE);
 		if (!AllBlocks.INDUSTRIAL_IRON_BLOCK.isIn(player.getItemInHand(hand)))
 			return super.useItemOn(stack, state, level, pos, player, hand, hitResult);
@@ -125,30 +120,39 @@ public class ChuteBlock extends AbstractChuteBlock implements ProperWaterloggedB
 		level.setBlockAndUpdate(pos, state.setValue(SHAPE, Shape.ENCASED));
 		level.playSound(null, pos, SoundEvents.NETHERITE_BLOCK_HIT, SoundSource.BLOCKS, 0.5f, 1.05f);
 		return ItemInteractionResult.SUCCESS;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		return super.useWithoutItem(state, level, pos, player, hitResult);
 	}
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext ctx) {
 		BlockState state = withWater(super.getStateForPlacement(ctx), ctx);
 		Direction face = ctx.getClickedFace();
-		if (face.getAxis().isHorizontal() && !ctx.isSecondaryUseActive()) {
+		if (face.getAxis()
+			.isHorizontal() && !ctx.isSecondaryUseActive()) {
 			Level world = ctx.getLevel();
 			BlockPos pos = ctx.getClickedPos();
 			return updateChuteState(state.setValue(FACING, face), world.getBlockState(pos.above()), world, pos);
 		}
 		return state;
 	}
-
+	
 	@Override
 	public BlockState updateShape(BlockState state, Direction direction, BlockState above, LevelAccessor world,
-		BlockPos pos, BlockPos neighborPos) {
+		BlockPos pos, BlockPos p_196271_6_) {
 		updateWater(world, state, pos);
-		return super.updateShape(state, direction, above, world, pos, neighborPos);
+		return super.updateShape(state, direction, above, world, pos, p_196271_6_);
 	}
 
 	@Override
-	protected void createBlockStateDefinition(Builder<Block, BlockState> builder) {
-		super.createBlockStateDefinition(builder.add(SHAPE, FACING, WATERLOGGED));
+	protected void createBlockStateDefinition(Builder<Block, BlockState> p_206840_1_) {
+		super.createBlockStateDefinition(p_206840_1_.add(SHAPE, FACING, WATERLOGGED));
 	}
 
 	@Override
@@ -168,13 +172,16 @@ public class ChuteBlock extends AbstractChuteBlock implements ProperWaterloggedB
 		boolean vertical = facing == Direction.DOWN;
 
 		if (!vertical) {
-			BlockState target = world.getBlockState(pos.below().relative(facing.getOpposite()));
+			BlockState target = world.getBlockState(pos.below()
+				.relative(facing.getOpposite()));
 			if (!isChute(target))
-				return state.setValue(FACING, Direction.DOWN).setValue(SHAPE, Shape.NORMAL);
+				return state.setValue(FACING, Direction.DOWN)
+					.setValue(SHAPE, Shape.NORMAL);
 		}
 
 		for (Direction direction : Iterate.horizontalDirections) {
-			BlockState diagonalInputChute = world.getBlockState(pos.above().relative(direction));
+			BlockState diagonalInputChute = world.getBlockState(pos.above()
+				.relative(direction));
 			boolean value =
 				diagonalInputChute.getBlock() instanceof ChuteBlock && diagonalInputChute.getValue(FACING) == direction;
 			connections.put(direction, value);
@@ -194,20 +201,20 @@ public class ChuteBlock extends AbstractChuteBlock implements ProperWaterloggedB
 		if (connections.get(Direction.EAST) && connections.get(Direction.WEST))
 			return state.setValue(SHAPE, Shape.INTERSECTION);
 		if (amtConnections == 1 && connections.get(facing) && !(getChuteFacing(above) == Direction.DOWN)
-			&& !(above.getBlock().getClass().getSimpleName().equals("FunnelBlock")))
+			&& !(above.getBlock() instanceof FunnelBlock && FunnelBlock.getFunnelFacing(above) == Direction.DOWN))
 			return state.setValue(SHAPE, state.getValue(SHAPE) == Shape.ENCASED ? Shape.ENCASED : Shape.NORMAL);
 		return state.setValue(SHAPE, Shape.INTERSECTION);
 	}
 
 	@Override
-	public BlockState rotate(BlockState state, Rotation rot) {
-		return state.setValue(FACING, rot.rotate(state.getValue(FACING)));
+	public BlockState rotate(BlockState pState, Rotation pRot) {
+		return pState.setValue(FACING, pRot.rotate(pState.getValue(FACING)));
 	}
 
 	@Override
 	@SuppressWarnings("deprecation")
-	public BlockState mirror(BlockState state, Mirror mirror) {
-		return state.rotate(mirror.getRotation(state.getValue(FACING)));
+	public BlockState mirror(BlockState pState, Mirror pMirror) {
+		return pState.rotate(pMirror.getRotation(pState.getValue(FACING)));
 	}
 
 	@Override

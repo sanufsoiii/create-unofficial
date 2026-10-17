@@ -6,16 +6,21 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import com.simibubi.create.AllItems;
+import com.simibubi.create.AllPackets;
 import com.simibubi.create.content.logistics.filter.FilterScreenPacket.Option;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 import com.simibubi.create.foundation.gui.AllIcons;
+import com.simibubi.create.foundation.gui.element.GuiGameElement;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.gui.widget.IconButton;
+import com.simibubi.create.foundation.gui.widget.Indicator;
+import com.simibubi.create.foundation.gui.widget.Indicator.State;
 import com.simibubi.create.foundation.item.TooltipHelper;
+import com.simibubi.create.foundation.item.TooltipHelper.Palette;
 
-import net.createmod.catnip.gui.element.GuiGameElement;
-import net.createmod.catnip.lang.FontHelper.Palette;
-import net.createmod.catnip.platform.CatnipServices;
+import io.github.fabricators_of_create.porting_lib_ufo.util.ItemStackUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.util.PlayerEntityHelper;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
@@ -38,20 +43,20 @@ public abstract class AbstractFilterScreen<F extends AbstractFilterMenu> extends
 
 	@Override
 	protected void init() {
-		setWindowSize(Math.max(background.getWidth(), PLAYER_INVENTORY.getWidth()),
-			background.getHeight() + 4 + PLAYER_INVENTORY.getHeight());
+		setWindowSize(Math.max(background.width, PLAYER_INVENTORY.width),
+			background.height + 4 + PLAYER_INVENTORY.height);
 		super.init();
 
 		int x = leftPos;
 		int y = topPos;
 
-		resetButton = new IconButton(x + background.getWidth() - 62, y + background.getHeight() - 24, AllIcons.I_TRASH);
+		resetButton = new IconButton(x + background.width - 62, y + background.height - 24, AllIcons.I_TRASH);
 		resetButton.withCallback(() -> {
 			menu.clearContents();
 			contentsCleared();
 			menu.sendClearPacket();
 		});
-		confirmButton = new IconButton(x + background.getWidth() - 33, y + background.getHeight() - 24, AllIcons.I_CONFIRM);
+		confirmButton = new IconButton(x + background.width - 33, y + background.height - 24, AllIcons.I_CONFIRM);
 		confirmButton.withCallback(() -> {
 			minecraft.player.closeContainer();
 		});
@@ -59,36 +64,32 @@ public abstract class AbstractFilterScreen<F extends AbstractFilterMenu> extends
 		addRenderableWidget(resetButton);
 		addRenderableWidget(confirmButton);
 
-		extraAreas = ImmutableList.of(new Rect2i(x + background.getWidth(), y + background.getHeight() - 40, 80, 48));
+		extraAreas = ImmutableList.of(new Rect2i(x + background.width, y + background.height - 40, 80, 48));
 	}
 
 	@Override
 	protected void renderBg(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY) {
-		int invX = getLeftOfCentered(PLAYER_INVENTORY.getWidth());
-		int invY = topPos + background.getHeight() + 4;
+		int invX = getLeftOfCentered(PLAYER_INVENTORY.width);
+		int invY = topPos + background.height + 4;
 		renderPlayerInventory(graphics, invX, invY);
 
 		int x = leftPos;
 		int y = topPos;
 
 		background.render(graphics, x, y);
-		graphics.drawString(font, title, x + (background.getWidth() - 8) / 2 - font.width(title) / 2, y + 4,
-			getTitleColor(), false);
+		graphics.drawString(font, title, x + (background.width - 8) / 2 - font.width(title) / 2, y + 4,
+			AllItems.FILTER.isIn(menu.contentHolder) ? 0x303030 : 0x592424, false);
 
 		GuiGameElement.of(menu.contentHolder).<GuiGameElement
-			.GuiRenderBuilder>at(x + background.getWidth() + 8, y + background.getHeight() - 52, -200)
+			.GuiRenderBuilder>at(x + background.width + 8, y + background.height - 52, -200)
 			.scale(4)
 			.render(graphics);
-	}
-
-	protected int getTitleColor() {
-		return 0x592424;
 	}
 
 	@Override
 	protected void containerTick() {
 		if (!ItemStack.matches(menu.player.getMainHandItem(), menu.contentHolder))
-			menu.player.closeContainer();
+			PlayerEntityHelper.closeScreen(menu.player);
 
 		super.containerTick();
 
@@ -118,16 +119,24 @@ public abstract class AbstractFilterScreen<F extends AbstractFilterMenu> extends
 
 	public void handleIndicators() {
 		for (IconButton button : getTooltipButtons())
-			button.green = !isButtonEnabled(button);
+			button.active = isButtonEnabled(button);
+		for (Indicator indicator : getIndicators())
+			indicator.state = isIndicatorOn(indicator) ? State.ON : State.OFF;
 	}
 
 	protected abstract boolean isButtonEnabled(IconButton button);
+
+	protected abstract boolean isIndicatorOn(Indicator indicator);
 
 	protected List<IconButton> getTooltipButtons() {
 		return Collections.emptyList();
 	}
 
 	protected List<MutableComponent> getTooltipDescriptions() {
+		return Collections.emptyList();
+	}
+
+	protected List<Indicator> getIndicators() {
 		return Collections.emptyList();
 	}
 
@@ -141,7 +150,8 @@ public abstract class AbstractFilterScreen<F extends AbstractFilterMenu> extends
 	protected void contentsCleared() {}
 
 	protected void sendOptionUpdate(Option option) {
-		CatnipServices.NETWORK.sendToServer(new FilterScreenPacket(option));
+		AllPackets.getChannel()
+			.sendToServer(new FilterScreenPacket(option));
 	}
 
 	@Override

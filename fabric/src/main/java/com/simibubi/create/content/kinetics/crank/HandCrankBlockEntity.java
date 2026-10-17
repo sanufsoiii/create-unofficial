@@ -1,11 +1,21 @@
 package com.simibubi.create.content.kinetics.crank;
 
+import com.jozufozu.flywheel.api.Instancer;
+import com.jozufozu.flywheel.api.Material;
+import com.jozufozu.flywheel.core.materials.model.ModelData;
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllPartialModels;
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.kinetics.base.GeneratingKineticBlockEntity;
-import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.foundation.render.CachedBufferer;
+import com.simibubi.create.foundation.render.SuperByteBuffer;
+import com.simibubi.create.foundation.utility.AnimationTickHolder;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -16,7 +26,7 @@ public class HandCrankBlockEntity extends GeneratingKineticBlockEntity {
 	public int inUse;
 	public boolean backwards;
 	public float independentAngle;
-	public float chasingAngularVelocity;
+	public float chasingVelocity;
 
 	public HandCrankBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -30,19 +40,20 @@ public class HandCrankBlockEntity extends GeneratingKineticBlockEntity {
 
 		inUse = 10;
 		this.backwards = back;
-		if (update && level != null && !level.isClientSide)
+		if (update && !level.isClientSide)
 			updateGeneratedRotation();
 	}
 
 	public float getIndependentAngle(float partialTicks) {
-		return independentAngle + partialTicks * chasingAngularVelocity;
+		return (independentAngle + partialTicks * chasingVelocity) / 360;
 	}
 
 	@Override
 	public float getGeneratedSpeed() {
 		Block block = getBlockState().getBlock();
-		if (!(block instanceof HandCrankBlock crank))
+		if (!(block instanceof HandCrankBlock))
 			return 0;
+		HandCrankBlock crank = (HandCrankBlock) block;
 		int speed = (inUse == 0 ? 0 : clockwise() ? -1 : 1) * crank.getRotationSpeed();
 		return convertToDirection(speed, getBlockState().getValue(HandCrankBlock.FACING));
 	}
@@ -52,41 +63,71 @@ public class HandCrankBlockEntity extends GeneratingKineticBlockEntity {
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("InUse", inUse);
 		compound.putBoolean("Backwards", backwards);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		inUse = compound.getInt("InUse");
 		backwards = compound.getBoolean("Backwards");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
+	@Override
 	public void tick() {
-		float actualAngularSpeed = KineticBlockEntity.convertToAngular(getSpeed());
-		chasingAngularVelocity += (actualAngularSpeed - chasingAngularVelocity) / 4f;
-		independentAngle += chasingAngularVelocity;
+		super.tick();
+
+		float actualSpeed = getSpeed();
+		chasingVelocity += ((actualSpeed * 10 / 3f) - chasingVelocity) * .25f;
+		independentAngle += chasingVelocity;
 
 		if (inUse > 0) {
 			inUse--;
 
-			if (inUse == 0 && level != null && !level.isClientSide) {
+			if (inUse == 0 && !level.isClientSide) {
+				sequenceContext = null;
 				updateGeneratedRotation();
 			}
 		}
 	}
 
-	public net.createmod.catnip.render.SuperByteBuffer getRenderedHandle() {
+	@Environment(EnvType.CLIENT)
+	public SuperByteBuffer getRenderedHandle() {
 		BlockState blockState = getBlockState();
-		net.minecraft.core.Direction facing = blockState.getOptionalValue(HandCrankBlock.FACING)
-			.orElse(net.minecraft.core.Direction.UP);
-		return net.createmod.catnip.render.CachedBuffers.partialFacing(com.simibubi.create.AllPartialModels.HAND_CRANK_HANDLE, blockState, facing.getOpposite());
+		Direction facing = blockState.getOptionalValue(HandCrankBlock.FACING).orElse(Direction.UP);
+		return CachedBufferer.partialFacing(AllPartialModels.HAND_CRANK_HANDLE, blockState, facing.getOpposite());
 	}
 
+	@Environment(EnvType.CLIENT)
+	public Instancer<ModelData> getRenderedHandleInstance(Material<ModelData> material) {
+		BlockState blockState = getBlockState();
+		Direction facing = blockState.getOptionalValue(HandCrankBlock.FACING).orElse(Direction.UP);
+		return material.getModel(AllPartialModels.HAND_CRANK_HANDLE, blockState, facing.getOpposite());
+	}
+
+	@Environment(EnvType.CLIENT)
 	public boolean shouldRenderShaft() {
 		return true;
 	}
+
+	@Override
+	protected Block getStressConfigKey() {
+		return AllBlocks.HAND_CRANK.has(getBlockState()) ? AllBlocks.HAND_CRANK.get()
+				: AllBlocks.COPPER_VALVE_HANDLE.get();
+	}
+
+	@Override
+	@Environment(EnvType.CLIENT)
+	public void tickAudio() {
+		super.tickAudio();
+		if (inUse > 0 && AnimationTickHolder.getTicks() % 10 == 0) {
+			if (!AllBlocks.HAND_CRANK.has(getBlockState()))
+				return;
+			AllSoundEvents.CRANKING.playAt(level, worldPosition, (inUse) / 2.5f, .65f + (10 - inUse) / 10f, true);
+		}
+	}
+
 }

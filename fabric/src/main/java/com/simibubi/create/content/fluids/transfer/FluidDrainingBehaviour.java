@@ -6,24 +6,25 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.fluid.FluidHelper;
 import com.simibubi.create.foundation.utility.BBHelper;
-import net.createmod.catnip.data.Iterate;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import io.github.fabricators_of_create.porting_lib.transfer.callbacks.TransactionCallback;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.mixin.accessors.common.accessor.LiquidBlockAccessor;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.callbacks.TransactionCallback;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.SortedArraySet;
 import net.minecraft.world.level.Level;
@@ -32,7 +33,6 @@ import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
-import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -45,7 +45,8 @@ public class FluidDrainingBehaviour extends FluidManipulationBehaviour {
 
 	// Execution
 	Set<BlockPos> validationSet;
-	// fabric: we need to save the queue for snapshots, so it must be a copyable type.
+	// fabric: we need to save the queue for snapshots, so it must be a copyable
+	// type.
 	SortedArraySet<BlockPosEntry> queue;
 	boolean isValid;
 
@@ -65,7 +66,7 @@ public class FluidDrainingBehaviour extends FluidManipulationBehaviour {
 
 			return new Data(fluid, isValid, rootPos, new ArrayList<>(validationFrontier),
 					new HashSet<>(validationVisited), new HashSet<>(newValidationSet), revalidateIn, box,
-					copySet(queue, FluidDrainingBehaviour.this::comparePositions));
+					copySet(queue));
 		}
 
 		@Override
@@ -130,13 +131,17 @@ public class FluidDrainingBehaviour extends FluidManipulationBehaviour {
 			revalidate(root);
 
 		if (infinite) {
-			// TODO: AllAdvancements.HOSE_PULLEY when ported
+			blockEntity.award(AllAdvancements.HOSE_PULLEY);
+			if (FluidHelper.isLava(fluid))
+				blockEntity.award(AllAdvancements.HOSE_PULLEY_LAVA);
+
 			playEffect(world, root, fluid, true);
 			return true;
 		}
 
 		while (!queue.isEmpty()) {
-			// Dont dequeue here, so we can decide not to dequeue a valid entry when simulating
+			// Dont dequeue here, so we can decide not to dequeue a valid entry when
+			// simulating
 			BlockPos currentPos = queue.first().pos();
 
 			BlockState blockState = world.getBlockState(currentPos);
@@ -148,11 +153,11 @@ public class FluidDrainingBehaviour extends FluidManipulationBehaviour {
 				emptied = blockState.setValue(BlockStateProperties.WATERLOGGED, Boolean.valueOf(false));
 				fluid = Fluids.WATER;
 			} else if (blockState.getBlock() instanceof LiquidBlock) {
+				LiquidBlock flowingFluid = (LiquidBlock) blockState.getBlock();
 				emptied = Blocks.AIR.defaultBlockState();
-				if (blockState.getValue(LiquidBlock.LEVEL) == 0) {
-					Fluid stateFluid = blockState.getFluidState().getType();
-					fluid = stateFluid instanceof FlowingFluid flowing ? flowing.getSource() : stateFluid;
-				} else {
+				if (blockState.getValue(LiquidBlock.LEVEL) == 0)
+					fluid = ((LiquidBlockAccessor) flowingFluid).port_lib$getFluid().getSource();
+				else {
 					affectedArea = BBHelper.encapsulate(affectedArea, BoundingBox.fromCorners(currentPos, currentPos));
 					if (!blockEntity.isVirtual())
 						world.setBlock(currentPos, emptied, 2 | 16);
@@ -184,7 +189,9 @@ public class FluidDrainingBehaviour extends FluidManipulationBehaviour {
 			Fluid finalFluid = fluid;
 			TransactionCallback.onSuccess(ctx, () -> {
 				playEffect(world, currentPos, finalFluid, true);
-				// TODO: AllAdvancements.HOSE_PULLEY / HOSE_PULLEY_LAVA when ported
+				blockEntity.award(AllAdvancements.HOSE_PULLEY);
+				if (infinite && FluidHelper.isLava(finalFluid))
+					blockEntity.award(AllAdvancements.HOSE_PULLEY_LAVA);
 			});
 
 			if (infinite) {
@@ -254,8 +261,8 @@ public class FluidDrainingBehaviour extends FluidManipulationBehaviour {
 	}
 
 	@Override
-	public void read(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(nbt, registries, clientPacket);
+	public void read(CompoundTag nbt, boolean clientPacket) {
+		super.read(nbt, clientPacket);
 		if (!clientPacket && affectedArea != null)
 			frontier.add(new BlockPosEntry(rootPos, 0));
 	}

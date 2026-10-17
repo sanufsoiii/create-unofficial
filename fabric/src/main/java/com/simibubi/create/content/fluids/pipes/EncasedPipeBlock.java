@@ -12,18 +12,19 @@ import java.util.function.Supplier;
 
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.api.contraption.transformable.TransformableBlock;
-import com.simibubi.create.api.schematic.requirement.SpecialBlockItemRequirement;
+import com.simibubi.create.content.contraptions.ITransformableBlock;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.decoration.encasing.EncasedBlock;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.fluids.FluidPropagator;
 import com.simibubi.create.content.fluids.FluidTransportBehaviour;
+import com.simibubi.create.content.schematics.requirement.ISpecialBlockItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.block.IBE;
-import net.createmod.catnip.data.Iterate;
+import com.simibubi.create.foundation.utility.Iterate;
 
+import net.fabricmc.fabric.api.block.BlockPickInteractionAware;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.DebugPackets;
@@ -47,10 +48,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.ticks.TickPriority;
 
+import javax.annotation.Nullable;
+
 public class EncasedPipeBlock extends Block
-	implements IWrenchable, SpecialBlockItemRequirement, IBE<FluidPipeBlockEntity>, EncasedBlock, TransformableBlock {
+	implements IWrenchable, ISpecialBlockItemRequirement, IBE<FluidPipeBlockEntity>, BlockPickInteractionAware, EncasedBlock, ITransformableBlock {
 	public static final Map<Direction, BooleanProperty> FACING_TO_PROPERTY_MAP = PipeBlock.PROPERTY_BY_DIRECTION;
 
 	private final Supplier<Block> casing;
@@ -93,7 +97,8 @@ public class EncasedPipeBlock extends Block
 			world.scheduleTick(pos, this, 1, TickPriority.HIGH);
 	}
 
-	public ItemStack getCloneItemStack(BlockGetter view, BlockPos pos, BlockState state) {
+	@Override
+	public ItemStack getPickedStack(BlockState state, BlockGetter view, BlockPos pos, @Nullable Player player, @Nullable HitResult result) {
 		return AllBlocks.FLUID_PIPE.asStack();
 	}
 

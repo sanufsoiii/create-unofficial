@@ -5,15 +5,17 @@ import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.KineticBlock;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
@@ -75,9 +77,9 @@ public class TurntableBlock extends KineticBlock implements IBE<TurntableBlockEn
 			if (world.isClientSide)
 				return;
 
-			if (e instanceof LivingEntity livingEntity) {
+			if ((e instanceof LivingEntity)) {
 				float diff = e.getYHeadRot() - speed;
-				livingEntity.setNoActionTime(20);
+				((LivingEntity) e).setNoActionTime(20);
 				e.setYBodyRot(diff);
 				e.setYHeadRot(diff);
 				e.setOnGround(false);
@@ -102,12 +104,12 @@ public class TurntableBlock extends KineticBlock implements IBE<TurntableBlockEn
 	public Class<TurntableBlockEntity> getBlockEntityClass() {
 		return TurntableBlockEntity.class;
 	}
-
+	
 	@Override
 	public BlockEntityType<? extends TurntableBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.TURNTABLE.get();
 	}
-
+	
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;

@@ -3,6 +3,8 @@ package com.simibubi.create.content.fluids.tank;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.core.Registry;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.AllBlocks;
@@ -81,6 +83,11 @@ public class BoilerHeaters {
 	}
 
 	public interface Heater {
+		/**
+		 * A return value of {@code -1} represents no heat. A return value of {@code 0}
+		 * represents passive heat. All other positive values are used as the amount of
+		 * active heat.
+		 */
 		float getActiveHeat(Level level, BlockPos pos, BlockState state);
 	}
 

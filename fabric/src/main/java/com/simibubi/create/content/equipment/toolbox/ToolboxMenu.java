@@ -3,12 +3,9 @@ package com.simibubi.create.content.equipment.toolbox;
 import static com.simibubi.create.content.equipment.toolbox.ToolboxInventory.STACKS_PER_COMPARTMENT;
 
 import com.simibubi.create.AllMenuTypes;
-import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.blockEntity.behaviour.animatedContainer.AnimatedContainerBehaviour;
 import com.simibubi.create.foundation.gui.menu.MenuBase;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.SlotItemHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -30,8 +27,7 @@ public class ToolboxMenu extends MenuBase<ToolboxBlockEntity> {
 
 	public ToolboxMenu(MenuType<?> type, int id, Inventory inv, ToolboxBlockEntity be) {
 		super(type, id, inv, be);
-		BlockEntityBehaviour.get(be, AnimatedContainerBehaviour.TYPE)
-			.startOpen(player);
+		be.startOpen(player);
 	}
 
 	public static ToolboxMenu create(int id, Inventory inv, ToolboxBlockEntity be) {
@@ -39,15 +35,15 @@ public class ToolboxMenu extends MenuBase<ToolboxBlockEntity> {
 	}
 
 	@Override
-	@Environment(EnvType.CLIENT)
 	protected ToolboxBlockEntity createOnClient(RegistryFriendlyByteBuf extraData) {
 		BlockPos readBlockPos = extraData.readBlockPos();
 		CompoundTag readNbt = extraData.readNbt();
 
 		ClientLevel world = Minecraft.getInstance().level;
 		BlockEntity blockEntity = world.getBlockEntity(readBlockPos);
-		if (blockEntity instanceof ToolboxBlockEntity toolbox) {
-			toolbox.readClient(readNbt, extraData.registryAccess());
+		if (blockEntity instanceof ToolboxBlockEntity) {
+			ToolboxBlockEntity toolbox = (ToolboxBlockEntity) blockEntity;
+			toolbox.readClient(readNbt);
 			return toolbox;
 		}
 
@@ -62,13 +58,12 @@ public class ToolboxMenu extends MenuBase<ToolboxBlockEntity> {
 
 		ItemStack stack = clickedSlot.getItem();
 		int size = contentHolder.inventory.getSlotCount();
-		boolean success;
+		boolean success = false;
 		if (index < size) {
-			success = !moveItemStackTo(stack, size, slots.size(), true);
+			success = !moveItemStackTo(stack, size, slots.size(), false);
 			contentHolder.inventory.onContentsChanged(index);
-		} else {
-			success = !moveItemStackTo(stack, 0, size, false);
-		}
+		} else
+			success = !moveItemStackTo(stack, 0, size - 1, false);
 
 		return success ? ItemStack.EMPTY : stack;
 	}
@@ -132,18 +127,18 @@ public class ToolboxMenu extends MenuBase<ToolboxBlockEntity> {
 		int x = 79;
 		int y = 37;
 
-		int[] xOffsets = {x, x + 33, x + 66, x + 66 + 6, x + 66, x + 33, x, x - 6};
-		int[] yOffsets = {y, y - 6, y, y + 33, y + 66, y + 66 + 6, y + 66, y + 33};
+		int[] xOffsets = { x, x + 33, x + 66, x + 66 + 6, x + 66, x + 33, x, x - 6 };
+		int[] yOffsets = { y, y - 6, y, y + 33, y + 66, y + 66 + 6, y + 66, y + 33 };
 
 		for (int compartment = 0; compartment < 8; compartment++) {
 			int baseIndex = compartment * STACKS_PER_COMPARTMENT;
 
 			// Representative Slots
-			addSlot(new ToolboxSlot(this, inventory, baseIndex, xOffsets[compartment], yOffsets[compartment], true));
+			addSlot(new ToolboxSlot(this, inventory, baseIndex, xOffsets[compartment], yOffsets[compartment]));
 
 			// Hidden Slots
 			for (int i = 1; i < STACKS_PER_COMPARTMENT; i++)
-				addSlot(new ToolboxSlot(this, inventory, baseIndex + i, -10000, -10000, false));
+				addSlot(new SlotItemHandler(inventory, baseIndex + i, -10000, -10000));
 		}
 
 		addPlayerSlots(8, 165);
@@ -158,8 +153,7 @@ public class ToolboxMenu extends MenuBase<ToolboxBlockEntity> {
 	public void removed(Player playerIn) {
 		super.removed(playerIn);
 		if (!playerIn.level().isClientSide)
-			BlockEntityBehaviour.get(contentHolder, AnimatedContainerBehaviour.TYPE)
-				.stopOpen(playerIn);
+			contentHolder.stopOpen(playerIn);
 	}
 
 }

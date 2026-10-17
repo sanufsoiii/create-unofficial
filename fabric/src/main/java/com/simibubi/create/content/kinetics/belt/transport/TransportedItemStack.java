@@ -2,18 +2,20 @@ package com.simibubi.create.content.kinetics.belt.transport;
 
 import java.util.Random;
 
+import com.simibubi.create.Create;
 import com.simibubi.create.content.kinetics.belt.BeltHelper;
-import com.simibubi.create.content.logistics.box.PackageItemHelper;
+import com.simibubi.create.content.kinetics.fan.processing.FanProcessingType;
 
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 
 public class TransportedItemStack implements Comparable<TransportedItemStack> {
 
-	private static final Random R = new Random();
+	private static Random R = new Random();
 
+	// fabric: can't use null in some places, have a static empty stack
 	public static final TransportedItemStack EMPTY = new TransportedItemStack(ItemStack.EMPTY);
 
 	public ItemStack stack;
@@ -28,15 +30,13 @@ public class TransportedItemStack implements Comparable<TransportedItemStack> {
 	public float prevBeltPosition;
 	public float prevSideOffset;
 
-	public Object processedBy;
+	public FanProcessingType processedBy;
 	public int processingTime;
 
 	public TransportedItemStack(ItemStack stack) {
 		this.stack = stack;
 		boolean centered = BeltHelper.isItemUpright(stack);
 		angle = centered ? 180 : R.nextInt(360);
-		if (PackageItemHelper.isPackage(stack))
-			angle = R.nextInt(4) * 90 + R.nextInt(20) - 10;
 		sideOffset = prevSideOffset = getTargetSideOffset();
 		insertedFrom = Direction.UP;
 	}
@@ -69,6 +69,7 @@ public class TransportedItemStack implements Comparable<TransportedItemStack> {
 		return copy;
 	}
 
+	// fabric: full copy, used for snapshots
 	public TransportedItemStack fullCopy() {
 		TransportedItemStack copy = copy();
 		copy.locked = locked;
@@ -76,9 +77,9 @@ public class TransportedItemStack implements Comparable<TransportedItemStack> {
 		return copy;
 	}
 
-	public CompoundTag serializeNBT(HolderLookup.Provider registries) {
+	public CompoundTag serializeNBT() {
 		CompoundTag nbt = new CompoundTag();
-		nbt.put("Item", stack.saveOptional(registries));
+		nbt.put("Item", NBTSerializer.serializeNBT(stack));
 		nbt.putFloat("Pos", beltPosition);
 		nbt.putFloat("PrevPos", prevBeltPosition);
 		nbt.putFloat("Offset", sideOffset);
@@ -93,8 +94,8 @@ public class TransportedItemStack implements Comparable<TransportedItemStack> {
 		return nbt;
 	}
 
-	public static TransportedItemStack read(CompoundTag nbt, HolderLookup.Provider registries) {
-		TransportedItemStack stack = new TransportedItemStack(ItemStack.parseOptional(registries, nbt.getCompound("Item")));
+	public static TransportedItemStack read(CompoundTag nbt) {
+		TransportedItemStack stack = new TransportedItemStack(ItemStack.parseOptional(Create.getRegistryAccess(), nbt.getCompound("Item")));
 		stack.beltPosition = nbt.getFloat("Pos");
 		stack.prevBeltPosition = nbt.getFloat("PrevPos");
 		stack.sideOffset = nbt.getFloat("Offset");
@@ -107,11 +108,8 @@ public class TransportedItemStack implements Comparable<TransportedItemStack> {
 		return stack;
 	}
 
-	public void clearFanProcessingData() {
-		processedBy = null;
-		processingTime = 0;
-	}
-
+	// fabric: a proper equals() is required for correct functionality with transfer
+	// snapshots. (#903)
 	@Override
 	public boolean equals(Object o) {
 		if (this == o)
@@ -141,6 +139,8 @@ public class TransportedItemStack implements Comparable<TransportedItemStack> {
 			return false;
 		if (!ItemStack.matches(stack, that.stack))
 			return false;
-		return insertedFrom == that.insertedFrom;
+		if (insertedFrom != that.insertedFrom)
+			return false;
+		return processedBy == that.processedBy;
 	}
 }

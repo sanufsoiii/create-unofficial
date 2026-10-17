@@ -5,36 +5,40 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import com.simibubi.create.AllRecipeTypes;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock.HeatLevel;
-import com.simibubi.create.content.processing.recipe.ProcessingRecipeParams;
-import com.simibubi.create.content.processing.recipe.StandardProcessingRecipe;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipe;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder.ProcessingRecipeParams;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour.TankSegment;
-import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankHooksImpl;
-import com.simibubi.create.foundation.fluid.FluidHelper;
-import com.simibubi.create.foundation.fluid.SizedFluidIngredient;
+import com.simibubi.create.foundation.fluid.FluidIngredient;
 import com.simibubi.create.foundation.item.SmartInventory;
 import com.simibubi.create.foundation.recipe.DummyCraftingContainer;
 import com.simibubi.create.foundation.recipe.IRecipeTypeInfo;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import net.createmod.catnip.data.Iterate;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.callbacks.TransactionCallback;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
-import net.minecraft.client.Minecraft;
+import net.minecraft.core.NonNullList;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.level.Level;
 
-public class BasinRecipe extends StandardProcessingRecipe<RecipeInput> {
+public class BasinRecipe extends ProcessingRecipe<SmartInventory> {
 
 	public static boolean match(BasinBlockEntity basin, Recipe<?> recipe) {
 		FilteringBehaviour filter = basin.getFilter();
@@ -43,12 +47,13 @@ public class BasinRecipe extends StandardProcessingRecipe<RecipeInput> {
 
 		boolean filterTest = filter.test(recipe.getResultItem(basin.getLevel()
 			.registryAccess()));
-		if (recipe instanceof BasinRecipe basinRecipe) {
+		if (recipe instanceof BasinRecipe) {
+			BasinRecipe basinRecipe = (BasinRecipe) recipe;
 			if (basinRecipe.getRollableResults()
 				.isEmpty()
 				&& !basinRecipe.getFluidResults()
-				.isEmpty())
-				filterTest = FluidHelper.test(filter, basinRecipe.getFluidResults()
+					.isEmpty())
+				filterTest = filter.test(basinRecipe.getFluidResults()
 					.get(0));
 		}
 
@@ -64,13 +69,15 @@ public class BasinRecipe extends StandardProcessingRecipe<RecipeInput> {
 
 	private static boolean apply(BasinBlockEntity basin, Recipe<?> recipe, boolean test) {
 		boolean isBasinRecipe = recipe instanceof BasinRecipe;
-		SmartInventory availableItems = basin.getInputInventory();
-		SmartFluidTankBehaviour inputTank = basin.getBehaviour(SmartFluidTankBehaviour.INPUT);
+		Storage<ItemVariant> availableItems = basin.getItemStorage(null);
+		Storage<FluidVariant> availableFluids = basin.getFluidStorage(null);
 
-		if (availableItems == null)
+		if (availableItems == null || availableFluids == null)
 			return false;
 
-		HeatLevel heat = basin.getHeatLevel();
+		HeatLevel heat = BasinBlockEntity.getHeatLevelOf(basin.getLevel()
+			.getBlockState(basin.getBlockPos()
+				.below(1)));
 		if (isBasinRecipe && !((BasinRecipe) recipe).getRequiredHeat()
 			.testBlazeBurner(heat))
 			return false;
@@ -79,145 +86,88 @@ public class BasinRecipe extends StandardProcessingRecipe<RecipeInput> {
 		List<FluidStack> recipeOutputFluids = new ArrayList<>();
 
 		List<Ingredient> ingredients = new LinkedList<>(recipe.getIngredients());
-		List<SizedFluidIngredient> fluidIngredients =
+		List<FluidIngredient> fluidIngredients =
 			isBasinRecipe ? ((BasinRecipe) recipe).getFluidIngredients() : Collections.emptyList();
 
-		TankSegment[] availableTanks = inputTank != null ? inputTank.getTanks() : new TankSegment[0];
+		// fabric: track consumed items to get remainders later
+		NonNullList<ItemStack> consumedItems = NonNullList.create();
 
-		for (boolean simulate : Iterate.trueAndFalse) {
-
-			if (!simulate && test)
-				return true;
-
-			int[] extractedItemsFromSlot = new int[availableItems.getSlotCount()];
-			int[] extractedFluidsFromTank = new int[availableTanks.length];
-
-			Ingredients:
-			for (Ingredient ingredient : ingredients) {
-				for (int slot = 0; slot < availableItems.getSlotCount(); slot++) {
-					ItemStack stack = availableItems.getStackInSlot(slot);
-					if (simulate && stack.getCount() <= extractedItemsFromSlot[slot])
-						continue;
-					if (!ingredient.test(stack))
-						continue;
-					if (!simulate) {
-						stack.shrink(1);
-						availableItems.setStackInSlot(slot, stack);
-						availableItems.setChanged();
-					}
-					extractedItemsFromSlot[slot]++;
+		try (Transaction t = TransferUtil.getTransaction()) {
+			Ingredients: for (Ingredient ingredient : ingredients) {
+				for (StorageView<ItemVariant> view : availableItems.nonEmptyViews()) {
+					ItemVariant var = view.getResource();
+					ItemStack stack = var.toStack();
+					if (!ingredient.test(stack)) continue;
+					// Catalyst items are never consumed
+					ItemStack remainder = stack.getRecipeRemainder();
+					if (!remainder.isEmpty() && ItemStack.isSameItem(remainder, stack))
+						continue Ingredients;
+					long extracted = view.extract(var, 1, t);
+					if (extracted == 0) continue;
+					consumedItems.add(stack);
 					continue Ingredients;
 				}
-
+				// something wasn't found
 				return false;
 			}
 
 			boolean fluidsAffected = false;
-			FluidIngredients:
-			for (SizedFluidIngredient fluidIngredient : fluidIngredients) {
-				int amountRequired = fluidIngredient.amount();
-
-				for (int tank = 0; tank < availableTanks.length; tank++) {
-					TankSegment segment = availableTanks[tank];
-					FluidStack fluidStack = getFluidInTank(segment);
-					if (simulate && fluidStack.getAmount() <= extractedFluidsFromTank[tank])
-						continue;
-					if (!fluidIngredient.test(fluidStack))
-						continue;
-					int drainedAmount = (int) Math.min((long) amountRequired, fluidStack.getAmount() - extractedFluidsFromTank[tank]);
-					if (drainedAmount <= 0)
-						continue;
-					if (!simulate) {
-						drainTank(segment, drainedAmount);
+			FluidIngredients: for (FluidIngredient fluidIngredient : fluidIngredients) {
+			long amountRequired = fluidIngredient.getRequiredAmount();
+				for (StorageView<FluidVariant> view : availableFluids.nonEmptyViews()) {
+					FluidStack fluidStack = new FluidStack(view);
+					if (!fluidIngredient.test(fluidStack)) continue;
+					long drainedAmount = Math.min(amountRequired, fluidStack.getAmount());
+					if (view.extract(fluidStack.getType(), drainedAmount, t) == drainedAmount) {
 						fluidsAffected = true;
-					}
-					amountRequired -= drainedAmount;
-					extractedFluidsFromTank[tank] += drainedAmount;
-					if (amountRequired <= 0)
+						amountRequired -= drainedAmount;
+						if (amountRequired != 0) continue;
 						continue FluidIngredients;
+					}
 				}
-
+				// something wasn't found
 				return false;
 			}
 
 			if (fluidsAffected) {
-				basin.getBehaviour(SmartFluidTankBehaviour.INPUT)
-					.forEach(TankSegment::onFluidStackChanged);
-				basin.getBehaviour(SmartFluidTankBehaviour.OUTPUT)
-					.forEach(TankSegment::onFluidStackChanged);
+				TransactionCallback.onSuccess(t, () -> {
+					basin.getBehaviour(SmartFluidTankBehaviour.INPUT)
+							.forEach(TankSegment::onFluidStackChanged);
+					basin.getBehaviour(SmartFluidTankBehaviour.OUTPUT)
+							.forEach(TankSegment::onFluidStackChanged);
+				});
 			}
 
-			if (simulate) {
-				CraftingInput remainderInput = new DummyCraftingContainer(availableItems, extractedItemsFromSlot)
-					.asCraftInput();
-
-				if (recipe instanceof BasinRecipe basinRecipe) {
-					recipeOutputItems.addAll(basinRecipe.rollResults(basin.getLevel().random));
-
-					for (FluidStack fluidStack : basinRecipe.getFluidResults())
-						if (!fluidStack.isEmpty())
-							recipeOutputFluids.add(fluidStack);
-					for (ItemStack stack : basinRecipe.getRemainingItems(remainderInput))
-						if (!stack.isEmpty())
-							recipeOutputItems.add(stack);
-
-				} else {
-					recipeOutputItems.add(recipe.getResultItem(basin.getLevel()
+			if (recipe instanceof BasinRecipe basinRecipe) {
+				recipeOutputItems.addAll(basinRecipe.rollResults());
+				recipeOutputFluids.addAll(basinRecipe.getFluidResults());
+				recipeOutputItems.addAll(basinRecipe.getRemainingItems(basin.getInputInventory()));
+			} else {
+				recipeOutputItems.add(recipe.getResultItem(basin.getLevel()
 						.registryAccess()));
-
-					if (recipe instanceof CraftingRecipe craftingRecipe) {
-						for (ItemStack stack : craftingRecipe.getRemainingItems(remainderInput))
-							if (!stack.isEmpty())
-								recipeOutputItems.add(stack);
-					}
+				if (recipe instanceof CraftingRecipe craftingRecipe) {
+					recipeOutputItems.addAll(craftingRecipe.getRemainingItems(new DummyCraftingContainer(consumedItems)));
 				}
 			}
 
-			if (!basin.acceptOutputs(recipeOutputItems, recipeOutputFluids, simulate))
+			// fabric: bad
+			recipeOutputItems.removeIf(ItemStack::isEmpty);
+
+			if (!basin.acceptOutputs(recipeOutputItems, recipeOutputFluids, t))
 				return false;
-		}
 
-		return true;
-	}
-
-	private static FluidStack getFluidInTank(TankSegment segment) {
-		if (segment instanceof SmartFluidTankHooksImpl.FabricTankSegment fabricSegment) {
-			if (fabricSegment.isEmpty())
-				return FluidStack.EMPTY;
-			try {
-				var storageField = fabricSegment.getClass().getDeclaredField("storage");
-				storageField.setAccessible(true);
-				var storage = (net.fabricmc.fabric.api.transfer.v1.storage.base.SingleVariantStorage<net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant>) storageField.get(fabricSegment);
-				if (storage.variant.isBlank() || storage.amount <= 0)
-					return FluidStack.EMPTY;
-				return new FluidStack(storage.variant, storage.amount);
-			} catch (Exception ignored) {
-			}
-		}
-		return FluidStack.EMPTY;
-	}
-
-	private static void drainTank(TankSegment segment, long amount) {
-		if (segment instanceof SmartFluidTankHooksImpl.FabricTankSegment fabricSegment) {
-			try {
-				var storageField = fabricSegment.getClass().getDeclaredField("storage");
-				storageField.setAccessible(true);
-				var storage = (net.fabricmc.fabric.api.transfer.v1.storage.base.SingleVariantStorage<net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant>) storageField.get(fabricSegment);
-				try (Transaction t = Transaction.openOuter()) {
-					storage.extract(storage.variant, amount, t);
-					t.commit();
-				}
-			} catch (Exception ignored) {
-			}
+			if (!test)
+				t.commit();
+			return true;
 		}
 	}
 
-	public static RecipeHolder<BasinRecipe> convertShapeless(RecipeHolder<?> recipe) {
+	public static BasinRecipe convertShapeless(Recipe<?> recipe) {
 		BasinRecipe basinRecipe =
-			new Builder<>(BasinRecipe::new, recipe.id()).withItemIngredients(recipe.value().getIngredients())
-				.withSingleItemOutput(recipe.value().getResultItem(Minecraft.getInstance().level.registryAccess()))
-				.build();
-		return new RecipeHolder<>(recipe.id(), basinRecipe);
+				new ProcessingRecipeBuilder<>(BasinRecipe::new, ResourceLocation.parse("")).withItemIngredients(recipe.getIngredients())
+					.withSingleItemOutput(recipe.getResultItem(Create.getRegistryAccess()))
+					.build();
+		return basinRecipe;
 	}
 
 	protected BasinRecipe(IRecipeTypeInfo type, ProcessingRecipeParams params) {
@@ -230,7 +180,7 @@ public class BasinRecipe extends StandardProcessingRecipe<RecipeInput> {
 
 	@Override
 	protected int getMaxInputCount() {
-		return 64;
+		return 9;
 	}
 
 	@Override
@@ -259,7 +209,8 @@ public class BasinRecipe extends StandardProcessingRecipe<RecipeInput> {
 	}
 
 	@Override
-	public boolean matches(RecipeInput input, @NotNull Level worldIn) {
+	public boolean matches(SmartInventory inv, @Nonnull Level worldIn) {
 		return false;
 	}
+
 }

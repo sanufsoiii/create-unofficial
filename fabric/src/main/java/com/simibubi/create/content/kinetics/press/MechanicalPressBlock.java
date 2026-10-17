@@ -1,6 +1,7 @@
 package com.simibubi.create.content.kinetics.press;
 
 import com.simibubi.create.AllBlockEntityTypes;
+import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
@@ -28,7 +29,7 @@ public class MechanicalPressBlock extends HorizontalKineticBlock implements IBE<
 	@Override
 	public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
 		if (context instanceof EntityCollisionContext
-			&& ((EntityCollisionContext) context).getEntity() instanceof Player)
+				&& ((EntityCollisionContext) context).getEntity() instanceof Player)
 			return AllShapes.CASING_14PX.get(Direction.DOWN);
 
 		return AllShapes.MECHANICAL_PROCESSOR_SHAPE;
@@ -36,7 +37,7 @@ public class MechanicalPressBlock extends HorizontalKineticBlock implements IBE<
 
 	@Override
 	public boolean canSurvive(BlockState state, LevelReader worldIn, BlockPos pos) {
-		return true;
+		return !AllBlocks.BASIN.has(worldIn.getBlockState(pos.below()));
 	}
 
 	@Override
@@ -71,4 +72,5 @@ public class MechanicalPressBlock extends HorizontalKineticBlock implements IBE<
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;
 	}
+
 }

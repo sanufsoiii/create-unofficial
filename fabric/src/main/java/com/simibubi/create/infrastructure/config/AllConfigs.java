@@ -8,9 +8,10 @@ import java.util.function.Supplier;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.simibubi.create.Create;
-import com.simibubi.create.api.stress.BlockStressValues;
-import net.createmod.catnip.config.ConfigBase;
+import com.simibubi.create.content.kinetics.BlockStressValues;
+import com.simibubi.create.foundation.config.ConfigBase;
 
+import fuzs.forgeconfigapiport.fabric.api.forge.v4.ForgeConfigRegistry;
 import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeConfigRegistry;
 import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeModConfigEvents;
 import net.neoforged.fml.config.ModConfig;
@@ -61,9 +62,7 @@ public class AllConfigs {
 		for (Entry<ModConfig.Type, ConfigBase> pair : CONFIGS.entrySet())
 			NeoForgeConfigRegistry.INSTANCE.register(Create.ID, pair.getKey(), pair.getValue().specification);
 
-		CStress stress = server().kinetics.stressValues;
-		BlockStressValues.IMPACTS.registerProvider(stress::getImpact);
-		BlockStressValues.CAPACITIES.registerProvider(stress::getCapacity);
+		BlockStressValues.registerProvider(Create.ID, server().kinetics.stressValues);
 
 		NeoForgeModConfigEvents.loading(Create.ID).register(AllConfigs::onLoad);
 		NeoForgeModConfigEvents.reloading(Create.ID).register(AllConfigs::onReload);
@@ -71,13 +70,16 @@ public class AllConfigs {
 
 	public static void onLoad(ModConfig modConfig) {
 		for (ConfigBase config : CONFIGS.values())
-			if (config.specification == modConfig.getSpec())
+			if (config.specification == modConfig
+				.getSpec())
 				config.onLoad();
 	}
 
 	public static void onReload(ModConfig modConfig) {
 		for (ConfigBase config : CONFIGS.values())
-			if (config.specification == modConfig.getSpec())
+			if (config.specification == modConfig
+				.getSpec())
 				config.onReload();
 	}
+
 }

@@ -1,10 +1,10 @@
 package com.simibubi.create.content.contraptions;
 
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.Create;
+import com.simibubi.create.foundation.utility.Lang;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
@@ -15,12 +15,12 @@ public class AssemblyException extends Exception {
 	public final Component component;
 	private BlockPos position = null;
 
-	public static void write(CompoundTag compound, HolderLookup.Provider registries, AssemblyException exception) {
+	public static void write(CompoundTag compound, AssemblyException exception) {
 		if (exception == null)
 			return;
 
 		CompoundTag nbt = new CompoundTag();
-		nbt.putString("Component", Component.Serializer.toJson(exception.component, registries));
+		nbt.putString("Component", Component.Serializer.toJson(exception.component, Create.getRegistryAccess()));
 		if (exception.hasPosition())
 			nbt.putLong("Position", exception.getPosition()
 				.asLong());
@@ -28,13 +28,13 @@ public class AssemblyException extends Exception {
 		compound.put("LastException", nbt);
 	}
 
-	public static AssemblyException read(CompoundTag compound, HolderLookup.Provider registries) {
+	public static AssemblyException read(CompoundTag compound) {
 		if (!compound.contains("LastException"))
 			return null;
 
 		CompoundTag nbt = compound.getCompound("LastException");
 		String string = nbt.getString("Component");
-		AssemblyException exception = new AssemblyException(Component.Serializer.fromJson(string, registries));
+		AssemblyException exception = new AssemblyException(Component.Serializer.fromJson(string, Create.getRegistryAccess()));
 		if (nbt.contains("Position"))
 			exception.position = BlockPos.of(nbt.getLong("Position"));
 
@@ -46,7 +46,7 @@ public class AssemblyException extends Exception {
 	}
 
 	public AssemblyException(String langKey, Object... objects) {
-		this(CreateLang.translateDirect("gui.assembly.exception." + langKey, objects));
+		this(Lang.translateDirect("gui.assembly.exception." + langKey, objects));
 	}
 
 	public static AssemblyException unmovableBlock(BlockPos pos, BlockState state) {
@@ -73,7 +73,7 @@ public class AssemblyException extends Exception {
 	public static AssemblyException noPistonPoles() {
 		return new AssemblyException("noPistonPoles");
 	}
-
+	
 	public static AssemblyException notEnoughSails(int sails) {
 		return new AssemblyException("not_enough_sails", sails, AllConfigs.server().kinetics.minimumWindmillSails.get());
 	}

@@ -7,7 +7,7 @@ import com.simibubi.create.content.fluids.transfer.FluidFillingBehaviour;
 import com.simibubi.create.foundation.fluid.FluidHelper;
 import com.simibubi.create.foundation.fluid.SmartFluidTank;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.StoragePreconditions;
@@ -20,25 +20,12 @@ import net.minecraft.world.level.material.FluidState;
 
 public class HosePulleyFluidHandler implements SingleSlotStorage<FluidVariant> {
 
-	private final SmartFluidTank internalTank;
-	private final FluidFillingBehaviour filler;
-	private final FluidDrainingBehaviour drainer;
-	private final Supplier<BlockPos> rootPosGetter;
-	private final Supplier<Boolean> predicate;
-
-	public HosePulleyFluidHandler(SmartFluidTank internalTank, FluidFillingBehaviour filler,
-			FluidDrainingBehaviour drainer, Supplier<BlockPos> rootPosGetter, Supplier<Boolean> predicate) {
-		this.internalTank = internalTank;
-		this.filler = filler;
-		this.drainer = drainer;
-		this.rootPosGetter = rootPosGetter;
-		this.predicate = predicate;
-	}
+	// The dynamic interface
 
 	@Override
 	public long insert(FluidVariant resource, long maxAmount, TransactionContext transaction) {
 		StoragePreconditions.notBlankNotNegative(resource, maxAmount);
-		if (!internalTank.isEmpty() && !internalTank.getFluid().getVariant().equals(resource))
+		if (!internalTank.isEmpty() && !internalTank.getFluid().canFill(resource))
 			return 0;
 		if (resource.isBlank() || !FluidHelper.hasBlockState(resource.getFluid()))
 			return 0;
@@ -67,7 +54,7 @@ public class HosePulleyFluidHandler implements SingleSlotStorage<FluidVariant> {
 
 	@Override
 	public long extract(FluidVariant resource, long maxAmount, TransactionContext transaction) {
-		if (resource != null && !internalTank.isEmpty() && !internalTank.getFluid().getVariant().equals(resource))
+		if (resource != null && !internalTank.isEmpty() && !internalTank.getFluid().canFill(resource))
 			return 0;
 		if (internalTank.getFluidAmount() >= FluidConstants.BUCKET)
 			return internalTank.extract(resource, maxAmount, transaction);
@@ -81,10 +68,10 @@ public class HosePulleyFluidHandler implements SingleSlotStorage<FluidVariant> {
 		long available = FluidConstants.BUCKET + internalTank.getFluidAmount();
 		long drained;
 
-		if (!internalTank.isEmpty() && !internalTank.getFluid().getVariant().equals(returned.getVariant()) || returned.isEmpty())
+		if (!internalTank.isEmpty() && !internalTank.getFluid().isFluidEqual(returned) || returned.isEmpty())
 			return internalTank.extract(resource, maxAmount, transaction);
 
-		if (resource != null && !returned.getVariant().equals(resource))
+		if (resource != null && !returned.canFill(resource))
 			return 0;
 
 		drained = Math.min(maxAmount, available);
@@ -121,6 +108,23 @@ public class HosePulleyFluidHandler implements SingleSlotStorage<FluidVariant> {
 	@Override
 	public long getCapacity() {
 		return Long.MAX_VALUE;
+	}
+
+	//
+
+	private SmartFluidTank internalTank;
+	private FluidFillingBehaviour filler;
+	private FluidDrainingBehaviour drainer;
+	private Supplier<BlockPos> rootPosGetter;
+	private Supplier<Boolean> predicate;
+
+	public HosePulleyFluidHandler(SmartFluidTank internalTank, FluidFillingBehaviour filler,
+			FluidDrainingBehaviour drainer, Supplier<BlockPos> rootPosGetter, Supplier<Boolean> predicate) {
+		this.internalTank = internalTank;
+		this.filler = filler;
+		this.drainer = drainer;
+		this.rootPosGetter = rootPosGetter;
+		this.predicate = predicate;
 	}
 
 	public SmartFluidTank getInternalTank() {

@@ -2,23 +2,20 @@ package com.simibubi.create.foundation.recipe;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.simibubi.create.foundation.item.SmartInventory;
-
 import net.minecraft.core.NonNullList;
-import net.minecraft.world.entity.player.StackedContents;
-import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
 
-public class DummyCraftingContainer extends TransientCraftingContainer {
+public class DummyCraftingContainer extends CraftingInput {
 
 	private final NonNullList<ItemStack> inv;
 
-	public DummyCraftingContainer(SmartInventory itemHandler, int[] extractedItemsFromSlot) {
-		super(null, 0, 0);
-		this.inv = createInventory(itemHandler, extractedItemsFromSlot);
+	public DummyCraftingContainer(NonNullList<ItemStack> stacks) {
+		super(0, 0, stacks);
+		this.inv = stacks;
 	}
 
-	@Override
+//	@Override
 	public int getContainerSize() {
 		return this.inv.size();
 	}
@@ -29,6 +26,7 @@ public class DummyCraftingContainer extends TransientCraftingContainer {
 			if (!this.getItem(slot).isEmpty())
 				return false;
 		}
+
 		return true;
 	}
 
@@ -37,41 +35,27 @@ public class DummyCraftingContainer extends TransientCraftingContainer {
 		return slot >= this.getContainerSize() ? ItemStack.EMPTY : this.inv.get(slot);
 	}
 
-	@Override
-	public @NotNull ItemStack removeItemNoUpdate(int slot) {
-		return ItemStack.EMPTY;
-	}
+//	@Override
+//	public @NotNull ItemStack removeItemNoUpdate(int slot) {
+//		return ItemStack.EMPTY;
+//	}
+//
+//	@Override
+//	public @NotNull ItemStack removeItem(int slot, int count) {
+//		return ItemStack.EMPTY;
+//	}
+//
+//	@Override
+//	public void setItem(int slot, @NotNull ItemStack stack) {}
+//
+//	@Override
+//	public void clearContent() {}
+//
+//	@Override
+//	public void fillStackedContents(@NotNull StackedContents helper) {}
 
 	@Override
-	public @NotNull ItemStack removeItem(int slot, int count) {
-		return ItemStack.EMPTY;
-	}
-
-	@Override
-	public void setItem(int slot, @NotNull ItemStack stack) {}
-
-	@Override
-	public void clearContent() {}
-
-	@Override
-	public void fillStackedContents(@NotNull StackedContents helper) {}
-
-	private static NonNullList<ItemStack> createInventory(SmartInventory itemHandler, int[] extractedItemsFromSlot) {
-		NonNullList<ItemStack> inv = NonNullList.create();
-
-		for (int slot = 0; slot < itemHandler.getSlotCount(); slot++) {
-			ItemStack stack = itemHandler.getStackInSlot(slot);
-
-			if (stack.isEmpty())
-				continue;
-
-			for (int i = 0; i < extractedItemsFromSlot[slot]; i++) {
-				ItemStack stackCopy = stack.copy();
-				stackCopy.setCount(1);
-				inv.add(stackCopy);
-			}
-		}
-
-		return inv;
+	public int size() {
+		return this.inv.size();
 	}
 }

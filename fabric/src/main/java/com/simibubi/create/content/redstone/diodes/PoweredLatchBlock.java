@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -93,21 +94,22 @@ public class PoweredLatchBlock extends ToggleLatchBlock {
 		}
 
 		if (state != stateIn)
-			worldIn.setBlock(pos, state, Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, state, 2);
 	}
 
 	@Override
 	protected ItemInteractionResult activated(Level worldIn, BlockPos pos, BlockState state) {
 		if (state.getValue(POWERED) != state.getValue(POWERED_SIDE))
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 		if (!worldIn.isClientSide) {
 			float f = !state.getValue(POWERING) ? 0.6F : 0.5F;
 			worldIn.playSound(null, pos, SoundEvents.LEVER_CLICK, SoundSource.BLOCKS, 0.3F, f);
-			worldIn.setBlock(pos, state.cycle(POWERING), Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, state.cycle(POWERING), 2);
 		}
 		return ItemInteractionResult.SUCCESS;
 	}
 
+	@Override
 	public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, Direction side) {
 		if (side == null)
 			return false;

@@ -7,21 +7,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
-import com.mojang.datafixers.util.Pair;
-import com.simibubi.create.AllBlocks;
+import com.jozufozu.flywheel.backend.instancing.InstancedRenderDispatcher;
+import com.simibubi.create.AllPackets;
+import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
+import com.simibubi.create.content.kinetics.belt.transport.ItemHandlerBeltSegment;
 import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock;
 import com.simibubi.create.content.logistics.tunnel.BeltTunnelBlock.Shape;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
+import com.tterrag.registrate.fabric.EnvExecutor;
 
-import dev.engine_room.flywheel.lib.visualization.VisualizationHelper;
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.platform.CatnipServices;
-import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import io.github.fabricators_of_create.porting_lib_ufo.util.StorageProvider;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
@@ -29,11 +32,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -43,6 +48,7 @@ public class BeltTunnelBlockEntity extends SmartBlockEntity implements SidedStor
 	public Map<Direction, LerpedFloat> flaps;
 	public Set<Direction> sides;
 
+	protected StorageProvider<ItemVariant> belowProvider;
 	protected List<Pair<Direction, Boolean>> flapsToSend;
 
 	public BeltTunnelBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
@@ -52,15 +58,19 @@ public class BeltTunnelBlockEntity extends SmartBlockEntity implements SidedStor
 		flapsToSend = new LinkedList<>();
 	}
 
-	@Nullable
 	@Override
-	public Storage<ItemVariant> getItemStorage(@Nullable Direction face) {
-		if (level == null)
-			return null;
-		if (AllBlocks.BELT.has(level.getBlockState(worldPosition.below()))) {
-			return ItemStorage.SIDED.find(level, worldPosition.below(), Direction.UP);
-		}
-		return null;
+	public void setLevel(Level level) {
+		super.setLevel(level);
+		belowProvider = StorageProvider.createForItems(level, worldPosition.below()).filter(this::isBeltStorage);
+	}
+
+	public boolean isBeltStorage(StorageProvider<ItemVariant> provider, Storage<ItemVariant> storage) {
+		return storage instanceof ItemHandlerBeltSegment;
+	}
+
+	@Override
+	public void invalidate() {
+		super.invalidate();
 	}
 
 	protected void writeFlapsAndSides(CompoundTag compound) {
@@ -76,19 +86,19 @@ public class BeltTunnelBlockEntity extends SmartBlockEntity implements SidedStor
 	}
 
 	@Override
-	public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
+	public void writeSafe(CompoundTag tag) {
 		writeFlapsAndSides(tag);
-		super.writeSafe(tag, registries);
+		super.writeSafe(tag);
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		writeFlapsAndSides(compound);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		Set<Direction> newFlaps = new HashSet<>(6);
 		ListTag flapsNBT = compound.getList("Flaps", Tag.TAG_INT);
 		for (Tag inbt : flapsNBT)
@@ -110,9 +120,9 @@ public class BeltTunnelBlockEntity extends SmartBlockEntity implements SidedStor
 		// Backwards compat
 		if (!compound.contains("Sides") && compound.contains("Flaps"))
 			sides.addAll(flaps.keySet());
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 		if (clientPacket)
-			CatnipServices.PLATFORM.executeOnClientOnly(() -> () -> VisualizationHelper.queueUpdate(this));
+			EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> InstancedRenderDispatcher.enqueueUpdate(this));
 	}
 
 	private LerpedFloat createChasingFlap() {
@@ -141,8 +151,6 @@ public class BeltTunnelBlockEntity extends SmartBlockEntity implements SidedStor
 			sides.add(direction);
 
 			// Flap might be occluded
-			if (level == null)
-				continue;
 			BlockState nextState = level.getBlockState(worldPosition.relative(direction));
 			if (nextState.getBlock() instanceof BeltTunnelBlock)
 				continue;
@@ -160,7 +168,7 @@ public class BeltTunnelBlockEntity extends SmartBlockEntity implements SidedStor
 		if (level.isClientSide) {
 			if (flaps.containsKey(side))
 				flaps.get(side)
-					.setValue(inward ? -1 : 1);
+					.setValue(inward ^ side.getAxis() == Axis.Z ? -1 : 1);
 			return;
 		}
 
@@ -185,10 +193,19 @@ public class BeltTunnelBlockEntity extends SmartBlockEntity implements SidedStor
 	}
 
 	private void sendFlaps() {
-		// TODO: Stage 4 (Networking / TunnelFlapPacket)
+		AllPackets.getChannel().sendToClientsTracking(new TunnelFlapPacket(this, flapsToSend), (ServerLevel) level, getBlockPos());
 		flapsToSend.clear();
 	}
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
+
+	@Override
+	public Storage<ItemVariant> getItemStorage(@Nullable Direction face) {
+		if (belowProvider == null)
+			return null;
+		if (belowProvider.findBlockEntity() instanceof BeltBlockEntity)
+			return belowProvider.get(Direction.UP);
+		return null;
+	}
 }

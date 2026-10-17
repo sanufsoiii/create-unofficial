@@ -2,7 +2,7 @@ package com.simibubi.create.content.logistics.vault;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.api.connectivity.ConnectivityHandler;
@@ -10,10 +10,10 @@ import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.VersionedInventoryWrapper;
-import net.createmod.catnip.nbt.NBTHelper;
+import com.simibubi.create.foundation.utility.NbtFixer;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage;
@@ -187,9 +187,9 @@ public class ItemVaultBlockEntity extends SmartBlockEntity
 		lastKnownPos = null;
 
 		if (compound.contains("LastKnownPos"))
-			lastKnownPos = NBTHelper.readBlockPos(compound, "LastKnownPos");
+			lastKnownPos = NbtFixer.readBlockPos(compound, "LastKnownPos");
 		if (compound.contains("Controller"))
-			controller = NBTHelper.readBlockPos(compound, "Controller");
+			controller = NbtFixer.readBlockPos(compound, "Controller");
 
 		if (isController()) {
 			radius = compound.getInt("Size");
@@ -197,7 +197,7 @@ public class ItemVaultBlockEntity extends SmartBlockEntity
 		}
 
 		if (!clientPacket) {
-			inventory.deserializeNBT(reg, compound.getCompound("Inventory"));
+			inventory.deserializeNBT(compound.getCompound("Inventory"));
 			return;
 		}
 
@@ -208,7 +208,7 @@ public class ItemVaultBlockEntity extends SmartBlockEntity
 	}
 
 	@Override
-	protected void write(CompoundTag compound, Provider registries, boolean clientPacket) {
+	protected void write(CompoundTag compound, boolean clientPacket) {
 		if (updateConnectivity)
 			compound.putBoolean("Uninitialized", true);
 		if (lastKnownPos != null)
@@ -220,11 +220,11 @@ public class ItemVaultBlockEntity extends SmartBlockEntity
 			compound.putInt("Length", length);
 		}
 
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 
 		if (!clientPacket) {
 			compound.putString("StorageType", "CombinedInv");
-			compound.put("Inventory", inventory.serializeNBT(registries));
+			compound.put("Inventory", inventory.serializeNBT());
 		}
 	}
 

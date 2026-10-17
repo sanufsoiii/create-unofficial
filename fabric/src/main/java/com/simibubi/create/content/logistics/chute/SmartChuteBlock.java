@@ -1,6 +1,5 @@
 package com.simibubi.create.content.logistics.chute;
 
-import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 
 import net.minecraft.core.BlockPos;
@@ -19,18 +18,12 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 
 public class SmartChuteBlock extends AbstractChuteBlock {
 
-	public static final MapCodec<SmartChuteBlock> CODEC = simpleCodec(SmartChuteBlock::new);
-	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
-
-	@Override
-	protected MapCodec<? extends Block> codec() {
-		return CODEC;
-	}
-
-	public SmartChuteBlock(Properties properties) {
-		super(properties);
+	public SmartChuteBlock(Properties p_i48440_1_) {
+		super(p_i48440_1_);
 		registerDefaultState(defaultBlockState().setValue(POWERED, true));
 	}
+
+	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
 	@Override
 	public void neighborChanged(BlockState state, Level worldIn, BlockPos pos, Block blockIn, BlockPos fromPos,
@@ -38,7 +31,8 @@ public class SmartChuteBlock extends AbstractChuteBlock {
 		super.neighborChanged(state, worldIn, pos, blockIn, fromPos, isMoving);
 		if (worldIn.isClientSide)
 			return;
-		if (!worldIn.getBlockTicks().willTickThisTick(pos, this))
+		if (!worldIn.getBlockTicks()
+			.willTickThisTick(pos, this))
 			worldIn.scheduleTick(pos, this, 0);
 	}
 
@@ -50,9 +44,9 @@ public class SmartChuteBlock extends AbstractChuteBlock {
 	}
 
 	@Override
-	public BlockState getStateForPlacement(BlockPlaceContext context) {
-		return super.getStateForPlacement(context).setValue(POWERED, context.getLevel()
-			.hasNeighborSignal(context.getClickedPos()));
+	public BlockState getStateForPlacement(BlockPlaceContext p_196258_1_) {
+		return super.getStateForPlacement(p_196258_1_).setValue(POWERED, p_196258_1_.getLevel()
+			.hasNeighborSignal(p_196258_1_.getClickedPos()));
 	}
 
 	@Override
@@ -66,8 +60,8 @@ public class SmartChuteBlock extends AbstractChuteBlock {
 	}
 
 	@Override
-	protected void createBlockStateDefinition(Builder<Block, BlockState> builder) {
-		super.createBlockStateDefinition(builder.add(POWERED));
+	protected void createBlockStateDefinition(Builder<Block, BlockState> p_206840_1_) {
+		super.createBlockStateDefinition(p_206840_1_.add(POWERED));
 	}
 
 	@Override

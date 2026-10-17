@@ -2,7 +2,9 @@ package com.simibubi.create.content.fluids.pipes;
 
 import static net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL_HONEY;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import com.simibubi.create.AllFluids;
+
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.BlockPos;
@@ -24,14 +26,12 @@ public class VanillaFluidTargets {
 	}
 
 	public static FluidStack drainBlock(Level level, BlockPos pos, BlockState state, TransactionContext ctx) {
-		// Honey draining will be enabled once AllFluids is ported
-		/*
 		if (state.hasProperty(BlockStateProperties.LEVEL_HONEY) && state.getValue(LEVEL_HONEY) >= 5) {
 			level.updateSnapshots(ctx);
 			level.setBlock(pos, state.setValue(LEVEL_HONEY, 0), 3);
-			return new FluidStack(AllFluids.HONEY.get().getSource(), FluidConstants.BOTTLE);
+			return new FluidStack(AllFluids.HONEY.get()
+				.getSource(), FluidConstants.BOTTLE);
 		}
-		*/
 
 		if (state.getBlock() == Blocks.LAVA_CAULDRON) {
 			level.updateSnapshots(ctx);

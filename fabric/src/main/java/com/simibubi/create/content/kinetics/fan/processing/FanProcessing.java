@@ -3,17 +3,14 @@ package com.simibubi.create.content.kinetics.fan.processing;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.simibubi.create.api.registry.CreateBuiltInRegistries;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour.TransportedResult;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
 
 public class FanProcessing {
 	public static boolean canProcess(ItemEntity entity, FanProcessingType type) {
@@ -96,11 +93,7 @@ public class FanProcessing {
 		CompoundTag processing = createData.getCompound("Processing");
 
 		if (!processing.contains("Type") || AllFanProcessingTypes.parseLegacy(processing.getString("Type")) != type) {
-			ResourceLocation key = CreateBuiltInRegistries.FAN_PROCESSING_TYPE.getKey(type);
-			if (key == null)
-				throw new IllegalArgumentException("Could not get id for FanProcessingType " + type + "!");
-
-			processing.putString("Type", key.toString());
+			processing.putString("Type", FanProcessingTypeRegistry.getIdOrThrow(type).toString());
 			int timeModifierForStackSize = ((entity.getItem()
 				.getCount() - 1) / 16) + 1;
 			int processingTime =
@@ -111,11 +104,5 @@ public class FanProcessing {
 		int value = processing.getInt("Time") - 1;
 		processing.putInt("Time", value);
 		return value;
-	}
-
-	public static void spawnParticlesForProcessing(Level level, Vec3 pos, FanProcessingType type) {
-		if (type != null) {
-			type.spawnProcessingParticles(level, pos);
-		}
 	}
 }

@@ -10,11 +10,12 @@ import com.simibubi.create.content.kinetics.base.DirectionalKineticBlock;
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
 import com.simibubi.create.content.kinetics.base.IRotate;
 import com.simibubi.create.content.kinetics.base.RotatedPillarKineticBlock;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
+import io.github.fabricators_of_create.porting_lib_ufo.item.UseFirstBehaviorItem;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -28,7 +29,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
-public class CogwheelBlockItem extends BlockItem {
+public class CogwheelBlockItem extends BlockItem implements UseFirstBehaviorItem {
 
 	boolean large;
 
@@ -45,7 +46,7 @@ public class CogwheelBlockItem extends BlockItem {
 	}
 
 	@Override
-	public InteractionResult useOn(UseOnContext context) {
+	public InteractionResult onItemUseFirst(ItemStack stack, UseOnContext context) {
 		Level world = context.getLevel();
 		BlockPos pos = context.getClickedPos();
 		BlockState state = world.getBlockState(pos);
@@ -67,7 +68,7 @@ public class CogwheelBlockItem extends BlockItem {
 			}
 		}
 
-		return super.useOn(context);
+		return InteractionResult.PASS;
 	}
 
 	@MethodsReturnNonnullByDefault
@@ -160,6 +161,7 @@ public class CogwheelBlockItem extends BlockItem {
 		@Override
 		public PlacementOffset getOffset(Player player, Level world, BlockState state, BlockPos pos,
 			BlockHitResult ray) {
+			// diagonal gears of different size
 			Axis axis = ((IRotate) state.getBlock()).getRotationAxis(state);
 			Direction closest = IPlacementHelper.orderedByDistanceExceptAxis(pos, ray.getLocation(), axis)
 				.get(0);

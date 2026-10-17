@@ -7,8 +7,8 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.RotatedPillarKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -84,7 +84,7 @@ public class CrushingWheelBlock extends RotatedPillarKineticBlock implements IBE
 			CrushingWheelBlockEntity otherBE = getBlockEntity(world, otherWheelPos);
 
 			if (be != null && otherBE != null && (be.getSpeed() > 0) != (otherBE.getSpeed() > 0)
-				&& be.getSpeed() != 0 && otherBE.getSpeed() != 0) {
+				&& be.getSpeed() != 0) {
 				Axis wheelAxis = state.getValue(AXIS);
 				Axis sideAxis = side.getAxis();
 				int controllerADO = Math.round(Math.signum(be.getSpeed())) * side.getAxisDirection()
@@ -185,7 +185,7 @@ public class CrushingWheelBlock extends RotatedPillarKineticBlock implements IBE
 	public Class<CrushingWheelBlockEntity> getBlockEntityClass() {
 		return CrushingWheelBlockEntity.class;
 	}
-
+	
 	@Override
 	public BlockEntityType<? extends CrushingWheelBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.CRUSHING_WHEEL.get();

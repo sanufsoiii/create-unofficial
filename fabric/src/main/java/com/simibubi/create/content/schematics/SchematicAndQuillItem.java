@@ -2,9 +2,13 @@ package com.simibubi.create.content.schematics;
 
 import java.util.Iterator;
 
-import net.createmod.catnip.nbt.NBTHelper;
-import net.createmod.catnip.registry.RegisteredObjectsHelper;
+import com.simibubi.create.AllEntityTypes;
+import com.simibubi.create.content.contraptions.glue.SuperGlueEntity;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.RegisteredObjects;
+
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.IntTag;
@@ -24,21 +28,43 @@ public class SchematicAndQuillItem extends Item {
 	}
 
 	public static void replaceStructureVoidWithAir(CompoundTag nbt) {
-		String air = RegisteredObjectsHelper.getKeyOrThrow(Blocks.AIR)
-			.toString();
-		String structureVoid = RegisteredObjectsHelper.getKeyOrThrow(Blocks.STRUCTURE_VOID)
-			.toString();
+		String air = RegisteredObjects.getKeyOrThrow(Blocks.AIR).toString();
+		String structureVoid = RegisteredObjects.getKeyOrThrow(Blocks.STRUCTURE_VOID).toString();
 
 		NBTHelper.iterateCompoundList(nbt.getList("palette", 10), c -> {
-			if (c.contains("Name") && c.getString("Name")
-				.equals(structureVoid)) {
+			if (c.contains("Name") && c.getString("Name").equals(structureVoid)) {
 				c.putString("Name", air);
 			}
 		});
 	}
 
 	public static void clampGlueBoxes(Level level, AABB aabb, CompoundTag nbt) {
-		// Glue clamping stub until SuperGlue is ported
+		ListTag listtag = nbt.getList("entities", 10).copy();
+
+		for (Iterator<Tag> iterator = listtag.iterator(); iterator.hasNext();) {
+			Tag tag = iterator.next();
+			if (!(tag instanceof CompoundTag compoundtag))
+				continue;
+			if (compoundtag.contains("nbt") && ResourceLocation.parse(compoundtag.getCompound("nbt").getString("id"))
+					.equals(AllEntityTypes.SUPER_GLUE.getId())) {
+				iterator.remove();
+			}
+		}
+
+		for (SuperGlueEntity entity : SuperGlueEntity.collectCropped(level, aabb)) {
+			Vec3 vec3 = new Vec3(entity.getX() - aabb.minX, entity.getY() - aabb.minY, entity.getZ() - aabb.minZ);
+			CompoundTag compoundtag = new CompoundTag();
+			entity.save(compoundtag);
+			BlockPos blockpos = BlockPos.containing(vec3);
+
+			CompoundTag entityTag = new CompoundTag();
+			entityTag.put("pos", newDoubleList(vec3.x, vec3.y, vec3.z));
+			entityTag.put("blockPos", newIntegerList(blockpos.getX(), blockpos.getY(), blockpos.getZ()));
+			entityTag.put("nbt", compoundtag.copy());
+			listtag.add(entityTag);
+		}
+
+		nbt.put("entities", listtag);
 	}
 
 	private static ListTag newIntegerList(int... pValues) {

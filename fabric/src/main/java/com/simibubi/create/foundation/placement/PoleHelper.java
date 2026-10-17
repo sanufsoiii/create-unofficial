@@ -4,15 +4,12 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.simibubi.create.Create;
+import com.simibubi.create.content.equipment.extendoGrip.ExtendoGripItem;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
@@ -23,8 +20,6 @@ import net.minecraft.world.phys.BlockHitResult;
 
 @MethodsReturnNonnullByDefault
 public abstract class PoleHelper<T extends Comparable<T>> implements IPlacementHelper {
-
-	private static final ResourceLocation EXTENDO_GRIP_RANGE = Create.asResource("extendo_grip_range");
 
 	protected final Predicate<BlockState> statePredicate;
 	protected final Property<T> property;
@@ -67,7 +62,7 @@ public abstract class PoleHelper<T extends Comparable<T>> implements IPlacementH
 			int range = AllConfigs.server().equipment.placementAssistRange.get();
 			if (player != null) {
 				AttributeInstance reach = player.getAttribute(Attributes.BLOCK_INTERACTION_RANGE);
-				if (reach != null && reach.hasModifier(EXTENDO_GRIP_RANGE))
+				if (reach != null && reach.hasModifier(ExtendoGripItem.singleRangeAttributeModifier.id()))
 					range += 4;
 			}
 			int poles = attachedPoles(world, pos, dir);

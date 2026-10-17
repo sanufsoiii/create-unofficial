@@ -4,12 +4,14 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import com.simibubi.create.AllBlocks;
@@ -17,16 +19,15 @@ import com.simibubi.create.AllItems;
 import com.simibubi.create.Create;
 import com.simibubi.create.content.schematics.SchematicExport.SchematicExportResult;
 import com.simibubi.create.content.schematics.table.SchematicTableBlockEntity;
-import com.simibubi.create.foundation.utility.CreateLang;
-import com.simibubi.create.foundation.utility.CreatePaths;
+import com.simibubi.create.foundation.utility.Components;
 import com.simibubi.create.foundation.utility.FilesHelper;
+import com.simibubi.create.foundation.utility.Lang;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.simibubi.create.infrastructure.config.CSchematics;
 
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.Level;
@@ -35,9 +36,9 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class ServerSchematicLoader {
 
-	private final Map<String, SchematicUploadEntry> activeUploads;
+	private Map<String, SchematicUploadEntry> activeUploads;
 
-	public static class SchematicUploadEntry {
+	public class SchematicUploadEntry {
 		public Level world;
 		public BlockPos tablePos;
 		public OutputStream stream;
@@ -59,25 +60,25 @@ public class ServerSchematicLoader {
 		activeUploads = new HashMap<>();
 	}
 
-	private final ObjectArrayList<String> deadEntries = ObjectArrayList.of();
+	public String getSchematicPath() {
+		return "schematics/uploaded";
+	}
 
 	public void tick() {
 		// Detect Timed out Uploads
-		int timeout = getConfig().schematicIdleTimeout.get();
+		Set<String> deadEntries = new HashSet<>();
 		for (String upload : activeUploads.keySet()) {
 			SchematicUploadEntry entry = activeUploads.get(upload);
 
-			if (entry.idleTime++ > timeout) {
+			if (entry.idleTime++ > getConfig().schematicIdleTimeout.get()) {
 				Create.LOGGER.warn("Schematic Upload timed out: " + upload);
 				deadEntries.add(upload);
 			}
+
 		}
 
 		// Remove Timed out Uploads
-		for (String toRemove : deadEntries) {
-			this.cancelUpload(toRemove);
-		}
-		deadEntries.clear();
+		deadEntries.forEach(this::cancelUpload);
 	}
 
 	public void shutdown() {
@@ -86,23 +87,26 @@ public class ServerSchematicLoader {
 	}
 
 	public void handleNewUpload(ServerPlayer player, String schematic, long size, BlockPos pos) {
-		String playerName = player.getGameProfile().getName();
-
-		Path baseDir = CreatePaths.UPLOADED_SCHEMATICS_DIR;
-		Path playerPath = baseDir.resolve(playerName).normalize();
-		Path uploadPath = playerPath.resolve(schematic).normalize();
-		String playerSchematicId = playerName + "/" + schematic;
-
-		if (playerPath.startsWith(baseDir) && uploadPath.startsWith(playerPath)) {
-			FilesHelper.createFolderIfMissing(playerPath);
-		} else {
-			Create.LOGGER.warn("Attempted Schematic Upload with path traversal: {}", playerSchematicId);
-			return;
-		}
+		String playerPath = getSchematicPath() + "/" + player.getGameProfile()
+			.getName();
+		String playerSchematicId = player.getGameProfile()
+			.getName() + "/" + schematic;
+		FilesHelper.createFolderIfMissing(playerPath);
 
 		// Unsupported Format
 		if (!schematic.endsWith(".nbt")) {
-			Create.LOGGER.warn("Attempted Schematic Upload with non-supported Format: {}", playerSchematicId);
+			Create.LOGGER.warn("Attempted Schematic Upload with non-supported Format: " + playerSchematicId);
+			return;
+		}
+
+		Path playerSchematicsPath = Paths.get(getSchematicPath(), player.getGameProfile()
+			.getName())
+			.toAbsolutePath();
+
+		Path uploadPath = playerSchematicsPath.resolve(schematic)
+			.normalize();
+		if (!uploadPath.startsWith(playerSchematicsPath)) {
+			Create.LOGGER.warn("Attempted Schematic Upload with directory escape: {}", playerSchematicId);
 			return;
 		}
 
@@ -116,7 +120,7 @@ public class ServerSchematicLoader {
 
 		try {
 			// Validate Referenced Block
-			SchematicTableBlockEntity table = getTable(player.level(), pos);
+			SchematicTableBlockEntity table = getTable(player.getCommandSenderWorld(), pos);
 			if (table == null)
 				return;
 
@@ -125,12 +129,12 @@ public class ServerSchematicLoader {
 
 			// Too many Schematics
 			long count;
-			try (Stream<Path> list = Files.list(playerPath)) {
+			try (Stream<Path> list = Files.list(Paths.get(playerPath))) {
 				count = list.count();
 			}
 
 			if (count >= getConfig().maxSchematics.get()) {
-				Stream<Path> list2 = Files.list(playerPath);
+				Stream<Path> list2 = Files.list(Paths.get(playerPath));
 				Optional<Path> lastFilePath = list2.filter(f -> !Files.isDirectory(f))
 					.min(Comparator.comparingLong(f -> f.toFile()
 						.lastModified()));
@@ -146,18 +150,20 @@ public class ServerSchematicLoader {
 
 			// Notify Block Entity
 			table.startUpload(schematic);
+
 		} catch (IOException e) {
-			Create.LOGGER.error("Exception Thrown when starting Upload: {}", playerSchematicId, e);
+			Create.LOGGER.error("Exception Thrown when starting Upload: " + playerSchematicId);
+			e.printStackTrace();
 		}
 	}
 
 	protected boolean validateSchematicSizeOnServer(ServerPlayer player, long size) {
-		long maxFileSize = getConfig().maxTotalSchematicSize.get();
+		Integer maxFileSize = getConfig().maxTotalSchematicSize.get();
 		if (size > maxFileSize * 1000) {
-			player.sendSystemMessage(CreateLang.translateDirect("schematics.uploadTooLarge")
-				.append(Component.literal(" (" + size / 1000 + " KB).")));
-			player.sendSystemMessage(CreateLang.translateDirect("schematics.maxAllowedSize")
-				.append(Component.literal(" " + maxFileSize + " KB")));
+			player.sendSystemMessage(Lang.translateDirect("schematics.uploadTooLarge")
+				.append(Components.literal(" (" + size / 1000 + " KB).")));
+			player.sendSystemMessage(Lang.translateDirect("schematics.maxAllowedSize")
+				.append(Components.literal(" " + maxFileSize + " KB")));
 			return false;
 		}
 		return true;
@@ -177,13 +183,13 @@ public class ServerSchematicLoader {
 
 			// Size Validations
 			if (data.length > getConfig().maxSchematicPacketSize.get()) {
-				Create.LOGGER.warn("Oversized Upload Packet received: {}", playerSchematicId);
+				Create.LOGGER.warn("Oversized Upload Packet received: " + playerSchematicId);
 				cancelUpload(playerSchematicId);
 				return;
 			}
 
 			if (entry.bytesUploaded > entry.totalBytes) {
-				Create.LOGGER.warn("Received more data than Expected: {}", playerSchematicId);
+				Create.LOGGER.warn("Received more data than Expected: " + playerSchematicId);
 				cancelUpload(playerSchematicId);
 				return;
 			}
@@ -199,7 +205,8 @@ public class ServerSchematicLoader {
 				table.sendUpdate = true;
 
 			} catch (IOException e) {
-				Create.LOGGER.error("Exception Thrown when uploading Schematic: {}", playerSchematicId, e);
+				Create.LOGGER.error("Exception Thrown when uploading Schematic: " + playerSchematicId);
+				e.printStackTrace();
 				cancelUpload(playerSchematicId);
 			}
 		}
@@ -212,10 +219,12 @@ public class ServerSchematicLoader {
 		SchematicUploadEntry entry = activeUploads.remove(playerSchematicId);
 		try {
 			entry.stream.close();
-			Files.deleteIfExists(CreatePaths.UPLOADED_SCHEMATICS_DIR.resolve(playerSchematicId));
-			Create.LOGGER.warn("Cancelled Schematic Upload: {}", playerSchematicId);
+			Files.deleteIfExists(Paths.get(getSchematicPath(), playerSchematicId));
+			Create.LOGGER.warn("Cancelled Schematic Upload: " + playerSchematicId);
+
 		} catch (IOException e) {
-			Create.LOGGER.error("Exception Thrown when cancelling Upload: {}", playerSchematicId, e);
+			Create.LOGGER.error("Exception Thrown when cancelling Upload: " + playerSchematicId);
+			e.printStackTrace();
 		}
 
 		BlockPos pos = entry.tablePos;
@@ -229,8 +238,9 @@ public class ServerSchematicLoader {
 
 	public SchematicTableBlockEntity getTable(Level world, BlockPos pos) {
 		BlockEntity be = world.getBlockEntity(pos);
-		if (!(be instanceof SchematicTableBlockEntity table))
+		if (!(be instanceof SchematicTableBlockEntity))
 			return null;
+		SchematicTableBlockEntity table = (SchematicTableBlockEntity) be;
 		return table;
 	}
 
@@ -257,34 +267,36 @@ public class ServerSchematicLoader {
 				if (table == null)
 					return;
 				table.finishUpload();
-				table.inventory.setStackInSlot(1, SchematicItem.create(world, schematic, player.getGameProfile()
+				table.inventory.setStackInSlot(1, SchematicItem.create(world.holderLookup(Registries.BLOCK), schematic, player.getGameProfile()
 					.getName()));
 
 			} catch (IOException e) {
-				Create.LOGGER.error("Exception Thrown when finishing Upload: {}", playerSchematicId, e);
+				Create.LOGGER.error("Exception Thrown when finishing Upload: " + playerSchematicId);
+				e.printStackTrace();
 			}
 		}
 	}
 
 	public void handleInstantSchematic(ServerPlayer player, String schematic, Level world, BlockPos pos,
-									   BlockPos bounds) {
+		BlockPos bounds) {
 		String playerName = player.getGameProfile().getName();
-
-		Path baseDir = CreatePaths.UPLOADED_SCHEMATICS_DIR;
-		Path playerPath = baseDir.resolve(playerName).normalize();
-		Path uploadPath = playerPath.resolve(schematic).normalize();
+		String playerPath = getSchematicPath() + "/" + playerName;
 		String playerSchematicId = playerName + "/" + schematic;
-
-		if (playerPath.startsWith(baseDir) && uploadPath.startsWith(playerPath)) {
-			FilesHelper.createFolderIfMissing(playerPath);
-		} else {
-			Create.LOGGER.warn("Attempted Schematic Upload with path traversal: {}", playerSchematicId);
-			return;
-		}
+		FilesHelper.createFolderIfMissing(playerPath);
 
 		// Unsupported Format
 		if (!schematic.endsWith(".nbt")) {
 			Create.LOGGER.warn("Attempted Schematic Upload with non-supported Format: {}", playerSchematicId);
+			return;
+		}
+
+		Path schematicPath = Paths.get(getSchematicPath())
+			.toAbsolutePath();
+
+		Path path = schematicPath.resolve(playerSchematicId)
+			.normalize();
+		if (!path.startsWith(schematicPath)) {
+			Create.LOGGER.warn("Attempted Schematic Upload with directory escape: {}", playerSchematicId);
 			return;
 		}
 
@@ -293,18 +305,20 @@ public class ServerSchematicLoader {
 			return;
 
 		// if there's too many schematics, delete oldest
-		if (!tryDeleteOldestSchematic(playerPath))
+		Path playerSchematics = Paths.get(playerPath);
+
+		if (!tryDeleteOldestSchematic(playerSchematics))
 			return;
 
 		SchematicExportResult result = SchematicExport.saveSchematic(
-			playerPath, schematic, true,
-			world, pos, pos.offset(bounds).offset(-1, -1, -1)
+				playerSchematics, schematic, true,
+				world, pos, pos.offset(bounds).offset(-1, -1, -1)
 		);
 		if (result != null)
 			player.setItemInHand(InteractionHand.MAIN_HAND,
-				SchematicItem.create(world, schematic, playerName));
+				SchematicItem.create(world.holderLookup(Registries.BLOCK), schematic, playerName));
 		else
-			CreateLang.translate("schematicAndQuill.instant_failed")
+			Lang.translate("schematicAndQuill.instant_failed")
 				.style(ChatFormatting.RED)
 				.sendStatus(player);
 	}
@@ -327,7 +341,7 @@ public class ServerSchematicLoader {
 		try {
 			return Files.getLastModifiedTime(file).toMillis();
 		} catch (IOException e) {
-			Create.LOGGER.error("Error getting modification time of file {}", file.getFileName(), e);
+			Create.LOGGER.error("Error getting modification time of file " + file.getFileName(), e);
 			throw new IllegalStateException(e);
 		}
 	}

@@ -16,3 +16,16 @@ rootProject.name = "create-architectury"
 include("common")
 include("fabric")
 include("neoforge")
+
+include("flywheel")
+project(":flywheel").projectDir = file("fabric-modules/flywheel")
+
+include("milk")
+project(":milk").projectDir = file("fabric-modules/milk")
+
+include("porting_lib_ufo")
+project(":porting_lib_ufo").projectDir = file("fabric-modules/porting_lib_ufo")
+
+include("registrate_fabric")
+project(":registrate_fabric").projectDir = file("fabric-modules/registrate_fabric")
+

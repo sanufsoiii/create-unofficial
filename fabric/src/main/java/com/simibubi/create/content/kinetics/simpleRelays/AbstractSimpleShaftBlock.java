@@ -30,16 +30,9 @@ public abstract class AbstractSimpleShaftBlock extends AbstractShaftBlock implem
 		return IWrenchableWithBracket.super.onWrenched(state, context);
 	}
 
-	public PushReaction getPistonPushReaction(BlockState state) {
-		return PushReaction.NORMAL;
-	}
-
 	@Override
 	public void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean isMoving) {
-		boolean wasWaterLogged = state.hasProperty(WATERLOGGED) &&
-				newState.hasProperty(WATERLOGGED) &&
-				(state.getValue(WATERLOGGED) != newState.getValue(WATERLOGGED));
-		if (state != newState && !isMoving && !wasWaterLogged)
+		if (state != newState && !isMoving)
 			removeBracket(world, pos, true).ifPresent(stack -> Block.popResource(world, pos, stack));
 		super.onRemove(state, world, pos, newState, isMoving);
 	}
@@ -59,4 +52,5 @@ public abstract class AbstractSimpleShaftBlock extends AbstractShaftBlock implem
 	public BlockEntityType<? extends KineticBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.BRACKETED_KINETIC.get();
 	}
+
 }

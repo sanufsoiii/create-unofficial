@@ -14,6 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -53,19 +54,19 @@ public class ArmBlock extends KineticBlock implements IBE<ArmBlockEntity>, ICogW
 		CollisionContext p_220053_4_) {
 		return state.getValue(CEILING) ? AllShapes.MECHANICAL_ARM_CEILING : AllShapes.MECHANICAL_ARM;
 	}
-
+	
 	@Override
 	public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean isMoving) {
 		super.onPlace(state, world, pos, oldState, isMoving);
 		withBlockEntityDo(world, pos, ArmBlockEntity::redstoneUpdate);
 	}
-
+	
 	@Override
 	public void neighborChanged(BlockState state, Level world, BlockPos pos, Block p_220069_4_,
 		BlockPos p_220069_5_, boolean p_220069_6_) {
 		withBlockEntityDo(world, pos, ArmBlockEntity::redstoneUpdate);
 	}
-
+	
 	@Override
 	public Axis getRotationAxis(BlockState state) {
 		return Axis.Y;
@@ -80,13 +81,19 @@ public class ArmBlock extends KineticBlock implements IBE<ArmBlockEntity>, ICogW
 	public BlockEntityType<? extends ArmBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.MECHANICAL_ARM.get();
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (AllItems.GOGGLES.isIn(stack)) {
-			ItemInteractionResult gogglesResult = onBlockEntityUseItemOn(level, pos, ate -> {
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult hitResult) {
+		
+		ItemStack heldItem = player.getItemInHand(hand);
+		if(heldItem.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+
+		if (AllItems.GOGGLES.isIn(heldItem)) {
+			ItemInteractionResult gogglesResult = onBlockEntityUse(world, pos, ate -> {
 				if (ate.goggles)
-					return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+					return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 				ate.goggles = true;
 				ate.notifyUpdate();
 				return ItemInteractionResult.SUCCESS;
@@ -96,11 +103,11 @@ public class ArmBlock extends KineticBlock implements IBE<ArmBlockEntity>, ICogW
 		}
 
 		MutableBoolean success = new MutableBoolean(false);
-		withBlockEntityDo(level, pos, be -> {
+		withBlockEntityDo(world, pos, be -> {
 			if (be.heldItem.isEmpty())
 				return;
 			success.setTrue();
-			if (level.isClientSide)
+			if (world.isClientSide)
 				return;
 			player.getInventory().placeItemBackInInventory(be.heldItem);
 			be.heldItem = ItemStack.EMPTY;
@@ -108,8 +115,45 @@ public class ArmBlock extends KineticBlock implements IBE<ArmBlockEntity>, ICogW
 			be.setChanged();
 			be.sendData();
 		});
+		
+		return success.booleanValue() ? ItemInteractionResult.SUCCESS : ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		ItemStack heldItem = ItemStack.EMPTY;
 
-		return success.booleanValue() ? ItemInteractionResult.SUCCESS : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		if (AllItems.GOGGLES.isIn(heldItem)) {
+			InteractionResult gogglesResult = onBlockEntityUse(world, pos, ate -> {
+				if (ate.goggles)
+					return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+				ate.goggles = true;
+				ate.notifyUpdate();
+				return ItemInteractionResult.SUCCESS;
+			}).result();
+			if (gogglesResult.consumesAction())
+				return gogglesResult;
+		}
+
+		MutableBoolean success = new MutableBoolean(false);
+		withBlockEntityDo(world, pos, be -> {
+			if (be.heldItem.isEmpty())
+				return;
+			success.setTrue();
+			if (world.isClientSide)
+				return;
+			player.getInventory().placeItemBackInInventory(be.heldItem);
+			be.heldItem = ItemStack.EMPTY;
+			be.phase = Phase.SEARCH_INPUTS;
+			be.setChanged();
+			be.sendData();
+		});
+		
+		return success.booleanValue() ? InteractionResult.SUCCESS : InteractionResult.PASS;
+		
 	}
 
 }

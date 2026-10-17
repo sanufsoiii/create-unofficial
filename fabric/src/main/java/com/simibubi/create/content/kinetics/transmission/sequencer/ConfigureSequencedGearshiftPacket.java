@@ -1,39 +1,44 @@
 package com.simibubi.create.content.kinetics.transmission.sequencer;
 
-import java.util.Vector;
-
-import com.simibubi.create.AllPackets;
-import com.simibubi.create.foundation.codec.CreateStreamCodecs;
 import com.simibubi.create.foundation.networking.BlockEntityConfigurationPacket;
 
-import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 public class ConfigureSequencedGearshiftPacket extends BlockEntityConfigurationPacket<SequencedGearshiftBlockEntity> {
-	public static final StreamCodec<ByteBuf, ConfigureSequencedGearshiftPacket> STREAM_CODEC = StreamCodec.composite(
-			BlockPos.STREAM_CODEC, packet -> packet.pos,
-			Instruction.STREAM_CODEC.apply(CreateStreamCodecs.vector()), packet -> packet.instructions,
-			ConfigureSequencedGearshiftPacket::new
-	);
 
-	private final Vector<Instruction> instructions;
+	private ListTag instructions;
 
-	public ConfigureSequencedGearshiftPacket(BlockPos pos, Vector<Instruction> instructions) {
+	public ConfigureSequencedGearshiftPacket(BlockPos pos, ListTag instructions) {
 		super(pos);
 		this.instructions = instructions;
 	}
 
-	@Override
-	protected void applySettings(ServerPlayer player, SequencedGearshiftBlockEntity be) {
-		be.run(-1);
-		be.instructions = this.instructions;
-		be.sendData();
+	public ConfigureSequencedGearshiftPacket(RegistryFriendlyByteBuf buffer) {
+		super(buffer);
 	}
 
 	@Override
-	public PacketTypeProvider getTypeProvider() {
-		return AllPackets.CONFIGURE_SEQUENCER;
+	protected void readSettings(RegistryFriendlyByteBuf buffer) {
+		instructions = buffer.readNbt().getList("data", Tag.TAG_COMPOUND);
 	}
+
+	@Override
+	protected void writeSettings(RegistryFriendlyByteBuf buffer) {
+		CompoundTag tag = new CompoundTag();
+		tag.put("data", instructions);
+		buffer.writeNbt(tag);
+	}
+
+	@Override
+	protected void applySettings(SequencedGearshiftBlockEntity be) {
+
+		be.run(-1);
+		be.instructions = Instruction.deserializeAll(instructions);
+		be.sendData();
+	}
+
 }

@@ -5,6 +5,9 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
 
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomLandingEffectsBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomRunningEffectsBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.WeakPowerCheckingBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -25,13 +28,14 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.Vec3;
 
-public class StickerBlock extends WrenchableDirectionalBlock implements IBE<StickerBlockEntity> {
+public class StickerBlock extends WrenchableDirectionalBlock implements IBE<StickerBlockEntity>, CustomRunningEffectsBlock,
+		CustomLandingEffectsBlock, WeakPowerCheckingBlock {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 	public static final BooleanProperty EXTENDED = BlockStateProperties.EXTENDED;
 
-	public StickerBlock(Properties properties) {
-		super(properties);
+	public StickerBlock(Properties p_i48415_1_) {
+		super(p_i48415_1_);
 		registerDefaultState(defaultBlockState().setValue(POWERED, false)
 			.setValue(EXTENDED, false));
 	}
@@ -64,13 +68,14 @@ public class StickerBlock extends WrenchableDirectionalBlock implements IBE<Stic
 			state = state.cycle(POWERED);
 			if (state.getValue(POWERED))
 				state = state.cycle(EXTENDED);
-			worldIn.setBlock(pos, state, Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, state, 2);
 		}
 	}
 
-	public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
-		return false;
-	}
+	@Override
+    public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
+        return false;
+    }
 
 	@Override
 	public Class<StickerBlockEntity> getBlockEntityClass() {
@@ -125,6 +130,7 @@ public class StickerBlock extends WrenchableDirectionalBlock implements IBE<Stic
 		super.stepOn(p_152431_, p_152432_, p_152433_, p_152434_);
 	}
 
+	@Override
 	public boolean addLandingEffects(BlockState state1, ServerLevel worldserver, BlockPos pos, BlockState state2,
 		LivingEntity entity, int numberOfParticles) {
 		if (isUprightSticker(worldserver, pos)) {
@@ -136,11 +142,11 @@ public class StickerBlock extends WrenchableDirectionalBlock implements IBE<Stic
 		return false;
 	}
 
+	@Override
 	public boolean addRunningEffects(BlockState state, Level world, BlockPos pos, Entity entity) {
 		if (state.getValue(FACING) == Direction.UP) {
 			Vec3 Vector3d = entity.getDeltaMovement();
-			world.addParticle(
-				new BlockParticleOption(ParticleTypes.BLOCK, Blocks.SLIME_BLOCK.defaultBlockState()),
+			world.addParticle(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.SLIME_BLOCK.defaultBlockState()).setSourcePos(pos),
 				entity.getX() + ((double) world.random.nextFloat() - 0.5D) * (double) entity.getBbWidth(),
 				entity.getY() + 0.1D,
 				entity.getZ() + ((double) world.random.nextFloat() - 0.5D) * (double) entity.getBbWidth(),

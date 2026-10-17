@@ -3,9 +3,11 @@ package com.simibubi.create.content.equipment.toolbox;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllRecipeTypes;
 
-import net.minecraft.core.HolderLookup;
+import io.github.fabricators_of_create.porting_lib_ufo.tags.Tags;
+import io.github.fabricators_of_create.porting_lib_ufo.util.TagUtil;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
@@ -20,25 +22,18 @@ public class ToolboxDyeingRecipe extends CustomRecipe {
 		super(category);
 	}
 
-	private static DyeColor getDyeColor(ItemStack stack) {
-		if (stack.getItem() instanceof DyeItem dye) {
-			return dye.getDyeColor();
-		}
-		return null;
-	}
-
 	@Override
-	public boolean matches(CraftingInput input, Level level) {
+	public boolean matches(CraftingInput inventory, Level world) {
 		int toolboxes = 0;
 		int dyes = 0;
 
-		for (int i = 0; i < input.size(); ++i) {
-			ItemStack stack = input.getItem(i);
+		for (int i = 0; i < inventory.size(); ++i) {
+			ItemStack stack = inventory.getItem(i);
 			if (!stack.isEmpty()) {
 				if (Block.byItem(stack.getItem()) instanceof ToolboxBlock) {
 					++toolboxes;
 				} else {
-					if (getDyeColor(stack) == null)
+					if (!stack.is(Tags.Items.DYES))
 						return false;
 					++dyes;
 				}
@@ -53,17 +48,17 @@ public class ToolboxDyeingRecipe extends CustomRecipe {
 	}
 
 	@Override
-	public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
+	public ItemStack assemble(CraftingInput inventory, Provider pRegistryAccess) {
 		ItemStack toolbox = ItemStack.EMPTY;
 		DyeColor color = DyeColor.BROWN;
 
-		for (int i = 0; i < input.size(); ++i) {
-			ItemStack stack = input.getItem(i);
+		for (int i = 0; i < inventory.size(); ++i) {
+			ItemStack stack = inventory.getItem(i);
 			if (!stack.isEmpty()) {
 				if (Block.byItem(stack.getItem()) instanceof ToolboxBlock) {
 					toolbox = stack;
 				} else {
-					DyeColor color1 = getDyeColor(stack);
+					DyeColor color1 = TagUtil.getColorFromStack(stack);
 					if (color1 != null) {
 						color = color1;
 					}
@@ -71,11 +66,8 @@ public class ToolboxDyeingRecipe extends CustomRecipe {
 			}
 		}
 
-		ItemStack dyedToolbox = AllBlocks.TOOLBOXES.get(color)
-			.asStack();
-		if (!toolbox.getComponentsPatch().isEmpty()) {
-			dyedToolbox.applyComponents(toolbox.getComponentsPatch());
-		}
+		ItemStack dyedToolbox = AllBlocks.TOOLBOXES.get(color).asStack();
+		dyedToolbox.applyComponents(toolbox.getComponents());
 
 		return dyedToolbox;
 	}
@@ -89,4 +81,5 @@ public class ToolboxDyeingRecipe extends CustomRecipe {
 	public RecipeSerializer<?> getSerializer() {
 		return AllRecipeTypes.TOOLBOX_DYEING.getSerializer();
 	}
+
 }

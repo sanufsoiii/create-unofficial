@@ -4,13 +4,14 @@ import java.util.List;
 
 import org.joml.Matrix4f;
 
-import com.simibubi.create.foundation.mixin.accessor.FontAccessor;
-
+import io.github.fabricators_of_create.porting_lib_ufo.mixin.accessors.client.accessor.FontAccessor;
 import net.minecraft.client.StringSplitter;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.font.FontSet;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 
 public class NoShadowFontWrapper extends Font {
@@ -18,38 +19,42 @@ public class NoShadowFontWrapper extends Font {
 	private Font wrapped;
 
 	public NoShadowFontWrapper(Font wrapped) {
-		super(((FontAccessor) wrapped).create$getFonts(), false);
+		super(null, false);
 		this.wrapped = wrapped;
+	}
+
+	public FontSet getFontSet(ResourceLocation pFontLocation) {
+		return ((FontAccessor) wrapped).port_lib$getFontSet(pFontLocation);
 	}
 
 	@Override
 	public int drawInBatch(Component pText, float pX, float pY, int pColor, boolean pDropShadow, Matrix4f pMatrix,
-		MultiBufferSource pBuffer, DisplayMode pDisplayMode, int pBackgroundColor, int pPackedLightCoords) {
+			MultiBufferSource pBuffer, DisplayMode pDisplayMode, int pBackgroundColor, int pPackedLightCoords) {
 		return wrapped.drawInBatch(pText, pX, pY, pColor, false, pMatrix, pBuffer, pDisplayMode, pBackgroundColor,
-			pPackedLightCoords);
+				pPackedLightCoords);
 	}
 
 	@Override
 	public int drawInBatch(FormattedCharSequence pText, float pX, float pY, int pColor, boolean pDropShadow,
-		Matrix4f pMatrix, MultiBufferSource pBuffer, DisplayMode pDisplayMode, int pBackgroundColor,
-		int pPackedLightCoords) {
+			Matrix4f pMatrix, MultiBufferSource pBuffer, DisplayMode pDisplayMode, int pBackgroundColor,
+			int pPackedLightCoords) {
 		return wrapped.drawInBatch(pText, pX, pY, pColor, false, pMatrix, pBuffer, pDisplayMode, pBackgroundColor,
-			pPackedLightCoords);
+				pPackedLightCoords);
 	}
 
 	@Override
 	public int drawInBatch(String pText, float pX, float pY, int pColor, boolean pDropShadow, Matrix4f pMatrix,
-		MultiBufferSource pBuffer, DisplayMode pDisplayMode, int pBackgroundColor, int pPackedLightCoords) {
+			MultiBufferSource pBuffer, DisplayMode pDisplayMode, int pBackgroundColor, int pPackedLightCoords) {
 		return wrapped.drawInBatch(pText, pX, pY, pColor, false, pMatrix, pBuffer, pDisplayMode, pBackgroundColor,
-			pPackedLightCoords);
+				pPackedLightCoords);
 	}
 
 	@Override
 	public int drawInBatch(String pText, float pX, float pY, int pColor, boolean pDropShadow, Matrix4f pMatrix,
-		MultiBufferSource pBuffer, DisplayMode pDisplayMode, int pBackgroundColor, int pPackedLightCoords,
-		boolean pBidirectional) {
+			MultiBufferSource pBuffer, DisplayMode pDisplayMode, int pBackgroundColor, int pPackedLightCoords,
+			boolean pBidirectional) {
 		return wrapped.drawInBatch(pText, pX, pY, pColor, false, pMatrix, pBuffer, pDisplayMode, pBackgroundColor,
-			pPackedLightCoords, pBidirectional);
+				pPackedLightCoords, pBidirectional);
 	}
 
 	@Override
@@ -62,7 +67,7 @@ public class NoShadowFontWrapper extends Font {
 	}
 
 	public void drawInBatch8xOutline(FormattedCharSequence pText, float pX, float pY, int pColor, int pBackgroundColor,
-		Matrix4f pMatrix, MultiBufferSource pBuffer, int pPackedLightCoords) {
+			Matrix4f pMatrix, MultiBufferSource pBuffer, int pPackedLightCoords) {
 		wrapped.drawInBatch8xOutline(pText, pX, pY, pColor, pBackgroundColor, pMatrix, pBuffer, pPackedLightCoords);
 	}
 

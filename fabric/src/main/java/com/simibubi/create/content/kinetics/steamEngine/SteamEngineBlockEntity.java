@@ -3,33 +3,41 @@ package com.simibubi.create.content.kinetics.steamEngine;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEntity.RotationDirection;
+import com.simibubi.create.content.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.fluids.tank.FluidTankBlockEntity;
 import com.simibubi.create.content.kinetics.base.GeneratingKineticBlockEntity;
 import com.simibubi.create.content.kinetics.base.IRotate;
+import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollOptionBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.AngleHelper;
+import com.simibubi.create.foundation.utility.Lang;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.animation.AnimationTickHolder;
-import net.createmod.catnip.math.AngleHelper;
-import net.createmod.catnip.math.VecHelper;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import com.tterrag.registrate.fabric.EnvExecutor;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation {
 
@@ -37,8 +45,6 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 
 	public WeakReference<PoweredShaftBlockEntity> target;
 	public WeakReference<FluidTankBlockEntity> source;
-
-	float prevAngle = 0;
 
 	public SteamEngineBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -49,7 +55,7 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		movementDirection = new ScrollOptionBehaviour<>(RotationDirection.class,
-			CreateLang.translateDirect("contraptions.windmill.rotation_direction"), this, new SteamEngineValueBox());
+			Lang.translateDirect("contraptions.windmill.rotation_direction"), this, new SteamEngineValueBox());
 		movementDirection.onlyActiveWhen(() -> {
 			PoweredShaftBlockEntity shaft = getShaft();
 			return shaft == null || !shaft.hasSource();
@@ -57,11 +63,10 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 		movementDirection.withCallback($ -> onDirectionChanged());
 		behaviours.add(movementDirection);
 
-		// TODO: registerAwardables(behaviours, AllAdvancements.STEAM_ENGINE);
+		registerAwardables(behaviours, AllAdvancements.STEAM_ENGINE);
 	}
 
-	private void onDirectionChanged() {
-	}
+	private void onDirectionChanged() {}
 
 	@Override
 	public void tick() {
@@ -69,7 +74,7 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 		FluidTankBlockEntity tank = getTank();
 		PoweredShaftBlockEntity shaft = getShaft();
 
-		if (tank == null || shaft == null || !isValid()) {
+		if (tank == null || shaft == null) {
 			if (level.isClientSide())
 				return;
 			if (shaft == null)
@@ -89,7 +94,7 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 		boolean verticalTarget = false;
 		BlockState shaftState = shaft.getBlockState();
 		Axis targetAxis = Axis.X;
-		if (shaftState.getBlock() instanceof IRotate ir)
+		if (shaftState.getBlock()instanceof IRotate ir)
 			targetAxis = ir.getRotationAxis(shaftState);
 		verticalTarget = targetAxis == Axis.Y;
 
@@ -101,8 +106,9 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 			facing = blockState.getValue(SteamEngineBlock.FACING);
 
 		float efficiency = Mth.clamp(tank.boiler.getEngineEfficiency(tank.getTotalTankSize()), 0, 1);
-		// if (efficiency > 0)
-		// 	award(AllAdvancements.STEAM_ENGINE);
+		if (efficiency > 0)
+
+			award(AllAdvancements.STEAM_ENGINE);
 
 		int conveyedSpeedLevel =
 			efficiency == 0 ? 1 : verticalTarget ? 1 : (int) GeneratingKineticBlockEntity.convertToDirection(1, facing);
@@ -124,7 +130,7 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 		if (!level.isClientSide)
 			return;
 
-		spawnParticles();
+		EnvExecutor.runWhenOn(EnvType.CLIENT, () -> this::spawnParticles);
 	}
 
 	@Override
@@ -135,58 +141,43 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 		super.remove();
 	}
 
-	@Nullable
+	@Override
+	@Environment(EnvType.CLIENT)
+	protected AABB createRenderBoundingBox() {
+		return super.createRenderBoundingBox().inflate(2);
+	}
+
 	public PoweredShaftBlockEntity getShaft() {
 		PoweredShaftBlockEntity shaft = target.get();
 		if (shaft == null || shaft.isRemoved() || !shaft.canBePoweredBy(worldPosition)) {
 			if (shaft != null)
 				target = new WeakReference<>(null);
 			Direction facing = SteamEngineBlock.getFacing(getBlockState());
-			BlockPos shaftPos = SteamEngineBlock.getShaftPos(getBlockState(), worldPosition);
-			BlockState shaftState = level.getBlockState(shaftPos);
-			if (!SteamEngineBlock.isShaftValid(getBlockState(), shaftState))
-				return null;
-			if (level.getBlockEntity(shaftPos) instanceof PoweredShaftBlockEntity psbe) {
-				if (!psbe.canBePoweredBy(worldPosition))
-					return null;
-				target = new WeakReference<>(shaft = psbe);
-				return shaft;
-			}
-			return null;
+			BlockEntity anyShaftAt = level.getBlockEntity(worldPosition.relative(facing, 2));
+			if (anyShaftAt instanceof PoweredShaftBlockEntity ps && ps.canBePoweredBy(worldPosition))
+				target = new WeakReference<>(shaft = ps);
 		}
 		return shaft;
 	}
 
-	@Nullable
 	public FluidTankBlockEntity getTank() {
 		FluidTankBlockEntity tank = source.get();
 		if (tank == null || tank.isRemoved()) {
 			if (tank != null)
 				source = new WeakReference<>(null);
 			Direction facing = SteamEngineBlock.getFacing(getBlockState());
-			BlockPos tankPos = worldPosition.relative(facing.getOpposite());
-			if (level.getBlockEntity(tankPos) instanceof FluidTankBlockEntity fte) {
-				source = new WeakReference<>(tank = fte);
-				return tank;
-			}
-			return null;
+			BlockEntity be = level.getBlockEntity(worldPosition.relative(facing.getOpposite()));
+			if (be instanceof FluidTankBlockEntity tankBe)
+				source = new WeakReference<>(tank = tankBe);
 		}
-		return tank;
+		if (tank == null)
+			return null;
+		return tank.getControllerBE();
 	}
 
-	public boolean isValid() {
-		BlockState blockState = getBlockState();
-		if (!AllBlocks.STEAM_ENGINE.has(blockState))
-			return false;
-		Direction facing = SteamEngineBlock.getFacing(blockState);
-		PoweredShaftBlockEntity shaft = getShaft();
-		FluidTankBlockEntity tank = getTank();
-		return shaft != null && tank != null && tank.boiler != null && tank.boiler.isActive();
-	}
+	float prevAngle = 0;
 
-	private void distortPistonPoles(PoweredShaftBlockEntity shaft, boolean verticalTarget) {
-	}
-
+	@Environment(EnvType.CLIENT)
 	private void spawnParticles() {
 		Float targetAngle = getTargetAngle();
 		PoweredShaftBlockEntity ste = target.get();
@@ -201,8 +192,8 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 		angle += (angle < 0) ? -180 + 75 : 360 - 75;
 		angle %= 360;
 
-		PoweredShaftBlockEntity currentShaft = getShaft();
-		if (currentShaft == null || currentShaft.getSpeed() == 0)
+		PoweredShaftBlockEntity shaft = getShaft();
+		if (shaft == null || shaft.getSpeed() == 0)
 			return;
 
 		if (angle >= 0 && !(prevAngle > 180 && angle < 180)) {
@@ -218,7 +209,11 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 		if (sourceBE != null) {
 			FluidTankBlockEntity controller = sourceBE.getControllerBE();
 			if (controller != null && controller.boiler != null) {
-				controller.boiler.queueSoundOnSide(worldPosition, SteamEngineBlock.getFacing(getBlockState()));
+				float volume = 3f / Math.max(2, controller.boiler.attachedEngines / 6);
+				float pitch = 1.18f - level.random.nextFloat() * .25f;
+				level.playLocalSound(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(),
+					SoundEvents.CANDLE_EXTINGUISH, SoundSource.BLOCKS, volume, pitch, false);
+				AllSoundEvents.STEAM.playAt(level, worldPosition, volume / 16, .8f, false);
 			}
 		}
 
@@ -254,12 +249,8 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 		if (shaft == null)
 			return null;
 
-		BlockState shaftState = shaft.getBlockState();
-		if (shaftState.getBlock() instanceof IRotate ir)
-			axis = ir.getRotationAxis(shaftState);
-		float time = AnimationTickHolder.getRenderTime(shaft.getLevel());
-		float offset = shaft.getRotationAngleOffset(axis);
-		angle = ((time * shaft.getSpeed() * 3f / 10 + offset) % 360) / 180 * (float) Math.PI;
+		axis = KineticBlockEntityRenderer.getRotationAxisOf(shaft);
+		angle = KineticBlockEntityRenderer.getAngleForTe(shaft, shaft.getBlockPos(), axis);
 
 		if (axis == facingAxis)
 			return null;
@@ -273,7 +264,7 @@ public class SteamEngineBlockEntity extends SmartBlockEntity implements IHaveGog
 	@Override
 	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
 		PoweredShaftBlockEntity shaft = getShaft();
-		return shaft != null && shaft.addToEngineTooltip(tooltip, isPlayerSneaking);
+		return shaft == null ? false : shaft.addToEngineTooltip(tooltip, isPlayerSneaking);
 	}
 
 }

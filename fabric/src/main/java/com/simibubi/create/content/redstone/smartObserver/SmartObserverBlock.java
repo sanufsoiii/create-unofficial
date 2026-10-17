@@ -10,10 +10,10 @@ import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
-import com.simibubi.create.foundation.fluid.FluidTransferUtil;
-import com.simibubi.create.foundation.item.ItemTransferUtil;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
+import io.github.fabricators_of_create.porting_lib_ufo.block.ConnectableRedstoneBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -31,8 +31,10 @@ import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
-public class SmartObserverBlock extends DirectedDirectionalBlock implements IBE<SmartObserverBlockEntity> {
+public class SmartObserverBlock extends DirectedDirectionalBlock implements IBE<SmartObserverBlockEntity>, ConnectableRedstoneBlock {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
@@ -62,10 +64,8 @@ public class SmartObserverBlock extends DirectedDirectionalBlock implements IBE<
 				canDetect = true;
 			else if (BlockEntityBehaviour.get(blockEntity, FluidTransportBehaviour.TYPE) != null)
 				canDetect = true;
-			else if (blockEntity != null && (
-					ItemTransferUtil.getInventory(world, offsetPos, null) != null ||
-					FluidTransferUtil.hasFluidHandler(world, offsetPos, null)
-			))
+			else if (TransferUtil.getItemStorage(world, offsetPos, face.getOpposite()) != null
+					|| TransferUtil.getFluidStorage(world, offsetPos, face.getOpposite()) != null)
 				canDetect = true;
 			else if (blockEntity instanceof FunnelBlockEntity)
 				canDetect = true;
@@ -103,10 +103,11 @@ public class SmartObserverBlock extends DirectedDirectionalBlock implements IBE<
 
 	@Override
 	public void tick(BlockState state, ServerLevel worldIn, BlockPos pos, RandomSource random) {
-		worldIn.setBlock(pos, state.setValue(POWERED, false), Block.UPDATE_CLIENTS);
+		worldIn.setBlock(pos, state.setValue(POWERED, false), 2);
 		worldIn.updateNeighborsAt(pos, this);
 	}
 
+	@Override
 	public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, Direction side) {
 		return side != state.getValue(FACING)
 			.getOpposite();

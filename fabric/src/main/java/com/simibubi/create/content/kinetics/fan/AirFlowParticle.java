@@ -1,13 +1,13 @@
 package com.simibubi.create.content.kinetics.fan;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nonnull;
 
+import com.simibubi.create.content.kinetics.fan.processing.AllFanProcessingTypes;
 import com.simibubi.create.content.kinetics.fan.processing.FanProcessingType;
+import com.simibubi.create.content.kinetics.fan.processing.AllFanProcessingTypes;
+import com.simibubi.create.content.kinetics.fan.processing.FanProcessingType;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.math.VecHelper;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
@@ -21,7 +21,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 
-@Environment(EnvType.CLIENT)
 public class AirFlowParticle extends SimpleAnimatedParticle {
 
 	private final IAirCurrentSource source;
@@ -44,7 +43,7 @@ public class AirFlowParticle extends SimpleAnimatedParticle {
 		setAlpha(.25f);
 	}
 
-	@NotNull
+	@Nonnull
 	public ParticleRenderType getRenderType() {
 		return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
 	}
@@ -62,81 +61,62 @@ public class AirFlowParticle extends SimpleAnimatedParticle {
 			remove();
 		} else {
 			AirCurrent airCurrent = source.getAirCurrent();
-			if (airCurrent == null || airCurrent.direction == null) {
+			if (airCurrent == null || !airCurrent.bounds.inflate(.25f).contains(x, y, z)) {
 				remove();
 				return;
 			}
 
-			Vec3 center = VecHelper.getCenterOf(source.getAirCurrentPos());
-			Vec3 motion = Vec3.atLowerCornerOf(airCurrent.direction.getNormal());
-			Vec3 distanceVec = new Vec3(x, y, z).subtract(center);
-			double distance = distanceVec.length();
+			Vec3 directionVec = Vec3.atLowerCornerOf(airCurrent.direction.getNormal());
+			Vec3 motion = directionVec.scale(1 / 8f);
+			if (!source.getAirCurrent().pushing)
+				motion = motion.scale(-1);
 
-			if (distance > airCurrent.maxDistance) {
+			double distance = new Vec3(x, y, z).subtract(VecHelper.getCenterOf(source.getAirCurrentPos()))
+					.multiply(directionVec).length() - .5f;
+			if (distance > airCurrent.maxDistance + 1 || distance < -.25f) {
 				remove();
 				return;
 			}
-
-			if (distance != 0) {
-				distanceVec = distanceVec.normalize();
-				motion = motion.add(distanceVec.scale(1 / 16f));
-			}
-
 			motion = motion.scale(airCurrent.maxDistance - (distance - 1f)).scale(.5f);
 
 			FanProcessingType type = getType(distance);
-			if (type == null) {
+			if (type == AllFanProcessingTypes.NONE) {
 				setColor(0xEEEEEE);
 				setAlpha(.25f);
 				selectSprite((int) Mth.clamp((distance / airCurrent.maxDistance) * 8 + random.nextInt(4),
 						0, 7));
 			} else {
 				type.morphAirFlow(access, random);
+				selectSprite(random.nextInt(3));
 			}
 
 			xd = motion.x;
 			yd = motion.y;
 			zd = motion.z;
 
-			move(xd, yd, zd);
+			if (this.onGround) {
+				this.xd *= 0.7;
+				this.zd *= 0.7;
+			}
+			this.move(this.xd, this.yd, this.zd);
 		}
 	}
 
-	@Nullable
 	private FanProcessingType getType(double distance) {
 		if (source.getAirCurrent() == null)
-			return null;
+			return AllFanProcessingTypes.NONE;
 		return source.getAirCurrent().getTypeAt((float) distance);
 	}
 
 	public int getLightColor(float partialTick) {
 		BlockPos blockpos = BlockPos.containing(this.x, this.y, this.z);
-		return this.level.hasChunkAt(blockpos) ? LevelRenderer.getLightColor(this.level, blockpos) : 0;
+		return this.level.isLoaded(blockpos) ? LevelRenderer.getLightColor(level, blockpos) : 0;
 	}
 
 	private void selectSprite(int index) {
 		setSprite(sprites.get(index, 8));
 	}
 
-	private class Access implements FanProcessingType.AirFlowParticleAccess {
-		@Override
-		public void setColor(int color) {
-			AirFlowParticle.this.setColor(color);
-		}
-
-		@Override
-		public void setAlpha(float alpha) {
-			AirFlowParticle.this.setAlpha(alpha);
-		}
-
-		@Override
-		public void spawnExtraParticle(ParticleOptions options, float speedMultiplier) {
-			Vec3 m = Vec3.atLowerCornerOf(source.getAirFlowDirection().getNormal()).scale(speedMultiplier);
-			AirFlowParticle.this.level.addParticle(options, x, y, z, m.x, m.y, m.z);
-		}
-	}
-
-	@Environment(EnvType.CLIENT)
 	public static class Factory implements ParticleProvider<AirFlowParticleData> {
 		private final SpriteSet spriteSet;
 
@@ -153,4 +133,22 @@ public class AirFlowParticle extends SimpleAnimatedParticle {
 			return new AirFlowParticle(worldIn, (IAirCurrentSource) be, x, y, z, this.spriteSet);
 		}
 	}
+
+	private class Access implements FanProcessingType.AirFlowParticleAccess {
+		@Override
+		public void setColor(int color) {
+			AirFlowParticle.this.setColor(color);
+		}
+
+		@Override
+		public void setAlpha(float alpha) {
+			AirFlowParticle.this.setAlpha(alpha);
+		}
+
+		@Override
+		public void spawnExtraParticle(ParticleOptions options, float speedMultiplier) {
+			level.addParticle(options, x, y, z, xd * speedMultiplier, yd * speedMultiplier, zd * speedMultiplier);
+		}
+	}
+
 }

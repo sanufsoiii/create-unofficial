@@ -19,8 +19,8 @@ import net.minecraft.world.level.block.state.BlockState;
 public class CrafterCTBehaviour extends ConnectedTextureBehaviour.Base {
 
 	@Override
-	public boolean connectsTo(BlockState state, BlockState other, BlockAndTintGetter reader, BlockPos pos, BlockPos otherPos,
-		Direction face) {
+	public boolean connectsTo(BlockState state, BlockState other, BlockAndTintGetter reader, BlockPos pos,
+			BlockPos otherPos, Direction face) {
 		if (state.getBlock() != other.getBlock())
 			return false;
 		if (state.getValue(HORIZONTAL_FACING) != other.getValue(HORIZONTAL_FACING))
@@ -30,8 +30,7 @@ public class CrafterCTBehaviour extends ConnectedTextureBehaviour.Base {
 
 	@Override
 	protected boolean reverseUVs(BlockState state, Direction direction) {
-		if (!direction.getAxis()
-			.isVertical())
+		if (!direction.getAxis().isVertical())
 			return false;
 		Direction facing = state.getValue(HORIZONTAL_FACING);
 		if (facing.getAxis() == direction.getAxis())
@@ -47,11 +46,10 @@ public class CrafterCTBehaviour extends ConnectedTextureBehaviour.Base {
 	public CTSpriteShiftEntry getShift(BlockState state, Direction direction, @Nullable TextureAtlasSprite sprite) {
 		Direction facing = state.getValue(HORIZONTAL_FACING);
 		boolean isFront = facing.getAxis() == direction.getAxis();
-		boolean isVertical = direction.getAxis()
-			.isVertical();
+		boolean isVertical = direction.getAxis().isVertical();
 		boolean facingX = facing.getAxis() == Axis.X;
 		return isFront ? AllSpriteShifts.BRASS_CASING
-			: isVertical && !facingX ? AllSpriteShifts.CRAFTER_OTHERSIDE : AllSpriteShifts.CRAFTER_SIDE;
+				: isVertical && !facingX ? AllSpriteShifts.CRAFTER_OTHERSIDE : AllSpriteShifts.CRAFTER_SIDE;
 	}
 
 }

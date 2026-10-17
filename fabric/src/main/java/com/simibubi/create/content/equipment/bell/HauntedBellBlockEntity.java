@@ -1,17 +1,21 @@
 package com.simibubi.create.content.equipment.bell;
 
+import com.jozufozu.flywheel.core.PartialModel;
+import com.simibubi.create.AllPartialModels;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 public class HauntedBellBlockEntity extends AbstractBellBlockEntity {
 
@@ -26,25 +30,30 @@ public class HauntedBellBlockEntity extends AbstractBellBlockEntity {
 	}
 
 	@Override
+	@Environment(EnvType.CLIENT)
+	public PartialModel getBellModel() {
+		return AllPartialModels.HAUNTED_BELL;
+	}
+
+	@Override
 	public boolean ring(Level world, BlockPos pos, Direction direction) {
 		if (isRinging && ringingTicks < RECHARGE_TICKS)
 			return false;
-		if (world instanceof ServerLevel serverLevel)
-			HauntedBellPulser.sendPulse(serverLevel, pos, DISTANCE, false);
+		HauntedBellPulser.sendPulse(world, pos, DISTANCE, false);
 		effectTicks = EFFECT_TICKS;
 		return super.ring(world, pos, direction);
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(compound, registries, clientPacket);
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		super.write(compound, clientPacket);
 		compound.putInt("EffectTicks", effectTicks);
 	}
-
+	
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
-		effectTicks = compound.getInt("EffectTicks");
+	protected void read(CompoundTag tag, Provider registries, boolean clientPacket) {
+		super.read(tag, registries, clientPacket);
+		effectTicks = tag.getInt("EffectTicks");
 	}
 
 	@Override

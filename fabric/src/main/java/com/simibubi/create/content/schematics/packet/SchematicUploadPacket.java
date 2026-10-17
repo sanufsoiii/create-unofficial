@@ -1,57 +1,82 @@
 package com.simibubi.create.content.schematics.packet;
 
-import com.simibubi.create.AllPackets;
 import com.simibubi.create.Create;
 import com.simibubi.create.content.schematics.table.SchematicTableMenu;
+import com.simibubi.create.foundation.networking.SimplePacketBase;
 
-import io.netty.buffer.ByteBuf;
-import net.createmod.catnip.codecs.stream.CatnipStreamCodecBuilders;
-import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 
-public record SchematicUploadPacket(int code, long size, String schematic, byte[] data) implements ServerboundPacketPayload {
+public class SchematicUploadPacket extends SimplePacketBase {
+
 	public static final int BEGIN = 0;
 	public static final int WRITE = 1;
 	public static final int FINISH = 2;
 
-	public static final StreamCodec<ByteBuf, SchematicUploadPacket> STREAM_CODEC = StreamCodec.composite(
-			ByteBufCodecs.VAR_INT, SchematicUploadPacket::code,
-			ByteBufCodecs.VAR_LONG, SchematicUploadPacket::size,
-			CatnipStreamCodecBuilders.nullable(ByteBufCodecs.stringUtf8(256)), SchematicUploadPacket::schematic,
-			CatnipStreamCodecBuilders.nullable(ByteBufCodecs.byteArray(Integer.MAX_VALUE)), SchematicUploadPacket::data,
-			SchematicUploadPacket::new
-	);
+	private int code;
+	private long size;
+	private String schematic;
+	private byte[] data;
+
+	public SchematicUploadPacket(int code, String schematic) {
+		this.code = code;
+		this.schematic = schematic;
+	}
 
 	public static SchematicUploadPacket begin(String schematic, long size) {
-		return new SchematicUploadPacket(BEGIN, size, schematic, null);
+		SchematicUploadPacket pkt = new SchematicUploadPacket(BEGIN, schematic);
+		pkt.size = size;
+		return pkt;
 	}
 
 	public static SchematicUploadPacket write(String schematic, byte[] data) {
-		return new SchematicUploadPacket(WRITE, 0, schematic, data);
+		SchematicUploadPacket pkt = new SchematicUploadPacket(WRITE, schematic);
+		pkt.data = data;
+		return pkt;
 	}
 
 	public static SchematicUploadPacket finish(String schematic) {
-		return new SchematicUploadPacket(FINISH, 0, schematic, null);
+		return new SchematicUploadPacket(FINISH, schematic);
+	}
+
+	public SchematicUploadPacket(RegistryFriendlyByteBuf buffer) {
+		code = buffer.readInt();
+		schematic = buffer.readUtf(256);
+
+		if (code == BEGIN)
+			size = buffer.readLong();
+		if (code == WRITE)
+			data = buffer.readByteArray();
 	}
 
 	@Override
-	public PacketTypeProvider getTypeProvider() {
-		return AllPackets.UPLOAD_SCHEMATIC;
+	public void write(RegistryFriendlyByteBuf buffer) {
+		buffer.writeInt(code);
+		buffer.writeUtf(schematic);
+
+		if (code == BEGIN)
+			buffer.writeLong(size);
+		if (code == WRITE)
+			buffer.writeByteArray(data);
 	}
 
 	@Override
-	public void handle(ServerPlayer player) {
-		if (this.code == BEGIN) {
-			BlockPos pos = ((SchematicTableMenu) player.containerMenu).contentHolder
-					.getBlockPos();
-			com.simibubi.create.fabric.CreateFabric.SCHEMATIC_RECEIVER.handleNewUpload(player, this.schematic, this.size, pos);
-		}
-		if (this.code == WRITE)
-			com.simibubi.create.fabric.CreateFabric.SCHEMATIC_RECEIVER.handleWriteRequest(player, this.schematic, this.data);
-		if (this.code == FINISH)
-			com.simibubi.create.fabric.CreateFabric.SCHEMATIC_RECEIVER.handleFinishedUpload(player, this.schematic);
+	public boolean handle(Context context) {
+		context.enqueueWork(() -> {
+			ServerPlayer player = context.getSender();
+			if (player == null)
+				return;
+			if (code == BEGIN) {
+				BlockPos pos = ((SchematicTableMenu) player.containerMenu).contentHolder.getBlockPos();
+				Create.SCHEMATIC_RECEIVER.handleNewUpload(player, schematic, size, pos);
+			}
+			if (code == WRITE)
+				Create.SCHEMATIC_RECEIVER.handleWriteRequest(player, schematic, data);
+			if (code == FINISH)
+				Create.SCHEMATIC_RECEIVER.handleFinishedUpload(player, schematic);
+		});
+		return true;
 	}
+
 }

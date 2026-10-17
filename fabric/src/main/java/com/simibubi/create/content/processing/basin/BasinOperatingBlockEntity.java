@@ -3,6 +3,7 @@ package com.simibubi.create.content.processing.basin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.advancement.CreateAdvancement;
@@ -11,8 +12,8 @@ import com.simibubi.create.foundation.blockEntity.behaviour.simple.DeferralBehav
 import com.simibubi.create.foundation.recipe.RecipeFinder;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -81,14 +82,13 @@ public abstract class BasinOperatingBlockEntity extends KineticBlockEntity {
 
 	protected abstract boolean isRunning();
 
-	public void startProcessingBasin() {
-	}
+	public void startProcessingBasin() {}
 
 	public boolean continueWithPreviousRecipe() {
 		return true;
 	}
 
-	protected <I extends RecipeInput> boolean matchBasinRecipe(Recipe<I> recipe) {
+	protected <C extends RecipeInput> boolean matchBasinRecipe(Recipe<C> recipe) {
 		if (recipe == null)
 			return false;
 		Optional<BasinBlockEntity> basin = getBasin();
@@ -121,19 +121,18 @@ public abstract class BasinOperatingBlockEntity extends KineticBlockEntity {
 	}
 
 	protected List<Recipe<?>> getMatchingRecipes() {
-		Optional<BasinBlockEntity> $basin = getBasin();
-		BasinBlockEntity basin;
-		if ($basin.isEmpty() || (basin = $basin.get()).isEmpty())
+		if (getBasin().map(BasinBlockEntity::isEmpty)
+			.orElse(true))
 			return new ArrayList<>();
-
-		List<Recipe<?>> list = new ArrayList<>();
-		for (RecipeHolder<? extends Recipe<?>> r : RecipeFinder.get(getRecipeCacheKey(), level, this::matchStaticFilters)) {
-			if (matchBasinRecipe(r.value()))
-				list.add(r.value());
-		}
-
-		list.sort((r1, r2) -> r2.getIngredients().size() - r1.getIngredients().size());
-		return list;
+		
+		List<Recipe<?>> list = RecipeFinder.get(getRecipeCacheKey(), level, this::matchStaticFilters);
+		return list.stream()
+			.filter(this::matchBasinRecipe)
+			.sorted((r1, r2) -> r2.getIngredients()
+				.size()
+				- r1.getIngredients()
+					.size())
+			.collect(Collectors.toList());
 	}
 
 	protected abstract void onBasinRemoved();
@@ -151,7 +150,7 @@ public abstract class BasinOperatingBlockEntity extends KineticBlockEntity {
 		return Optional.empty();
 	}
 
-	protected abstract boolean matchStaticFilters(RecipeHolder<? extends Recipe<?>> recipe);
+	protected abstract <C extends RecipeInput> boolean matchStaticFilters(Recipe<C> recipe);
 
 	protected abstract Object getRecipeCacheKey();
 }

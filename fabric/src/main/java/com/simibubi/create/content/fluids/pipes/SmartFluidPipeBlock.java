@@ -8,8 +8,8 @@ import com.simibubi.create.content.fluids.FluidPropagator;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.math.VoxelShaper;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.VoxelShaper;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -38,8 +38,6 @@ import net.minecraft.world.ticks.TickPriority;
 
 public class SmartFluidPipeBlock extends FaceAttachedHorizontalDirectionalBlock
 	implements IBE<SmartFluidPipeBlockEntity>, IAxisPipe, IWrenchable, ProperWaterloggedBlock {
-
-	public static final MapCodec<SmartFluidPipeBlock> CODEC = simpleCodec(SmartFluidPipeBlock::new);
 
 	public SmartFluidPipeBlock(Properties p_i48339_1_) {
 		super(p_i48339_1_);
@@ -182,12 +180,13 @@ public class SmartFluidPipeBlock extends FaceAttachedHorizontalDirectionalBlock
 
 	@Override
 	public BlockEntityType<? extends SmartFluidPipeBlockEntity> getBlockEntityType() {
-		return AllBlockEntityTypes.SMART_FLUID_PIPE.get();
+		return  AllBlockEntityTypes.SMART_FLUID_PIPE.get();
 	}
 
 	@Override
 	protected MapCodec<? extends FaceAttachedHorizontalDirectionalBlock> codec() {
-		return CODEC;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

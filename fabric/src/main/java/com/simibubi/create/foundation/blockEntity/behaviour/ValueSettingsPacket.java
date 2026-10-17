@@ -1,55 +1,59 @@
 package com.simibubi.create.foundation.blockEntity.behaviour;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
-import com.simibubi.create.AllPackets;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehaviour.ValueSettings;
 import com.simibubi.create.foundation.networking.BlockEntityConfigurationPacket;
 
-import net.createmod.catnip.codecs.stream.CatnipLargerStreamCodecs;
-import net.createmod.catnip.codecs.stream.CatnipStreamCodecBuilders;
-import net.createmod.catnip.codecs.stream.CatnipStreamCodecs;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.phys.BlockHitResult;
 
 public class ValueSettingsPacket extends BlockEntityConfigurationPacket<SmartBlockEntity> {
-	public static final StreamCodec<ByteBuf, ValueSettingsPacket> STREAM_CODEC = CatnipLargerStreamCodecs.composite(
-			BlockPos.STREAM_CODEC, p -> p.pos,
-			ByteBufCodecs.VAR_INT, p -> p.row,
-			ByteBufCodecs.VAR_INT, p -> p.value,
-			CatnipStreamCodecBuilders.nullable(CatnipStreamCodecs.HAND), p -> p.interactHand,
-			CatnipStreamCodecBuilders.nullable(CatnipStreamCodecs.BLOCK_HIT_RESULT), p -> p.hitResult,
-			Direction.STREAM_CODEC, p -> p.side,
-			ByteBufCodecs.BOOL, p -> p.ctrlDown,
-			ByteBufCodecs.VAR_INT, p -> p.behaviourIndex,
-			ValueSettingsPacket::new
-	);
 
-	private final int row;
-	private final int value;
-	private final InteractionHand interactHand;
-	private final Direction side;
-	private final boolean ctrlDown;
-	private final int behaviourIndex;
-	private final BlockHitResult hitResult;
+	private int row;
+	private int value;
+	private InteractionHand interactHand;
+	private Direction side;
+	private boolean ctrlDown;
 
-	public ValueSettingsPacket(BlockPos pos, int row, int value, @Nullable InteractionHand interactHand,
-		@Nullable BlockHitResult hitResult, Direction side, boolean ctrlDown, int behaviourIndex) {
+	public ValueSettingsPacket(BlockPos pos, int row, int value, @Nullable InteractionHand interactHand, Direction side,
+		boolean ctrlDown) {
 		super(pos);
 		this.row = row;
 		this.value = value;
 		this.interactHand = interactHand;
-		this.hitResult = hitResult;
 		this.side = side;
 		this.ctrlDown = ctrlDown;
-		this.behaviourIndex = behaviourIndex;
+	}
+
+	public ValueSettingsPacket(RegistryFriendlyByteBuf buffer) {
+		super(buffer);
+	}
+
+	@Override
+	protected void writeSettings(RegistryFriendlyByteBuf buffer) {
+		buffer.writeVarInt(value);
+		buffer.writeVarInt(row);
+		buffer.writeBoolean(interactHand != null);
+		if (interactHand != null)
+			buffer.writeBoolean(interactHand == InteractionHand.MAIN_HAND);
+		buffer.writeVarInt(side.ordinal());
+		buffer.writeBoolean(ctrlDown);
+	}
+
+	@Override
+	protected void readSettings(RegistryFriendlyByteBuf buffer) {
+		value = buffer.readVarInt();
+		row = buffer.readVarInt();
+		if (buffer.readBoolean())
+			interactHand = buffer.readBoolean() ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
+		side = Direction.values()[buffer.readVarInt()];
+		ctrlDown = buffer.readBoolean();
 	}
 
 	@Override
@@ -59,10 +63,8 @@ public class ValueSettingsPacket extends BlockEntityConfigurationPacket<SmartBlo
 				continue;
 			if (!valueSettingsBehaviour.acceptsValueSettings())
 				continue;
-			if (behaviourIndex != valueSettingsBehaviour.netId())
-				continue;
 			if (interactHand != null) {
-				valueSettingsBehaviour.onShortInteract(player, interactHand, side, hitResult);
+				valueSettingsBehaviour.onShortInteract(player, interactHand, side);
 				return;
 			}
 			valueSettingsBehaviour.setValueSettings(player, new ValueSettings(row, value), ctrlDown);
@@ -71,7 +73,6 @@ public class ValueSettingsPacket extends BlockEntityConfigurationPacket<SmartBlo
 	}
 
 	@Override
-	public PacketTypeProvider getTypeProvider() {
-		return AllPackets.VALUE_SETTINGS;
-	}
+	protected void applySettings(SmartBlockEntity be) {}
+
 }

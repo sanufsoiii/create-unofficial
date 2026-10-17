@@ -4,20 +4,20 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import com.jozufozu.flywheel.util.transform.TransformStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllPackets;
 import com.simibubi.create.AllPartialModels;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 import com.simibubi.create.foundation.gui.AllIcons;
+import com.simibubi.create.foundation.gui.element.GuiGameElement;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.gui.widget.IconButton;
-import net.createmod.catnip.platform.CatnipServices;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Lang;
 
-import dev.engine_room.flywheel.lib.transform.TransformStack;
-import net.createmod.catnip.gui.element.GuiGameElement;
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
@@ -40,19 +40,20 @@ public class ToolboxScreen extends AbstractSimiContainerScreen<ToolboxMenu> {
 
 	public ToolboxScreen(ToolboxMenu menu, Inventory inv, Component title) {
 		super(menu, inv, title);
-		init();
+//		init(); // fabric: this causes a crash with Trinkets since minecraft is null.
+				// removal seems to have no effect. why is it here?
 	}
 
 	@Override
 	protected void init() {
-		setWindowSize(30 + BG.getWidth(), BG.getHeight() + PLAYER.getHeight() - 24);
+		setWindowSize(30 + BG.width, BG.height + PLAYER.height - 24);
 		setWindowOffset(-11, 0);
 		super.init();
 		clearWidgets();
 
 		color = menu.contentHolder.getColor();
 
-		confirmButton = new IconButton(leftPos + 30 + BG.getWidth() - 33, topPos + BG.getHeight() - 24, AllIcons.I_CONFIRM);
+		confirmButton = new IconButton(leftPos + 30 + BG.width - 33, topPos + BG.height - 24, AllIcons.I_CONFIRM);
 		confirmButton.withCallback(() -> {
 			minecraft.player.closeContainer();
 		});
@@ -60,13 +61,13 @@ public class ToolboxScreen extends AbstractSimiContainerScreen<ToolboxMenu> {
 
 		disposeButton = new IconButton(leftPos + 30 + 81, topPos + 69, AllIcons.I_TOOLBOX);
 		disposeButton.withCallback(() -> {
-			CatnipServices.NETWORK.sendToServer(new ToolboxDisposeAllPacket(menu.contentHolder.getBlockPos()));
+			AllPackets.getChannel().sendToServer(new ToolboxDisposeAllPacket(menu.contentHolder.getBlockPos()));
 		});
-		disposeButton.setToolTip(CreateLang.translateDirect("toolbox.depositBox"));
+		disposeButton.setToolTip(Lang.translateDirect("toolbox.depositBox"));
 		addRenderableWidget(disposeButton);
 
 		extraAreas = ImmutableList.of(
-			new Rect2i(leftPos + 30 + BG.getWidth(), topPos + BG.getHeight() - 15 - 34 - 6, 72, 68)
+			new Rect2i(leftPos + 30 + BG.width, topPos + BG.height - 15 - 34 - 6, 72, 68)
 		);
 	}
 
@@ -79,17 +80,17 @@ public class ToolboxScreen extends AbstractSimiContainerScreen<ToolboxMenu> {
 
 	@Override
 	protected void renderBg(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY) {
-		int x = leftPos + imageWidth - BG.getWidth();
+		int x = leftPos + imageWidth - BG.width;
 		int y = topPos;
 
 		BG.render(graphics, x, y);
 		graphics.drawString(font, title, x + 15, y + 4, 0x592424, false);
 
 		int invX = leftPos;
-		int invY = topPos + imageHeight - PLAYER.getHeight();
+		int invY = topPos + imageHeight - PLAYER.height;
 		renderPlayerInventory(graphics, invX, invY);
 
-		renderToolbox(graphics, x + BG.getWidth() + 50, y + BG.getHeight() + 12, partialTicks);
+		renderToolbox(graphics, x + BG.width + 50, y + BG.height + 12, partialTicks);
 
 		PoseStack ms = graphics.pose();
 
@@ -119,7 +120,7 @@ public class ToolboxScreen extends AbstractSimiContainerScreen<ToolboxMenu> {
 				hoveredToolboxSlot = slot;
 				RenderSystem.disableDepthTest();
 				RenderSystem.colorMask(true, true, true, false);
-				int slotColor = 0x80FFFFFF;
+				int slotColor = 0x80FFFFFF;// default in forge, never overridden. // this.getSlotColor(baseIndex);
 				graphics.fillGradient(i, j, i + 16, j + 16, slotColor, slotColor);
 				RenderSystem.colorMask(true, true, true, true);
 				RenderSystem.enableDepthTest();
@@ -129,21 +130,21 @@ public class ToolboxScreen extends AbstractSimiContainerScreen<ToolboxMenu> {
 
 	private void renderToolbox(GuiGraphics graphics, int x, int y, float partialTicks) {
         PoseStack ms = graphics.pose();
-		TransformStack.of(ms)
+		TransformStack.cast(ms)
 			.pushPose()
 			.translate(x, y, 100)
 			.scale(50)
-			.rotateXDegrees(-22)
-			.rotateYDegrees(-202);
+			.rotateX(-22)
+			.rotateY(-202);
 
 		GuiGameElement.of(AllBlocks.TOOLBOXES.get(color)
 			.getDefaultState())
 			.render(graphics);
 
-        TransformStack.of(ms)
+        TransformStack.cast(ms)
 			.pushPose()
 			.translate(0, -6 / 16f, 12 / 16f)
-			.rotateXDegrees(-105 * menu.contentHolder.lid.getValue(partialTicks))
+			.rotateX(-105 * menu.contentHolder.lid.getValue(partialTicks))
 			.translate(0, 6 / 16f, -12 / 16f);
 		GuiGameElement.of(AllPartialModels.TOOLBOX_LIDS.get(color))
 			.render(graphics);

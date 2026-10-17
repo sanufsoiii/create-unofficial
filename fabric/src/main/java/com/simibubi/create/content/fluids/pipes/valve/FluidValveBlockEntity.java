@@ -10,13 +10,13 @@ import com.simibubi.create.content.fluids.pipes.StraightPipeBlockEntity.Straight
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -46,7 +46,7 @@ public class FluidValveBlockEntity extends KineticBlockEntity implements PipeAtt
 		super.tick();
 		pointer.tickChaser();
 
-		if (level != null && level.isClientSide)
+		if (level.isClientSide)
 			return;
 
 		BlockState blockState = getBlockState();
@@ -69,14 +69,14 @@ public class FluidValveBlockEntity extends KineticBlockEntity implements PipeAtt
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(compound, registries, clientPacket);
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		super.write(compound, clientPacket);
 		compound.put("Pointer", pointer.writeNBT());
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		super.read(compound, reg, clientPacket);
 		pointer.readNBT(compound.getCompound("Pointer"), clientPacket);
 	}
 

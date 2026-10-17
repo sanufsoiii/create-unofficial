@@ -1,11 +1,14 @@
 package com.simibubi.create.content.contraptions.actors.psi;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
 
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.LivingEntity;
@@ -19,6 +22,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class PortableStorageInterfaceBlock extends WrenchableDirectionalBlock
 	implements IBE<PortableStorageInterfaceBlockEntity> {
 
@@ -48,7 +53,7 @@ public class PortableStorageInterfaceBlock extends WrenchableDirectionalBlock
 		super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
 		AdvancementBehaviour.setPlacedBy(pLevel, pPos, pPlacer);
 	}
-
+	
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
 		Direction direction = context.getNearestLookingDirection();
@@ -84,4 +89,5 @@ public class PortableStorageInterfaceBlock extends WrenchableDirectionalBlock
 		return fluids ? AllBlockEntityTypes.PORTABLE_FLUID_INTERFACE.get()
 			: AllBlockEntityTypes.PORTABLE_STORAGE_INTERFACE.get();
 	}
+
 }

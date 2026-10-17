@@ -1,20 +1,19 @@
 package com.simibubi.create.content.kinetics.mechanicalArm;
 
-import java.util.Iterator;
+import javax.annotation.Nullable;
 
-import org.jetbrains.annotations.Nullable;
-
-import com.simibubi.create.api.registry.CreateBuiltInRegistries;
 import com.simibubi.create.content.contraptions.StructureTransform;
+import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.NbtFixer;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import io.github.fabricators_of_create.porting_lib.util.StorageProvider;
-import net.createmod.catnip.math.VecHelper;
-import net.createmod.catnip.nbt.NBTHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.util.StorageProvider;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
-import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
-import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -77,8 +76,8 @@ public class ArmInteractionPoint {
 
 	public ArmAngleTarget getTargetAngles(BlockPos armPos, boolean ceiling) {
 		if (cachedAngles == null)
-			cachedAngles =
-				new ArmAngleTarget(armPos, getInteractionPositionVector(), getInteractionDirection(), ceiling);
+			cachedAngles = new ArmAngleTarget(armPos, getInteractionPositionVector(), getInteractionDirection(),
+					ceiling);
 
 		return cachedAngles;
 	}
@@ -96,66 +95,30 @@ public class ArmInteractionPoint {
 	}
 
 	@Nullable
-	protected Storage<ItemVariant> getHandler(ArmBlockEntity armBlockEntity) {
+	protected Storage<ItemVariant> getHandler() {
 		if (handlerProvider == null) {
 			handlerProvider = StorageProvider.createForItems(level, pos);
 		}
 		return handlerProvider.get(Direction.UP);
 	}
 
-	public ItemStack insert(ArmBlockEntity armBlockEntity, ItemStack stack, boolean simulate) {
-		Storage<ItemVariant> handler = getHandler(armBlockEntity);
+	public ItemStack insert(ItemStack stack, TransactionContext ctx) {
+		Storage<ItemVariant> handler = getHandler();
 		if (handler == null)
 			return stack;
-		try (Transaction t = TransferUtil.getTransaction()) {
-			long inserted = handler.insert(ItemVariant.of(stack), stack.getCount(), t);
-			if (!simulate) {
-				t.commit();
-			}
-			int remaining = (int) (stack.getCount() - inserted);
-			return remaining <= 0 ? ItemStack.EMPTY : stack.copyWithCount(remaining);
-		}
+		long inserted = handler.insert(ItemVariant.of(stack), stack.getCount(), ctx);
+		return ItemHandlerHelper.copyStackWithSize(stack, ItemHelper.truncateLong(stack.getCount() - inserted));
 	}
 
-	public ItemStack extract(ArmBlockEntity armBlockEntity, int slot, int amount, boolean simulate) {
-		Storage<ItemVariant> handler = getHandler(armBlockEntity);
+	public ItemStack extract(int amount, TransactionContext ctx) {
+		Storage<ItemVariant> handler = getHandler();
 		if (handler == null)
 			return ItemStack.EMPTY;
-		try (Transaction t = TransferUtil.getTransaction()) {
-			int current = 0;
-			for (Iterator<StorageView<ItemVariant>> it = handler.iterator(); it.hasNext(); ) {
-				StorageView<ItemVariant> view = it.next();
-				if (current == slot) {
-					if (view.isResourceBlank())
-						return ItemStack.EMPTY;
-					ItemVariant variant = view.getResource();
-					long extracted = view.extract(variant, amount, t);
-					if (extracted == 0)
-						return ItemStack.EMPTY;
-					if (!simulate)
-						t.commit();
-					return variant.toStack((int) extracted);
-				}
-				current++;
-			}
-		}
-		return ItemStack.EMPTY;
+		return TransferUtil.extractAnyItem(handler, amount);
 	}
 
-	public ItemStack extract(ArmBlockEntity armBlockEntity, int slot, boolean simulate) {
-		return extract(armBlockEntity, slot, 64, simulate);
-	}
-
-	public int getSlotCount(ArmBlockEntity armBlockEntity) {
-		Storage<ItemVariant> handler = getHandler(armBlockEntity);
-		if (handler == null)
-			return 0;
-		int count = 0;
-		for (Iterator<StorageView<ItemVariant>> it = handler.iterator(); it.hasNext(); ) {
-			it.next();
-			count++;
-		}
-		return count;
+	public ItemStack extract(TransactionContext ctx) {
+		return extract(64, ctx);
 	}
 
 	protected void serialize(CompoundTag nbt, BlockPos anchor) {
@@ -167,12 +130,8 @@ public class ArmInteractionPoint {
 	}
 
 	public final CompoundTag serialize(BlockPos anchor) {
-		ResourceLocation key = CreateBuiltInRegistries.ARM_INTERACTION_POINT_TYPE.getKey(type);
-		if (key == null)
-			throw new IllegalArgumentException("Could not get id for ArmInteractionPointType " + type + "!");
-
 		CompoundTag nbt = new CompoundTag();
-		nbt.putString("Type", key.toString());
+		nbt.putString("Type", type.getId().toString());
 		nbt.put("Pos", NbtUtils.writeBlockPos(pos.subtract(anchor)));
 		serialize(nbt, anchor);
 		return nbt;
@@ -183,10 +142,10 @@ public class ArmInteractionPoint {
 		ResourceLocation id = ResourceLocation.tryParse(nbt.getString("Type"));
 		if (id == null)
 			return null;
-		ArmInteractionPointType type = CreateBuiltInRegistries.ARM_INTERACTION_POINT_TYPE.get(id);
+		ArmInteractionPointType type = ArmInteractionPointType.get(id);
 		if (type == null)
 			return null;
-		BlockPos pos = NBTHelper.readBlockPos(nbt, "Pos").offset(anchor);
+		BlockPos pos = NbtFixer.readBlockPos(nbt, "Pos").offset(anchor);
 		BlockState state = level.getBlockState(pos);
 		if (!type.canCreatePoint(level, pos, state))
 			return null;
@@ -198,7 +157,7 @@ public class ArmInteractionPoint {
 	}
 
 	public static void transformPos(CompoundTag nbt, StructureTransform transform) {
-		BlockPos pos = NBTHelper.readBlockPos(nbt, "Pos");
+		BlockPos pos = NbtFixer.readBlockPos(nbt, "Pos");
 		pos = transform.applyWithoutOffset(pos);
 		nbt.put("Pos", NbtUtils.writeBlockPos(pos));
 	}
@@ -216,8 +175,7 @@ public class ArmInteractionPoint {
 	}
 
 	public enum Mode {
-		DEPOSIT("mechanical_arm.deposit_to", 0xDDC166),
-		TAKE("mechanical_arm.extract_from", 0x7FCDE0);
+		DEPOSIT("mechanical_arm.deposit_to", 0xDDC166), TAKE("mechanical_arm.extract_from", 0x7FCDE0);
 
 		private final String translationKey;
 		private final int color;

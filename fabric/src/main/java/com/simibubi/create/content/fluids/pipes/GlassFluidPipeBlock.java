@@ -1,9 +1,11 @@
 package com.simibubi.create.content.fluids.pipes;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.api.schematic.requirement.SpecialBlockItemRequirement;
 import com.simibubi.create.content.fluids.FluidTransportBehaviour;
+import com.simibubi.create.content.schematics.requirement.ISpecialBlockItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.foundation.block.IBE;
 
@@ -12,6 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
@@ -26,7 +29,8 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 
 @MethodsReturnNonnullByDefault
-public class GlassFluidPipeBlock extends AxisPipeBlock implements IBE<StraightPipeBlockEntity>, SimpleWaterloggedBlock, SpecialBlockItemRequirement {
+@ParametersAreNonnullByDefault
+public class GlassFluidPipeBlock extends AxisPipeBlock implements IBE<StraightPipeBlockEntity>, SimpleWaterloggedBlock, ISpecialBlockItemRequirement {
 
 	public static final BooleanProperty ALT = BooleanProperty.create("alt");
 
@@ -49,7 +53,7 @@ public class GlassFluidPipeBlock extends AxisPipeBlock implements IBE<StraightPi
 		BlockPos pos = context.getClickedPos();
 		FluidTransportBehaviour.cacheFlows(world, pos);
 		newState = toRegularPipe(world, pos, state).setValue(BlockStateProperties.WATERLOGGED, state.getValue(BlockStateProperties.WATERLOGGED));
-		world.setBlock(pos, newState, Block.UPDATE_ALL);
+		world.setBlock(pos, newState, 3);
 		FluidTransportBehaviour.loadFlows(world, pos);
 		return InteractionResult.SUCCESS;
 	}

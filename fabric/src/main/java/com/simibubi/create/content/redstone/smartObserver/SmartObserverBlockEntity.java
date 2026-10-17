@@ -15,29 +15,28 @@ import com.simibubi.create.foundation.blockEntity.behaviour.inventory.CapManipul
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.TankManipulationBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.VersionedInventoryTrackerBehaviour;
-import com.simibubi.create.foundation.fluid.FluidHelper;
+import com.simibubi.create.foundation.utility.BlockFace;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.math.BlockFace;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.Clearable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class SmartObserverBlockEntity extends SmartBlockEntity implements Clearable {
+public class SmartObserverBlockEntity extends SmartBlockEntity {
+
 	private static final int DEFAULT_DELAY = 6;
 	private FilteringBehaviour filtering;
 	private InvManipulationBehaviour observedInventory;
 	private TankManipulationBehaviour observedTank;
-
+	
 	private VersionedInventoryTrackerBehaviour invVersionTracker;
 	private boolean sustainSignal;
-
+	
 	public int turnOffTicks = 0;
 
 	public SmartObserverBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
@@ -61,10 +60,10 @@ public class SmartObserverBlockEntity extends SmartBlockEntity implements Cleara
 	@Override
 	public void tick() {
 		super.tick();
-
+		
 		if (level.isClientSide())
 			return;
-
+		
 		BlockState state = getBlockState();
 		if (turnOffTicks > 0) {
 			turnOffTicks--;
@@ -106,7 +105,7 @@ public class SmartObserverBlockEntity extends SmartBlockEntity implements Cleara
 				Flow flow = fluidBehaviour.getFlow(side);
 				if (flow == null || !flow.inbound || !flow.complete)
 					continue;
-				if (!FluidHelper.test(filtering, flow.fluid))
+				if (!filtering.test(flow.fluid))
 					continue;
 				activate();
 				return;
@@ -159,19 +158,15 @@ public class SmartObserverBlockEntity extends SmartBlockEntity implements Cleara
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("TurnOff", turnOffTicks);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		super.read(compound, reg, clientPacket);
 		turnOffTicks = compound.getInt("TurnOff");
 	}
 
-	@Override
-	public void clearContent() {
-		filtering.setFilter(ItemStack.EMPTY);
-	}
 }

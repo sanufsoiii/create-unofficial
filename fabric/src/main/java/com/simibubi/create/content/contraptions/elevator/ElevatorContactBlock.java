@@ -2,22 +2,25 @@ package com.simibubi.create.content.contraptions.elevator;
 
 import java.util.Optional;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
-import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
-import com.simibubi.create.api.schematic.requirement.SpecialBlockItemRequirement;
 import com.simibubi.create.content.contraptions.elevator.ElevatorColumn.ColumnCoords;
 import com.simibubi.create.content.redstone.contact.RedstoneContactBlock;
 import com.simibubi.create.content.redstone.diodes.BrassDiodeBlock;
+import com.simibubi.create.content.schematics.requirement.ISpecialBlockItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
+import com.simibubi.create.foundation.gui.ScreenOpener;
 import com.simibubi.create.foundation.utility.BlockHelper;
 
+import io.github.fabricators_of_create.porting_lib_ufo.block.ConnectableRedstoneBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.WeakPowerCheckingBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.util.EnvExecutor;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -35,7 +38,6 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.SignalGetter;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -43,16 +45,15 @@ import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 public class ElevatorContactBlock extends WrenchableDirectionalBlock
-	implements IBE<ElevatorContactBlockEntity>, SpecialBlockItemRequirement {
+	implements IBE<ElevatorContactBlockEntity>, ISpecialBlockItemRequirement, WeakPowerCheckingBlock, ConnectableRedstoneBlock {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 	public static final BooleanProperty CALLING = BooleanProperty.create("calling");
 	public static final BooleanProperty POWERING = BrassDiodeBlock.POWERING;
-
-	public static final MapCodec<ElevatorContactBlock> CODEC = simpleCodec(ElevatorContactBlock::new);
 
 	public ElevatorContactBlock(Properties pProperties) {
 		super(pProperties);
@@ -109,7 +110,7 @@ public class ElevatorContactBlock extends WrenchableDirectionalBlock
 		if (isPowered == pLevel.hasNeighborSignal(pPos))
 			return;
 
-		pLevel.setBlock(pPos, pState.cycle(POWERED), Block.UPDATE_CLIENTS);
+		pLevel.setBlock(pPos, pState.cycle(POWERED), 2);
 
 		if (isPowered)
 			return;
@@ -122,7 +123,7 @@ public class ElevatorContactBlock extends WrenchableDirectionalBlock
 
 	public void callToContactAndUpdate(ElevatorColumn elevatorColumn, BlockState pState, Level pLevel, BlockPos pPos,
 		boolean powered) {
-		pLevel.setBlock(pPos, pState.cycle(CALLING), Block.UPDATE_CLIENTS);
+		pLevel.setBlock(pPos, pState.cycle(CALLING), 2);
 
 		for (BlockPos otherPos : elevatorColumn.getContacts()) {
 			if (otherPos.equals(pPos))
@@ -136,7 +137,7 @@ public class ElevatorContactBlock extends WrenchableDirectionalBlock
 
 		if (powered)
 			pState = pState.setValue(POWERED, true);
-		pLevel.setBlock(pPos, pState.setValue(CALLING, true), Block.UPDATE_CLIENTS);
+		pLevel.setBlock(pPos, pState.setValue(CALLING, true), 2);
 		pLevel.updateNeighborsAt(pPos, this);
 
 		elevatorColumn.target(pPos.getY());
@@ -181,19 +182,22 @@ public class ElevatorContactBlock extends WrenchableDirectionalBlock
 		return stateIn;
 	}
 
-	public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
-		return false;
-	}
+	@Override
+    public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
+        return false;
+    }
 
 	@Override
 	public boolean isSignalSource(BlockState state) {
 		return state.getValue(POWERING);
 	}
 
-	public ItemStack getCloneItemStack(BlockState state, HitResult target, LevelReader level, BlockPos pos, Player player) {
+	@Override
+	public ItemStack getCloneItemStack(LevelReader pLevel, BlockPos pPos, BlockState pState) {
 		return AllBlocks.REDSTONE_CONTACT.asStack();
 	}
 
+	@Override
 	public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, @Nullable Direction side) {
 		if (side == null)
 			return true;
@@ -224,20 +228,34 @@ public class ElevatorContactBlock extends WrenchableDirectionalBlock
 	public ItemRequirement getRequiredItems(BlockState state, BlockEntity be) {
 		return ItemRequirement.of(AllBlocks.REDSTONE_CONTACT.getDefaultState(), be);
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (player != null && AllItems.WRENCH.isIn(stack))
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		return ItemInteractionResult.SUCCESS;
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult hitResult) {
+		
+		if (player != null && AllItems.WRENCH.isIn(player.getItemInHand(hand)))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		EnvExecutor.runWhenOn(EnvType.CLIENT,
+				() -> () -> withBlockEntityDo(worldIn, pos, be -> this.displayScreen(be, player)));
+			return InteractionResult.SUCCESS;
+	}
+
+	@Environment(EnvType.CLIENT)
+	protected void displayScreen(ElevatorContactBlockEntity be, Player player) {
+		if (player instanceof LocalPlayer)
+			ScreenOpener
+				.open(new ElevatorContactScreen(be.getBlockPos(), be.shortName, be.longName, be.doorControls.mode));
 	}
 
 	public static int getLight(BlockState state) {
 		return state.getValue(POWERING) ? 10 : 0;
 	}
 
-	@Override
-	protected @NotNull MapCodec<? extends DirectionalBlock> codec() {
-		return CODEC;
-	}
 }

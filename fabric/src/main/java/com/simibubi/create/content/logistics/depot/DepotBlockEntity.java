@@ -2,6 +2,8 @@ package com.simibubi.create.content.logistics.depot;
 
 import java.util.List;
 
+import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
@@ -9,7 +11,6 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
-import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
@@ -33,14 +34,10 @@ public class DepotBlockEntity extends SmartBlockEntity implements SidedStorageBl
 	@Nullable
 	@Override
 	public Storage<ItemVariant> getItemStorage(@Nullable Direction direction) {
-		return depotBehaviour != null ? depotBehaviour.itemHandler : null;
+		return depotBehaviour.itemHandler;
 	}
 
 	public ItemStack getHeldItem() {
-		return depotBehaviour != null ? depotBehaviour.getHeldItemStack() : ItemStack.EMPTY;
-	}
-
-	public DepotBehaviour getDepotBehaviour() {
-		return depotBehaviour;
+		return depotBehaviour.getHeldItemStack();
 	}
 }

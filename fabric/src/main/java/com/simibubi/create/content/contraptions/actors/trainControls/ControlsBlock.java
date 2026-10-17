@@ -21,14 +21,10 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-import org.jetbrains.annotations.NotNull;
-
 public class ControlsBlock extends HorizontalDirectionalBlock implements IWrenchable, ProperWaterloggedBlock {
 
 	public static final BooleanProperty OPEN = BooleanProperty.create("open");
 	public static final BooleanProperty VIRTUAL = BooleanProperty.create("virtual");
-
-	public static final MapCodec<ControlsBlock> CODEC = simpleCodec(ControlsBlock::new);
 
 	public ControlsBlock(Properties p_54120_) {
 		super(p_54120_);
@@ -73,13 +69,9 @@ public class ControlsBlock extends HorizontalDirectionalBlock implements IWrench
 	}
 
 	@Override
-	public VoxelShape getCollisionShape(BlockState pState, BlockGetter pLevel, BlockPos pPos,
-		CollisionContext pContext) {
-		return AllShapes.CONTROLS_COLLISION.get(pState.getValue(FACING));
+	protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-	@Override
-	protected @NotNull MapCodec<? extends HorizontalDirectionalBlock> codec() {
-		return CODEC;
-	}
 }

@@ -3,6 +3,8 @@ package com.simibubi.create.content.kinetics.saw;
 import java.util.List;
 import java.util.function.Predicate;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
@@ -10,9 +12,9 @@ import com.simibubi.create.content.kinetics.base.DirectionalAxisKineticBlock;
 import com.simibubi.create.content.kinetics.drill.DrillBlock;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.damageTypes.CreateDamageSources;
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
@@ -45,6 +47,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class SawBlock extends DirectionalAxisKineticBlock implements IBE<SawBlockEntity> {
 	public static final BooleanProperty FLIPPED = BooleanProperty.create("flipped");
@@ -116,15 +119,15 @@ public class SawBlock extends DirectionalAxisKineticBlock implements IBE<SawBloc
 	public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
 		return AllShapes.CASING_12PX.get(state.getValue(FACING));
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
 			Player player, InteractionHand handIn, BlockHitResult hit) {
-
+		
 		ItemStack heldItem = player.getItemInHand(handIn);
-		if (heldItem.isEmpty())
+		if(heldItem.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-
+		
 		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
 		if (!player.isShiftKeyDown() && player.mayBuild()) {
 			if (placementHelper.matchesItem(heldItem) && placementHelper.getOffset(player, worldIn, state, pos, hit)
@@ -134,12 +137,13 @@ public class SawBlock extends DirectionalAxisKineticBlock implements IBE<SawBloc
 		}
 
 		return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
 	}
-
+	
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
 			BlockHitResult hit) {
-
+		
 		ItemStack heldItem = ItemStack.EMPTY;
 		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
 		if (!player.isShiftKeyDown() && player.mayBuild()) {
@@ -164,8 +168,9 @@ public class SawBlock extends DirectionalAxisKineticBlock implements IBE<SawBloc
 			}
 			be.inventory.clear();
 			be.notifyUpdate();
-			return InteractionResult.SUCCESS;
-		});
+			return ItemInteractionResult.SUCCESS;
+		}).result();
+		
 	}
 
 	@Override
@@ -214,10 +219,6 @@ public class SawBlock extends DirectionalAxisKineticBlock implements IBE<SawBloc
 	public boolean hasShaftTowards(LevelReader world, BlockPos pos, BlockState state, Direction face) {
 		return isHorizontal(state) ? face == state.getValue(FACING)
 			.getOpposite() : super.hasShaftTowards(world, pos, state, face);
-	}
-
-	public PushReaction getPistonPushReaction(BlockState state) {
-		return PushReaction.NORMAL;
 	}
 
 	@Override

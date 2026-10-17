@@ -1,16 +1,22 @@
 package com.simibubi.create.content.kinetics.crank;
 
 import com.simibubi.create.AllBlockEntityTypes;
+import com.simibubi.create.AllItems;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.DirectionalKineticBlock;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
+import com.simibubi.create.foundation.utility.Couple;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -56,16 +62,47 @@ public class HandCrankBlock extends DirectionalKineticBlock
 	public RenderShape getRenderShape(BlockState state) {
 		return RenderShape.ENTITYBLOCK_ANIMATED;
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
+			Player player, InteractionHand handIn, BlockHitResult hitResult) {
+		
 		if (player.isSpectator())
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
+		if(player.getItemInHand(handIn).isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 
-		withBlockEntityDo(level, pos, be -> be.turn(player.isShiftKeyDown()));
-		player.causeFoodExhaustion(getRotationSpeed() * AllConfigs.server().kinetics.crankHungerMultiplier.getF());
+		withBlockEntityDo(worldIn, pos, be -> be.turn(player.isShiftKeyDown()));
+		if (!player.getItemInHand(handIn)
+			.is(AllItems.EXTENDO_GRIP.get()))
+			player.causeFoodExhaustion(getRotationSpeed() * AllConfigs.server().kinetics.crankHungerMultiplier.getF());
+
+		if (player.getFoodData()
+			.getFoodLevel() == 0)
+			AllAdvancements.HAND_CRANK.awardTo(player);
 
 		return ItemInteractionResult.SUCCESS;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		if (player.isSpectator())
+			return InteractionResult.PASS;
+
+		withBlockEntityDo(worldIn, pos, be -> be.turn(player.isShiftKeyDown()));
+		
+		player.causeFoodExhaustion(getRotationSpeed() * AllConfigs.server().kinetics.crankHungerMultiplier.getF());
+
+		if (player.getFoodData()
+			.getFoodLevel() == 0)
+			AllAdvancements.HAND_CRANK.awardTo(player);
+
+		return InteractionResult.SUCCESS;
+		
 	}
 
 	@Override
@@ -98,6 +135,7 @@ public class HandCrankBlock extends DirectionalKineticBlock
 		if (fromPos.equals(pos.relative(blockFacing.getOpposite()))) {
 			if (!canSurvive(state, worldIn, pos)) {
 				worldIn.destroyBlock(pos, true);
+				return;
 			}
 		}
 	}
@@ -139,6 +177,10 @@ public class HandCrankBlock extends DirectionalKineticBlock
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;
+	}
+
+	public static Couple<Integer> getSpeedRange() {
+		return Couple.create(32, 32);
 	}
 
 }

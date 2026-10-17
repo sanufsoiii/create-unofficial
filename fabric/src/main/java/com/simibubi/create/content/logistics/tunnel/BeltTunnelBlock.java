@@ -9,9 +9,9 @@ import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehavi
 import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.Lang;
+import com.simibubi.create.foundation.utility.worldWrappers.WrappedWorld;
 
-import net.createmod.catnip.lang.Lang;
-import net.createmod.catnip.levelWrappers.WrappedLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -99,17 +99,16 @@ public class BeltTunnelBlock extends Block implements IBE<BeltTunnelBlockEntity>
 
 	@Override
 	public void onPlace(BlockState state, Level world, BlockPos pos, BlockState p_220082_4_, boolean p_220082_5_) {
-		if (!(world instanceof WrappedLevel) && !world.isClientSide())
+		if (!(world instanceof WrappedWorld) && !world.isClientSide())
 			withBlockEntityDo(world, pos, BeltTunnelBlockEntity::updateTunnelConnections);
 	}
 
 	@Override
 	public BlockState updateShape(BlockState state, Direction facing, BlockState facingState, LevelAccessor worldIn,
-		BlockPos currentPos, BlockPos facingPos) {
-		if (facing.getAxis()
-			.isVertical())
+			BlockPos currentPos, BlockPos facingPos) {
+		if (facing.getAxis().isVertical())
 			return state;
-		if (!(worldIn instanceof WrappedLevel) && !worldIn.isClientSide())
+		if (!(worldIn instanceof WrappedWorld) && !worldIn.isClientSide())
 			withBlockEntityDo(worldIn, currentPos, BeltTunnelBlockEntity::updateTunnelConnections);
 		BlockState tunnelState = getTunnelState(worldIn, currentPos);
 		if (tunnelState.getValue(HORIZONTAL_AXIS) == state.getValue(HORIZONTAL_AXIS)) {
@@ -135,13 +134,11 @@ public class BeltTunnelBlock extends Block implements IBE<BeltTunnelBlockEntity>
 		BlockState state = defaultBlockState();
 		BlockState belt = reader.getBlockState(pos.below());
 		if (AllBlocks.BELT.has(belt))
-			state = state.setValue(HORIZONTAL_AXIS, belt.getValue(BeltBlock.HORIZONTAL_FACING)
-				.getAxis());
+			state = state.setValue(HORIZONTAL_AXIS, belt.getValue(BeltBlock.HORIZONTAL_FACING).getAxis());
 		Axis axis = state.getValue(HORIZONTAL_AXIS);
 
 		// T and Cross
-		Direction left = Direction.get(AxisDirection.POSITIVE, axis)
-			.getClockWise();
+		Direction left = Direction.get(AxisDirection.POSITIVE, axis).getClockWise();
 		boolean onLeft = hasValidOutput(reader, pos.below(), left);
 		boolean onRight = hasValidOutput(reader, pos.below(), left.getOpposite());
 
@@ -167,11 +164,11 @@ public class BeltTunnelBlock extends Block implements IBE<BeltTunnelBlockEntity>
 		BlockState blockState2 = reader.getBlockState(pos.relative(fw.getOpposite()));
 
 		boolean funnel1 = blockState1.getBlock() instanceof BeltFunnelBlock
-			&& blockState1.getValue(BeltFunnelBlock.SHAPE) == BeltFunnelBlock.Shape.EXTENDED
-			&& blockState1.getValue(BeltFunnelBlock.HORIZONTAL_FACING) == fw.getOpposite();
+				&& blockState1.getValue(BeltFunnelBlock.SHAPE) == BeltFunnelBlock.Shape.EXTENDED
+				&& blockState1.getValue(BeltFunnelBlock.HORIZONTAL_FACING) == fw.getOpposite();
 		boolean funnel2 = blockState2.getBlock() instanceof BeltFunnelBlock
-			&& blockState2.getValue(BeltFunnelBlock.SHAPE) == BeltFunnelBlock.Shape.EXTENDED
-			&& blockState2.getValue(BeltFunnelBlock.HORIZONTAL_FACING) == fw;
+				&& blockState2.getValue(BeltFunnelBlock.SHAPE) == BeltFunnelBlock.Shape.EXTENDED
+				&& blockState2.getValue(BeltFunnelBlock.HORIZONTAL_FACING) == fw;
 
 		boolean valid1 = blockState1.getBlock() instanceof BeltTunnelBlock || funnel1;
 		boolean valid2 = blockState2.getBlock() instanceof BeltTunnelBlock || funnel2;
@@ -182,10 +179,9 @@ public class BeltTunnelBlock extends Block implements IBE<BeltTunnelBlockEntity>
 	private boolean hasValidOutput(BlockGetter world, BlockPos pos, Direction side) {
 		BlockState blockState = world.getBlockState(pos.relative(side));
 		if (AllBlocks.BELT.has(blockState))
-			return blockState.getValue(BeltBlock.HORIZONTAL_FACING)
-				.getAxis() == side.getAxis();
-		DirectBeltInputBehaviour behaviour =
-			BlockEntityBehaviour.get(world, pos.relative(side), DirectBeltInputBehaviour.TYPE);
+			return blockState.getValue(BeltBlock.HORIZONTAL_FACING).getAxis() == side.getAxis();
+		DirectBeltInputBehaviour behaviour = BlockEntityBehaviour.get(world, pos.relative(side),
+				DirectBeltInputBehaviour.TYPE);
 		return behaviour != null && behaviour.canInsertFromSide(side);
 	}
 
@@ -199,7 +195,7 @@ public class BeltTunnelBlock extends Block implements IBE<BeltTunnelBlockEntity>
 		shape = shape == Shape.CLOSED ? Shape.WINDOW : Shape.CLOSED;
 		Level world = context.getLevel();
 		if (!world.isClientSide)
-			world.setBlock(context.getClickedPos(), state.setValue(SHAPE, shape), Block.UPDATE_CLIENTS);
+			world.setBlock(context.getClickedPos(), state.setValue(SHAPE, shape), 2);
 		return InteractionResult.SUCCESS;
 	}
 
@@ -213,7 +209,7 @@ public class BeltTunnelBlock extends Block implements IBE<BeltTunnelBlockEntity>
 
 	@Override
 	public void neighborChanged(BlockState state, Level worldIn, BlockPos pos, Block blockIn, BlockPos fromPos,
-		boolean isMoving) {
+			boolean isMoving) {
 		if (worldIn.isClientSide)
 			return;
 

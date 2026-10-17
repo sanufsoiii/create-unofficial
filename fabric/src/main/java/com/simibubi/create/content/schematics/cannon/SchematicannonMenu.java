@@ -3,6 +3,7 @@ package com.simibubi.create.content.schematics.cannon;
 import com.simibubi.create.AllMenuTypes;
 import com.simibubi.create.foundation.gui.menu.MenuBase;
 
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.SlotItemHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -12,10 +13,6 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import io.github.fabricators_of_create.porting_lib.transfer.item.SlotItemHandler;
 
 public class SchematicannonMenu extends MenuBase<SchematicannonBlockEntity> {
 
@@ -32,12 +29,11 @@ public class SchematicannonMenu extends MenuBase<SchematicannonBlockEntity> {
 	}
 
 	@Override
-	@Environment(EnvType.CLIENT)
 	protected SchematicannonBlockEntity createOnClient(RegistryFriendlyByteBuf extraData) {
 		ClientLevel world = Minecraft.getInstance().level;
 		BlockEntity blockEntity = world.getBlockEntity(extraData.readBlockPos());
 		if (blockEntity instanceof SchematicannonBlockEntity schematicannon) {
-			schematicannon.readClient(extraData.readNbt(), extraData.registryAccess());
+			schematicannon.readClient(extraData.readNbt());
 			return schematicannon;
 		}
 		return null;
@@ -73,7 +69,7 @@ public class SchematicannonMenu extends MenuBase<SchematicannonBlockEntity> {
 		ItemStack stack = clickedSlot.getItem();
 
 		if (index < 5) {
-			moveItemStackTo(stack, 5, slots.size(), true);
+			moveItemStackTo(stack, 5, slots.size(), false);
 		} else {
 			if (moveItemStackTo(stack, 0, 1, false) || moveItemStackTo(stack, 2, 3, false)
 					|| moveItemStackTo(stack, 4, 5, false))

@@ -1,12 +1,20 @@
 package com.simibubi.create.content.redstone.contact;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.content.contraptions.elevator.ElevatorColumn;
+import com.simibubi.create.content.contraptions.elevator.ElevatorColumn.ColumnCoords;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
+import com.simibubi.create.foundation.utility.BlockHelper;
 
+import io.github.fabricators_of_create.porting_lib_ufo.block.ConnectableRedstoneBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.WeakPowerCheckingBlock;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Direction.Axis;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
@@ -22,7 +30,9 @@ import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 
-public class RedstoneContactBlock extends WrenchableDirectionalBlock {
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class RedstoneContactBlock extends WrenchableDirectionalBlock implements ConnectableRedstoneBlock, WeakPowerCheckingBlock {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 
@@ -67,12 +77,12 @@ public class RedstoneContactBlock extends WrenchableDirectionalBlock {
 		BlockPos pos = context.getClickedPos();
 		state = level.getBlockState(pos);
 		Direction facing = state.getValue(RedstoneContactBlock.FACING);
-		if (facing.getAxis() == Direction.Axis.Y)
+		if (facing.getAxis() == Axis.Y)
 			return onWrenched;
-		if (com.simibubi.create.content.contraptions.elevator.ElevatorColumn.get(level, new com.simibubi.create.content.contraptions.elevator.ElevatorColumn.ColumnCoords(pos.getX(), pos.getZ(), facing)) == null)
+		if (ElevatorColumn.get(level, new ColumnCoords(pos.getX(), pos.getZ(), facing)) == null)
 			return onWrenched;
 
-		level.setBlockAndUpdate(pos, com.simibubi.create.foundation.utility.BlockHelper.copyProperties(state, AllBlocks.ELEVATOR_CONTACT.getDefaultState()));
+		level.setBlockAndUpdate(pos, BlockHelper.copyProperties(state, AllBlocks.ELEVATOR_CONTACT.getDefaultState()));
 
 		return onWrenched;
 	}
@@ -110,15 +120,17 @@ public class RedstoneContactBlock extends WrenchableDirectionalBlock {
 			&& blockState.getValue(FACING) == direction.getOpposite();
 	}
 
-	public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
-		return false;
-	}
+	@Override
+    public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
+        return false;
+    }
 
 	@Override
 	public boolean isSignalSource(BlockState state) {
 		return state.getValue(POWERED);
 	}
 
+	@Override
 	public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, @Nullable Direction side) {
 		return side != null && state.getValue(FACING) != side.getOpposite();
 	}

@@ -2,23 +2,18 @@ package com.simibubi.create.content.schematics.table;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
+import com.simibubi.create.Create;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
 import com.simibubi.create.foundation.utility.IInteractionChecker;
+import com.simibubi.create.foundation.utility.Lang;
 
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
-import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
-import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
-import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.Clearable;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -27,7 +22,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class SchematicTableBlockEntity extends SmartBlockEntity implements MenuProvider, IInteractionChecker, Clearable, SidedStorageBlockEntity {
+
+public class SchematicTableBlockEntity extends SmartBlockEntity implements MenuProvider, IInteractionChecker {
+
 	public SchematicTableInventory inventory;
 	public boolean isUploading;
 	public String uploadingSchematic;
@@ -53,10 +50,15 @@ public class SchematicTableBlockEntity extends SmartBlockEntity implements MenuP
 		uploadingProgress = 0;
 	}
 
+	public void sendToMenu(RegistryFriendlyByteBuf buffer) {
+		buffer.writeBlockPos(getBlockPos());
+		buffer.writeNbt(getUpdateTag(Create.getRegistryAccess()));
+	}
+
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		inventory.deserializeNBT(registries, compound.getCompound("Inventory"));
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		inventory.deserializeNBT(compound.getCompound("Inventory"));
+		super.read(compound, reg, clientPacket);
 		if (!clientPacket)
 			return;
 		if (compound.contains("Uploading")) {
@@ -71,27 +73,15 @@ public class SchematicTableBlockEntity extends SmartBlockEntity implements MenuP
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		compound.put("Inventory", inventory.serializeNBT(registries));
-		super.write(compound, registries, clientPacket);
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		compound.put("Inventory", inventory.serializeNBT());
+		super.write(compound, clientPacket);
+
 		if (clientPacket && isUploading) {
 			compound.putBoolean("Uploading", true);
 			compound.putString("Schematic", uploadingSchematic);
 			compound.putFloat("Progress", uploadingProgress);
 		}
-	}
-
-	@Override
-	public void clearContent() {
-		for (int i = 0; i < inventory.getSlotCount(); i++) {
-			inventory.setStackInSlot(i, ItemStack.EMPTY);
-		}
-	}
-
-	@Nullable
-	@Override
-	public Storage<ItemVariant> getItemStorage(@Nullable Direction direction) {
-		return inventory;
 	}
 
 	@Override
@@ -119,23 +109,25 @@ public class SchematicTableBlockEntity extends SmartBlockEntity implements MenuP
 	}
 
 	@Override
-	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
-
-	@Override
-	public Component getDisplayName() {
-		return CreateLang.translateDirect("gui.schematicTable.title");
+	public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
+		return SchematicTableMenu.create(id, inv, this);
 	}
 
 	@Override
-	public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
-		return null;
+	public Component getDisplayName() {
+		return Lang.translateDirect("gui.schematicTable.title");
 	}
 
 	@Override
 	public boolean canPlayerUse(Player player) {
-		if (level == null || level.getBlockEntity(worldPosition) != this)
+		if (level == null || level.getBlockEntity(worldPosition) != this) {
 			return false;
+		}
 		return player.distanceToSqr(worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D,
 			worldPosition.getZ() + 0.5D) <= 64.0D;
 	}
+
+	@Override
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
+
 }

@@ -4,8 +4,8 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.decoration.steamWhistle.WhistleBlock.WhistleSize;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
+import com.simibubi.create.foundation.utility.Lang;
 
-import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -27,6 +27,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
@@ -45,8 +46,8 @@ public class WhistleExtenderBlock extends Block implements IWrenchable {
 		}
 	}
 
-	public WhistleExtenderBlock(Properties properties) {
-		super(properties);
+	public WhistleExtenderBlock(Properties p_49795_) {
+		super(p_49795_);
 		registerDefaultState(defaultBlockState().setValue(SHAPE, WhistleExtenderShape.SINGLE)
 			.setValue(SIZE, WhistleSize.MEDIUM));
 	}
@@ -56,12 +57,13 @@ public class WhistleExtenderBlock extends Block implements IWrenchable {
 		Level world = context.getLevel();
 		BlockPos pos = context.getClickedPos();
 
-		if (context.getClickLocation().y < context.getClickedPos().getY() + .5f || state.getValue(SHAPE) == WhistleExtenderShape.SINGLE)
+		if (context.getClickLocation().y < context.getClickedPos()
+			.getY() + .5f || state.getValue(SHAPE) == WhistleExtenderShape.SINGLE)
 			return IWrenchable.super.onSneakWrenched(state, context);
 		if (!(world instanceof ServerLevel))
 			return InteractionResult.SUCCESS;
 		world.setBlock(pos, state.setValue(SHAPE, WhistleExtenderShape.SINGLE), 3);
-		IWrenchable.playRemoveSound(world, pos);
+		playRemoveSound(world, pos);
 		return InteractionResult.SUCCESS;
 	}
 
@@ -69,11 +71,11 @@ public class WhistleExtenderBlock extends Block implements IWrenchable {
 		return new UseOnContext(context.getPlayer(), context.getHand(),
 			new BlockHitResult(context.getClickLocation(), context.getClickedFace(), target, context.isInside()));
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level pLevel, BlockPos pPos,
 			Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
-
+		
 		if (pPlayer == null || !AllBlocks.STEAM_WHISTLE.isIn(pPlayer.getItemInHand(pHand)))
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 		Level level = pLevel;
@@ -83,6 +85,7 @@ public class WhistleExtenderBlock extends Block implements IWrenchable {
 			return whistle.useItemOn(stack, blockState, pLevel, findRoot, pPlayer, pHand,
 				new BlockHitResult(pHit.getLocation(), pHit.getDirection(), findRoot, pHit.isInside()));
 		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
 	}
 
 	@Override
@@ -90,11 +93,11 @@ public class WhistleExtenderBlock extends Block implements IWrenchable {
 		Level level = context.getLevel();
 		BlockPos findRoot = findRoot(level, context.getClickedPos());
 		BlockState blockState = level.getBlockState(findRoot);
-		if (blockState.getBlock() instanceof WhistleBlock whistle)
+		if (blockState.getBlock()instanceof WhistleBlock whistle)
 			return whistle.onWrenched(blockState, relocateContext(context, findRoot));
 		return IWrenchable.super.onWrenched(state, context);
 	}
-
+	
 	@Override
 	public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
 		return AllBlocks.STEAM_WHISTLE.asStack();
@@ -175,5 +178,11 @@ public class WhistleExtenderBlock extends Block implements IWrenchable {
 				: size == WhistleSize.MEDIUM ? AllShapes.WHISTLE_EXTENDER_MEDIUM : AllShapes.WHISTLE_EXTENDER_SMALL;
 		}
 	}
+
+//	@Override // fabric: difficult to implement with little to gain
+//	public boolean hidesNeighborFace(BlockGetter level, BlockPos pos, BlockState state, BlockState neighborState,
+//		Direction dir) {
+//		return AllBlocks.STEAM_WHISTLE.has(neighborState) && dir == Direction.DOWN;
+//	}
 
 }

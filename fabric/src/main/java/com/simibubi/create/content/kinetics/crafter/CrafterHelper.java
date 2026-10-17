@@ -23,7 +23,7 @@ public class CrafterHelper {
 	public static boolean areCraftersConnected(BlockAndTintGetter reader, BlockPos pos, BlockPos otherPos) {
 		ConnectedInput input1 = getInput(reader, pos);
 		ConnectedInput input2 = getInput(reader, otherPos);
-
+	
 		if (input1 == null || input2 == null)
 			return false;
 		if (input1.data.isEmpty() || input2.data.isEmpty())
@@ -35,7 +35,7 @@ public class CrafterHelper {
 		} catch (IndexOutOfBoundsException e) {
 			// race condition. data somehow becomes empty between the last 2 if statements
 		}
-
+		
 		return false;
 	}
 

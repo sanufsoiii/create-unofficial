@@ -1,21 +1,22 @@
 package com.simibubi.create.content.kinetics.crusher;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.NbtFixer;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.nbt.NBTHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomRunningEffectsBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
@@ -39,7 +40,7 @@ import net.minecraft.world.phys.shapes.EntityCollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public class CrushingWheelControllerBlock extends DirectionalBlock implements IBE<CrushingWheelControllerBlockEntity> {
+public class CrushingWheelControllerBlock extends DirectionalBlock implements IBE<CrushingWheelControllerBlockEntity>, CustomRunningEffectsBlock {
 
 	public CrushingWheelControllerBlock(Properties p_i48440_1_) {
 		super(p_i48440_1_);
@@ -47,13 +48,12 @@ public class CrushingWheelControllerBlock extends DirectionalBlock implements IB
 
 	public static final BooleanProperty VALID = BooleanProperty.create("valid");
 
-	public static final MapCodec<CrushingWheelControllerBlock> CODEC = simpleCodec(CrushingWheelControllerBlock::new);
-
 	@Override
 	public boolean canBeReplaced(BlockState state, BlockPlaceContext useContext) {
 		return false;
 	}
 
+	@Override
 	public boolean addRunningEffects(BlockState state, Level world, BlockPos pos, Entity entity) {
 		return true;
 	}
@@ -92,7 +92,7 @@ public class CrushingWheelControllerBlock extends DirectionalBlock implements IB
 //			((ItemEntity) entityIn).setPickUpDelay(10);
 		CompoundTag data = entityIn.getCustomData();
 		if (data.contains("BypassCrushingWheel")) {
-			if (pos.equals(NBTHelper.readBlockPos(data, "BypassCrushingWheel")))
+			if (pos.equals(NbtFixer.readBlockPos(data, "BypassCrushingWheel")))
 				return;
 		}
 		if (be.isOccupied())
@@ -152,6 +152,10 @@ public class CrushingWheelControllerBlock extends DirectionalBlock implements IB
 					continue;
 				be.crushingspeed = Math.abs(cwbe.getSpeed() / 50f);
 				be.sendData();
+
+				cwbe.award(AllAdvancements.CRUSHING_WHEEL);
+				if (cwbe.getSpeed() > 255)
+					cwbe.award(AllAdvancements.CRUSHER_MAXED);
 				break;
 			}
 		});
@@ -171,7 +175,7 @@ public class CrushingWheelControllerBlock extends DirectionalBlock implements IB
 
 		CompoundTag data = entity.getCustomData();
 		if (data.contains("BypassCrushingWheel"))
-			if (pos.equals(NBTHelper.readBlockPos(data, "BypassCrushingWheel")))
+			if (pos.equals(NbtFixer.readBlockPos(data, "BypassCrushingWheel")))
 				if (state.getValue(FACING) != Direction.UP) // Allow output items to land on top of the block rather
 															// than falling back through.
 					return Shapes.empty();
@@ -208,8 +212,9 @@ public class CrushingWheelControllerBlock extends DirectionalBlock implements IB
 	}
 
 	@Override
-	protected @NotNull MapCodec<? extends DirectionalBlock> codec() {
-		return CODEC;
+	protected MapCodec<? extends DirectionalBlock> codec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

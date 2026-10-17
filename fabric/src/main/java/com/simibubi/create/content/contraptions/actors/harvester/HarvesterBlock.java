@@ -8,11 +8,7 @@ import com.simibubi.create.foundation.block.IBE;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
-import org.jetbrains.annotations.NotNull;
-
 public class HarvesterBlock extends AttachedActorBlock implements IBE<HarvesterBlockEntity> {
-
-	public static final MapCodec<HarvesterBlock> CODEC = simpleCodec(HarvesterBlock::new);
 
 	public HarvesterBlock(Properties p_i48377_1_) {
 		super(p_i48377_1_);
@@ -29,7 +25,9 @@ public class HarvesterBlock extends AttachedActorBlock implements IBE<HarvesterB
 	}
 
 	@Override
-	protected @NotNull MapCodec<? extends HorizontalDirectionalBlock> codec() {
-		return CODEC;
+	protected MapCodec<? extends HorizontalDirectionalBlock> codec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
+	
 }

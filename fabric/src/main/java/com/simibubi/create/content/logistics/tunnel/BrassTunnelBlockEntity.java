@@ -6,13 +6,16 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.tuple.Pair;
-import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.Create;
+import com.simibubi.create.content.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.BeltHelper;
 import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehaviour;
@@ -26,24 +29,27 @@ import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.INamedIc
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollOptionBehaviour;
 import com.simibubi.create.foundation.gui.AllIcons;
 import com.simibubi.create.foundation.utility.BlockHelper;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.Components;
+import com.simibubi.create.foundation.utility.Couple;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Lang;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.NbtFixer;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import dev.engine_room.flywheel.lib.visualization.VisualizationHelper;
-import net.createmod.catnip.data.Couple;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.lang.Lang;
-import net.createmod.catnip.nbt.NBTHelper;
-import net.createmod.catnip.platform.CatnipServices;
-import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
+import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
@@ -56,7 +62,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHaveGoggleInformation {
+public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHaveGoggleInformation, SidedStorageBlockEntity {
 
 	SidedFilteringBehaviour filtering;
 
@@ -74,13 +80,29 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 	// <filtered, non-filtered>
 	Couple<List<Pair<BlockPos, Direction>>> distributionTargets;
 
-	private boolean newItemArrived;
 	private boolean syncedOutputActive;
 	private Set<BrassTunnelBlockEntity> syncSet;
 
 	protected ScrollOptionBehaviour<SelectionMode> selectionMode;
-	private Storage<ItemVariant> beltCapability;
-	private final BrassTunnelItemHandler tunnelCapability;
+	private BrassTunnelItemHandler tunnelCapability;
+
+	public final SnapshotParticipant<Data> snapshotParticipant = new SnapshotParticipant<>() {
+
+		@Override
+		protected Data createSnapshot() {
+			return new Data(stackToDistribute.copy(), distributionProgress, stackEnteredFrom);
+		}
+
+		@Override
+		protected void readSnapshot(Data snapshot) {
+			stackToDistribute = snapshot.stack;
+			distributionProgress = snapshot.progress;
+			stackEnteredFrom = snapshot.enteredFrom;
+		}
+	};
+
+	private record Data(ItemStack stack, float progress, Direction enteredFrom) {
+	}
 
 	public BrassTunnelBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -88,23 +110,17 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		syncSet = new HashSet<>();
 		stackToDistribute = ItemStack.EMPTY;
 		stackEnteredFrom = null;
-		beltCapability = null;
+		// fabric: beltCapability moved to cache, initialized on level set
 		tunnelCapability = new BrassTunnelItemHandler(this);
 		previousOutputIndex = 0;
 		syncedOutputActive = false;
-	}
-
-	@Nullable
-	@Override
-	public Storage<ItemVariant> getItemStorage(@Nullable Direction face) {
-		return tunnelCapability;
 	}
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		super.addBehaviours(behaviours);
 		behaviours.add(selectionMode = new ScrollOptionBehaviour<>(SelectionMode.class,
-			CreateLang.translateDirect("logistics.when_multiple_outputs_available"), this, new BrassTunnelModeSlot()));
+			Lang.translateDirect("logistics.when_multiple_outputs_available"), this, new BrassTunnelModeSlot()));
 
 		selectionMode.onlyActiveWhen(this::hasDistributionBehaviour);
 
@@ -177,19 +193,14 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 			if (distributionTargets.getFirst()
 				.isEmpty()
 				&& distributionTargets.getSecond()
-				.isEmpty())
+					.isEmpty())
 				return;
 
-			if (newItemArrived) {
-				newItemArrived = false;
-				distributionProgress = 2;
-			} else {
-				if (selectionMode.get() != SelectionMode.SYNCHRONIZE || syncedOutputActive) {
-					distributionProgress = AllConfigs.server().logistics.brassTunnelTimer.get();
-					sendData();
-				}
-				return;
+			if (selectionMode.get() != SelectionMode.SYNCHRONIZE || syncedOutputActive) {
+				distributionProgress = AllConfigs.server().logistics.brassTunnelTimer.get();
+				sendData();
 			}
+			return;
 		}
 
 		if (distributionProgress != 0)
@@ -214,6 +225,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		});
 	}
 
+	private static Random rand = new Random();
 	private static Map<Pair<BrassTunnelBlockEntity, Direction>, ItemStack> distributed = new IdentityHashMap<>();
 	private static Set<Pair<BrassTunnelBlockEntity, Direction>> full = new HashSet<>();
 
@@ -232,7 +244,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		boolean robin = mode == SelectionMode.FORCED_ROUND_ROBIN || mode == SelectionMode.ROUND_ROBIN;
 
 		if (mode == SelectionMode.RANDOMIZE)
-			indexStart = level.random.nextInt(amountTargets);
+			indexStart = rand.nextInt(amountTargets);
 		if (mode == SelectionMode.PREFER_NEAREST || mode == SelectionMode.SYNCHRONIZE)
 			indexStart = 0;
 
@@ -271,8 +283,9 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 					}
 
 					int count = split ? splitStackSize + (splitRemainder > 0 ? 1 : 0) : stackSize;
-					ItemStack toOutput = toDistributeThisCycle.copyWithCount(count);
+					ItemStack toOutput = ItemHandlerHelper.copyStackWithSize(toDistributeThisCycle, count);
 
+					// Grow by 1 to determine if target is full even after a successful transfer
 					boolean testWithIncreasedCount = distributed.containsKey(pair);
 					int increasedCount = testWithIncreasedCount ? distributed.get(pair)
 						.getCount() : 0;
@@ -324,7 +337,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		}
 
 		toDistribute.grow(failedTransferrals);
-		stackToDistribute = stackToDistribute.copyWithCount(toDistribute.getCount());
+		stackToDistribute = ItemHandlerHelper.copyStackWithSize(stackToDistribute, toDistribute.getCount());
 		if (stackToDistribute.isEmpty())
 			stackEnteredFrom = null;
 		previousOutputIndex++;
@@ -332,14 +345,13 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		notifyUpdate();
 	}
 
-	public void setStackToDistribute(ItemStack stack, @Nullable Direction enteredFrom) {
+	public void setStackToDistribute(ItemStack stack, @Nullable Direction enteredFrom, @Nullable TransactionContext ctx) {
+		if (ctx != null) {
+			snapshotParticipant.updateSnapshots(ctx);
+		}
 		stackToDistribute = stack;
 		stackEnteredFrom = enteredFrom;
 		distributionProgress = -1;
-		if (!stack.isEmpty())
-			newItemArrived = true;
-		sendData();
-		setChanged();
 	}
 
 	public ItemStack getStackToDistribute() {
@@ -353,7 +365,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		if (!own.isEmpty()) {
 			list.add(own);
 			if (!simulate)
-				setStackToDistribute(ItemStack.EMPTY, null);
+				setStackToDistribute(ItemStack.EMPTY, null, null);
 		}
 
 		for (boolean left : Iterate.trueAndFalse) {
@@ -369,7 +381,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 					continue;
 				list.add(other);
 				if (!simulate)
-					adjacent.setStackToDistribute(ItemStack.EMPTY, null);
+					adjacent.setStackToDistribute(ItemStack.EMPTY, null, null);
 			}
 		}
 
@@ -378,7 +390,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 
 	@Nullable
 	protected ItemStack insertIntoTunnel(BrassTunnelBlockEntity tunnel, Direction side, ItemStack stack,
-										 boolean simulate) {
+		boolean simulate) {
 		if (stack.isEmpty())
 			return stack;
 		if (!tunnel.testFlapFilter(side, stack))
@@ -516,7 +528,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 	}
 
 	private void addValidOutputsOf(BrassTunnelBlockEntity tunnelBE,
-								   List<Pair<BrassTunnelBlockEntity, Direction>> validOutputs) {
+		List<Pair<BrassTunnelBlockEntity, Direction>> validOutputs) {
 		syncSet.add(tunnelBE);
 		BeltBlockEntity below = BeltHelper.getSegmentBE(level, tunnelBE.worldPosition.below());
 		if (below == null)
@@ -587,12 +599,12 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putBoolean("SyncedOutput", syncedOutputActive);
 		compound.putBoolean("ConnectedLeft", connectedLeft);
 		compound.putBoolean("ConnectedRight", connectedRight);
 
-		compound.put("StackToDistribute", stackToDistribute.saveOptional(registries));
+		compound.put("StackToDistribute", NBTSerializer.serializeNBT(stackToDistribute));
 		if (stackEnteredFrom != null)
 			NBTHelper.writeEnum(compound, "StackEnteredFrom", stackEnteredFrom);
 
@@ -612,11 +624,11 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 				}));
 		}
 
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		boolean wasConnectedLeft = connectedLeft;
 		boolean wasConnectedRight = connectedRight;
 
@@ -624,7 +636,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		connectedLeft = compound.getBoolean("ConnectedLeft");
 		connectedRight = compound.getBoolean("ConnectedRight");
 
-		stackToDistribute = ItemStack.parseOptional(registries, compound.getCompound("StackToDistribute"));
+		stackToDistribute = ItemStack.parseOptional(Create.getRegistryAccess(), compound.getCompound("StackToDistribute"));
 		stackEnteredFrom =
 			compound.contains("StackEnteredFrom") ? NBTHelper.readEnum(compound, "StackEnteredFrom", Direction.class)
 				: null;
@@ -637,18 +649,18 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		for (boolean filtered : Iterate.trueAndFalse) {
 			distributionTargets.set(filtered, NBTHelper
 				.readCompoundList(compound.getList(filtered ? "FilteredTargets" : "Targets", Tag.TAG_COMPOUND), nbt -> {
-					BlockPos pos = NBTHelper.readBlockPos(nbt, "Pos");
+					BlockPos pos = NbtFixer.readBlockPos(nbt, "Pos");
 					Direction face = Direction.from3DDataValue(nbt.getInt("Face"));
 					return Pair.of(pos, face);
 				}));
 		}
 
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 
 		if (!clientPacket)
 			return;
 		if (wasConnectedLeft != connectedLeft || wasConnectedRight != connectedRight) {
-			CatnipServices.PLATFORM.executeOnClientOnly(() -> () -> VisualizationHelper.queueUpdate(this));
+//			requestModelDataUpdate();
 			if (hasLevel())
 				level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 16);
 		}
@@ -727,19 +739,24 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 	}
 
 	@Override
+	public void invalidate() {
+		super.invalidate();
+	}
+
+	@Override
 	public void destroy() {
 		super.destroy();
 		Block.popResource(level, worldPosition, stackToDistribute);
 		stackEnteredFrom = null;
 	}
 
+	@Override
+	public Storage<ItemVariant> getItemStorage(@Nullable Direction face) {
+		return tunnelCapability;
+	}
+
 	public Storage<ItemVariant> getBeltCapability() {
-		if (beltCapability == null) {
-			BlockEntity blockEntity = level.getBlockEntity(worldPosition.below());
-			if (blockEntity != null)
-				beltCapability = ItemStorage.SIDED.find(level, blockEntity.getBlockPos(), null);
-		}
-		return beltCapability;
+		return belowProvider != null ? belowProvider.get(Direction.UP) : null;
 	}
 
 	public enum SelectionMode implements INamedIconOptions {
@@ -758,7 +775,7 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 
 		SelectionMode(AllIcons icon) {
 			this.icon = icon;
-			this.translationKey = "create.tunnel.selection_mode." + Lang.asId(name());
+			this.translationKey = "tunnel.selection_mode." + Lang.asId(name());
 		}
 
 		@Override
@@ -782,15 +799,21 @@ public class BrassTunnelBlockEntity extends BeltTunnelBlockEntity implements IHa
 		if (allStacks.isEmpty())
 			return false;
 
-		CreateLang.translate("tooltip.brass_tunnel.contains").style(ChatFormatting.WHITE).forGoggles(tooltip);
+		tooltip.add(componentSpacing.plainCopy()
+			.append(Lang.translateDirect("tooltip.brass_tunnel.contains"))
+			.withStyle(ChatFormatting.WHITE));
 		for (ItemStack item : allStacks) {
-			CreateLang.translate("tooltip.brass_tunnel.contains_entry",
-					Component.translatable(item.getDescriptionId()).getString(), item.getCount())
-				.style(ChatFormatting.GRAY).forGoggles(tooltip);
+			tooltip.add(componentSpacing.plainCopy()
+				.append(Lang.translateDirect("tooltip.brass_tunnel.contains_entry",
+					Components.translatable(item.getDescriptionId())
+						.getString(),
+					item.getCount()))
+				.withStyle(ChatFormatting.GRAY));
 		}
-		CreateLang.translate("tooltip.brass_tunnel.retrieve").style(ChatFormatting.DARK_GRAY).forGoggles(tooltip);
+		tooltip.add(componentSpacing.plainCopy()
+			.append(Lang.translateDirect("tooltip.brass_tunnel.retrieve"))
+			.withStyle(ChatFormatting.DARK_GRAY));
 
 		return true;
 	}
-
 }

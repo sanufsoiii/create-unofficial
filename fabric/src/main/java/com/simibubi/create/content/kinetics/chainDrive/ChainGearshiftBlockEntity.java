@@ -3,7 +3,7 @@ package com.simibubi.create.content.kinetics.chainDrive;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -16,18 +16,19 @@ public class ChainGearshiftBlockEntity extends KineticBlockEntity {
 	public ChainGearshiftBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
 		signal = 0;
+		setLazyTickRate(40);
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("Signal", signal);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		signal = compound.getInt("Signal");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
 	public float getModifier() {
@@ -38,16 +39,24 @@ public class ChainGearshiftBlockEntity extends KineticBlockEntity {
 		if (!hasLevel())
 			return;
 		int power = level.getBestNeighborSignal(worldPosition);
-		if (power != signal)
+		if (power != signal) 
 			signalChanged = true;
 	}
 
+	@Override
+	public void lazyTick() {
+		super.lazyTick();
+		neighbourChanged();
+	}
+
+	@Override
 	public void tick() {
-		if (level != null && !level.isClientSide) {
-			if (signalChanged) {
-				signalChanged = false;
-				analogSignalChanged(level.getBestNeighborSignal(worldPosition));
-			}
+		super.tick();
+		if (level.isClientSide)
+			return;
+		if (signalChanged) {
+			signalChanged = false;
+			analogSignalChanged(level.getBestNeighborSignal(worldPosition));
 		}
 	}
 

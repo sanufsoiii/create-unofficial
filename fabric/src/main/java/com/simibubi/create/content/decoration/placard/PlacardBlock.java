@@ -2,27 +2,27 @@ package com.simibubi.create.content.decoration.placard;
 
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.api.schematic.requirement.SpecialBlockItemRequirement;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.logistics.filter.FilterItem;
 import com.simibubi.create.content.logistics.filter.FilterItemStack;
+import com.simibubi.create.content.schematics.requirement.ISpecialBlockItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement.ItemUseType;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
 
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -46,11 +46,9 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class PlacardBlock extends FaceAttachedHorizontalDirectionalBlock
-	implements ProperWaterloggedBlock, IBE<PlacardBlockEntity>, SpecialBlockItemRequirement, IWrenchable {
+	implements ProperWaterloggedBlock, IBE<PlacardBlockEntity>, ISpecialBlockItemRequirement, IWrenchable {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
-
-	public static final MapCodec<PlacardBlock> CODEC = simpleCodec(PlacardBlock::new);
 
 	public PlacardBlock(Properties p_53182_) {
 		super(p_53182_);
@@ -117,16 +115,21 @@ public class PlacardBlock extends FaceAttachedHorizontalDirectionalBlock
 	public FluidState getFluidState(BlockState pState) {
 		return fluidState(pState);
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState pState, Level pLevel, BlockPos pPos,
+			Player player, InteractionHand pHand, BlockHitResult hitResult) {
+		
+		ItemStack inHand = player.getItemInHand(pHand);
+		if(inHand.isEmpty()) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
 		if (player.isShiftKeyDown())
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		if (level.isClientSide)
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		if (pLevel.isClientSide)
 			return ItemInteractionResult.SUCCESS;
 
-		ItemStack inHand = player.getItemInHand(hand);
-		return onBlockEntityUseItemOn(level, pos, pte -> {
+		
+		return onBlockEntityUse(pLevel, pPos, pte -> {
 			ItemStack inBlock = pte.getHeldItem();
 
 			if (!player.mayBuild() || inHand.isEmpty() || !inBlock.isEmpty()) {
@@ -134,35 +137,86 @@ public class PlacardBlock extends FaceAttachedHorizontalDirectionalBlock
 					return ItemInteractionResult.FAIL;
 				if (inHand.isEmpty())
 					return ItemInteractionResult.FAIL;
-				if (state.getValue(POWERED))
+				if (pState.getValue(POWERED))
 					return ItemInteractionResult.FAIL;
 
 				boolean test = inBlock.getItem() instanceof FilterItem ? FilterItemStack.of(inBlock)
-					.test(level, inHand) : ItemStack.isSameItemSameComponents(inHand, inBlock);
+					.test(pLevel, inHand) : ItemHandlerHelper.canItemStacksStack(inHand, inBlock);
 				if (!test) {
-					AllSoundEvents.DENY.play(level, null, pos, 1, 1);
+					AllSoundEvents.DENY.play(pLevel, null, pPos, 1, 1);
 					return ItemInteractionResult.SUCCESS;
 				}
 
-				AllSoundEvents.CONFIRM.play(level, null, pos, 1, 1);
-				level.setBlock(pos, state.setValue(POWERED, true), Block.UPDATE_ALL);
-				updateNeighbours(state, level, pos);
+				AllSoundEvents.CONFIRM.play(pLevel, null, pPos, 1, 1);
+				pLevel.setBlock(pPos, pState.setValue(POWERED, true), 3);
+				updateNeighbours(pState, pLevel, pPos);
 				pte.poweredTicks = 19;
 				pte.notifyUpdate();
 				return ItemInteractionResult.SUCCESS;
 			}
 
-			level.playSound(null, pos, SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, 1, 1);
-			pte.setHeldItem(inHand.copyWithCount(1));
+			pLevel.playSound(null, pPos, SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, 1, 1);
+			pte.setHeldItem(ItemHandlerHelper.copyStackWithSize(inHand, 1));
 
 			if (!player.isCreative()) {
 				inHand.shrink(1);
 				if (inHand.isEmpty())
-					player.setItemInHand(hand, ItemStack.EMPTY);
+					player.setItemInHand(pHand, ItemStack.EMPTY);
 			}
 
 			return ItemInteractionResult.SUCCESS;
 		});
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player player,
+			BlockHitResult hitResult) {
+		
+		if (player.isShiftKeyDown())
+			return InteractionResult.PASS;
+		if (pLevel.isClientSide)
+			return InteractionResult.SUCCESS;
+
+		ItemStack inHand = ItemStack.EMPTY;
+		return onBlockEntityUse(pLevel, pPos, pte -> {
+			ItemStack inBlock = pte.getHeldItem();
+
+			if (!player.mayBuild() || inHand.isEmpty() || !inBlock.isEmpty()) {
+				if (inBlock.isEmpty())
+					return ItemInteractionResult.FAIL;
+				if (inHand.isEmpty())
+					return ItemInteractionResult.FAIL;
+				if (pState.getValue(POWERED))
+					return ItemInteractionResult.FAIL;
+
+				boolean test = inBlock.getItem() instanceof FilterItem ? FilterItemStack.of(inBlock)
+					.test(pLevel, inHand) : ItemHandlerHelper.canItemStacksStack(inHand, inBlock);
+				if (!test) {
+					AllSoundEvents.DENY.play(pLevel, null, pPos, 1, 1);
+					return ItemInteractionResult.SUCCESS;
+				}
+
+				AllSoundEvents.CONFIRM.play(pLevel, null, pPos, 1, 1);
+				pLevel.setBlock(pPos, pState.setValue(POWERED, true), 3);
+				updateNeighbours(pState, pLevel, pPos);
+				pte.poweredTicks = 19;
+				pte.notifyUpdate();
+				return ItemInteractionResult.SUCCESS;
+			}
+
+			pLevel.playSound(null, pPos, SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, 1, 1);
+			pte.setHeldItem(ItemHandlerHelper.copyStackWithSize(inHand, 1));
+
+			if (!player.isCreative()) {
+				//inHand.shrink(1);
+				//if (inHand.isEmpty())
+					//player.setItemInHand(pHand, ItemStack.EMPTY);
+			}
+
+			return ItemInteractionResult.SUCCESS;
+		}).result();
+		
 	}
 
 	public static Direction connectedDirection(BlockState state) {
@@ -229,8 +283,9 @@ public class PlacardBlock extends FaceAttachedHorizontalDirectionalBlock
 	}
 
 	@Override
-	protected @NotNull MapCodec<? extends FaceAttachedHorizontalDirectionalBlock> codec() {
-		return CODEC;
+	protected MapCodec<? extends FaceAttachedHorizontalDirectionalBlock> codec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

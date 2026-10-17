@@ -234,6 +234,9 @@ public abstract class SmartBlockEntity extends CachedRenderBBBlockEntity
 		setBlockState(getLevel().getBlockState(getBlockPos()));
 	}
 
+	public void requestModelDataUpdate() {
+	}
+
 	public void registerAwardables(List<BlockEntityBehaviour> behaviours, CreateAdvancement... advancements) {
 		for (BlockEntityBehaviour behaviour : behaviours) {
 			if (behaviour instanceof AdvancementBehaviour ab) {

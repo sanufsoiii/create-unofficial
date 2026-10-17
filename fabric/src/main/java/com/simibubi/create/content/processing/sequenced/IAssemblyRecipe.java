@@ -2,10 +2,9 @@ package com.simibubi.create.content.processing.sequenced;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
-import com.simibubi.create.compat.jei.category.sequencedAssembly.SequencedAssemblySubCategory;
-import com.simibubi.create.foundation.fluid.SizedFluidIngredient;
+import com.simibubi.create.compat.recipeViewerCommon.SequencedAssemblySubCategoryType;
+import com.simibubi.create.foundation.fluid.FluidIngredient;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -14,19 +13,20 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
 
 public interface IAssemblyRecipe {
+
 	default boolean supportsAssembly() {
 		return true;
 	}
 
 	@Environment(EnvType.CLIENT)
-	Component getDescriptionForAssembly();
+	public Component getDescriptionForAssembly();
 
-	void addRequiredMachines(Set<ItemLike> list);
+	public void addRequiredMachines(Set<ItemLike> list);
 
-	void addAssemblyIngredients(List<Ingredient> list);
+	public void addAssemblyIngredients(List<Ingredient> list);
 
-	default void addAssemblyFluidIngredients(List<SizedFluidIngredient> list) {
-	}
+	default void addAssemblyFluidIngredients(List<FluidIngredient> list) {}
 
-	Supplier<Supplier<SequencedAssemblySubCategory>> getJEISubCategory();
+	public SequencedAssemblySubCategoryType getJEISubCategory();
+
 }

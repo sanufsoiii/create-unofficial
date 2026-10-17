@@ -1,20 +1,27 @@
 package com.simibubi.create.content.contraptions.piston;
 
+import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isExtensionPole;
+import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPiston;
+import static com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.isPistonHead;
+
 import java.util.function.Predicate;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
+import com.simibubi.create.content.contraptions.piston.MechanicalPistonBlock.PistonState;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
 import com.simibubi.create.foundation.placement.PoleHelper;
 
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -25,6 +32,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -38,41 +46,108 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class PistonExtensionPoleBlock extends WrenchableDirectionalBlock implements IWrenchable, SimpleWaterloggedBlock {
 
-	private static final int placementHelperId = PlacementHelpers.register(PlacementHelper.get());
+    private static final int placementHelperId = PlacementHelpers.register(PlacementHelper.get());
 
-	public PistonExtensionPoleBlock(Properties properties) {
-		super(properties);
-		registerDefaultState(defaultBlockState().setValue(FACING, Direction.UP).setValue(BlockStateProperties.WATERLOGGED, false));
-	}
-
-	public PushReaction getPistonPushReaction(BlockState state) {
-		return PushReaction.NORMAL;
-	}
+    public PistonExtensionPoleBlock(Properties properties) {
+        super(properties);
+        registerDefaultState(defaultBlockState().setValue(FACING, Direction.UP).setValue(BlockStateProperties.WATERLOGGED, false));
+    }
 
 	@Override
 	public BlockState playerWillDestroy(Level worldIn, BlockPos pos, BlockState state, Player player) {
+		Axis axis = state.getValue(FACING)
+			.getAxis();
+		Direction direction = Direction.get(AxisDirection.POSITIVE, axis);
+		BlockPos pistonHead = null;
+		BlockPos pistonBase = null;
+
+		for (int modifier : new int[] { 1, -1 }) {
+			for (int offset = modifier; modifier * offset < MechanicalPistonBlock.maxAllowedPistonPoles(); offset +=
+				modifier) {
+				BlockPos currentPos = pos.relative(direction, offset);
+				BlockState block = worldIn.getBlockState(currentPos);
+
+				if (isExtensionPole(block) && axis == block.getValue(FACING)
+					.getAxis())
+					continue;
+
+				if (isPiston(block) && block.getValue(BlockStateProperties.FACING)
+					.getAxis() == axis)
+					pistonBase = currentPos;
+
+				if (isPistonHead(block) && block.getValue(BlockStateProperties.FACING)
+					.getAxis() == axis)
+					pistonHead = currentPos;
+
+				break;
+			}
+		}
+
+		if (pistonHead != null && pistonBase != null && worldIn.getBlockState(pistonHead)
+			.getValue(BlockStateProperties.FACING) == worldIn.getBlockState(pistonBase)
+				.getValue(BlockStateProperties.FACING)) {
+
+			final BlockPos basePos = pistonBase;
+			BlockPos.betweenClosedStream(pistonBase, pistonHead)
+					.filter(p -> !p.equals(pos) && !p.equals(basePos))
+					.forEach(p -> worldIn.destroyBlock(p, !player.isCreative()));
+			worldIn.setBlockAndUpdate(basePos, worldIn.getBlockState(basePos)
+					.setValue(MechanicalPistonBlock.STATE, PistonState.RETRACTED));
+
+			BlockEntity be = worldIn.getBlockEntity(basePos);
+			if (be instanceof MechanicalPistonBlockEntity) {
+				MechanicalPistonBlockEntity baseBE = (MechanicalPistonBlockEntity) be;
+				baseBE.offset = 0;
+				baseBE.onLengthBroken();
+			}
+		}
+
 		return super.playerWillDestroy(worldIn, pos, state, player);
 	}
 
 	@Override
 	public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
-		return AllShapes.FOUR_VOXEL_POLE.get(state.getValue(FACING).getAxis());
+		return AllShapes.FOUR_VOXEL_POLE.get(state.getValue(FACING)
+			.getAxis());
 	}
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
-		FluidState fluidState = context.getLevel().getFluidState(context.getClickedPos());
-		return defaultBlockState().setValue(FACING, context.getClickedFace().getOpposite())
-			.setValue(BlockStateProperties.WATERLOGGED, fluidState.getType() == Fluids.WATER);
+		FluidState FluidState = context.getLevel()
+			.getFluidState(context.getClickedPos());
+		return defaultBlockState().setValue(FACING, context.getClickedFace()
+			.getOpposite())
+			.setValue(BlockStateProperties.WATERLOGGED, Boolean.valueOf(FluidState.getType() == Fluids.WATER));
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
-		if (placementHelper.matchesItem(stack) && !player.isShiftKeyDown())
-			return placementHelper.getOffset(player, level, state, pos, hitResult).placeInWorld(level, (BlockItem) stack.getItem(), player, hand, hitResult);
+	public ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand,
+		BlockHitResult ray) {
+		ItemStack heldItem = player.getItemInHand(hand);
+		
+		if(stack.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+        IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
+        if (placementHelper.matchesItem(heldItem) && !player.isShiftKeyDown())
+            return placementHelper.getOffset(player, world, state, pos, ray).placeInWorld(world, (BlockItem) heldItem.getItem(), player, hand, ray);
 
-		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
+			BlockHitResult ray) {
+		
+		ItemStack heldItem = ItemStack.EMPTY;
+		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
+		
+        if (placementHelper.matchesItem(heldItem) && !player.isShiftKeyDown())
+            return placementHelper.getOffset(player, world, state, pos, ray)
+            		.placeInWorld(world, (BlockItem) heldItem.getItem(), player, InteractionHand.MAIN_HAND, ray).result();
+
+		return InteractionResult.PASS;
+		
 	}
 
 	@Override
@@ -87,37 +162,38 @@ public class PistonExtensionPoleBlock extends WrenchableDirectionalBlock impleme
 		super.createBlockStateDefinition(builder);
 	}
 
-	@Override
-	public BlockState updateShape(BlockState state, Direction direction, BlockState neighbourState, LevelAccessor world, BlockPos pos, BlockPos neighbourPos) {
-		if (state.getValue(BlockStateProperties.WATERLOGGED))
-			world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
-		return state;
-	}
+    @Override
+    public BlockState updateShape(BlockState state, Direction direction, BlockState neighbourState, LevelAccessor world, BlockPos pos, BlockPos neighbourPos) {
+        if (state.getValue(BlockStateProperties.WATERLOGGED))
+            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+        return state;
+    }
+    
+    @Override
+    protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
+    	return false;
+    }
 
-	@Override
-	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
-		return false;
-	}
+    @MethodsReturnNonnullByDefault
+    public static class PlacementHelper extends PoleHelper<Direction> {
 
-	public static class PlacementHelper extends PoleHelper<Direction> {
+        private static final PlacementHelper instance = new PlacementHelper();
 
-		private static final PlacementHelper instance = new PlacementHelper();
+        public static PlacementHelper get() {
+            return instance;
+        }
 
-		public static PlacementHelper get() {
-			return instance;
-		}
+        private PlacementHelper(){
+            super(
+                    AllBlocks.PISTON_EXTENSION_POLE::has,
+                    state -> state.getValue(FACING).getAxis(),
+                    FACING
+            );
+        }
 
-		private PlacementHelper() {
-			super(
-				AllBlocks.PISTON_EXTENSION_POLE::has,
-				state -> state.getValue(FACING).getAxis(),
-				FACING
-			);
-		}
-
-		@Override
-		public Predicate<ItemStack> getItemPredicate() {
-			return AllBlocks.PISTON_EXTENSION_POLE::isIn;
-		}
-	}
+        @Override
+        public Predicate<ItemStack> getItemPredicate() {
+            return AllBlocks.PISTON_EXTENSION_POLE::isIn;
+        }
+    }
 }

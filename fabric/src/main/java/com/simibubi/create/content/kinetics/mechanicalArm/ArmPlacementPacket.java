@@ -2,71 +2,91 @@ package com.simibubi.create.content.kinetics.mechanicalArm;
 
 import java.util.Collection;
 
-import com.simibubi.create.AllPackets;
-import net.createmod.catnip.net.base.ClientboundPacketPayload;
-import net.createmod.catnip.net.base.ServerboundPacketPayload;
+import com.simibubi.create.foundation.networking.SimplePacketBase;
+import com.tterrag.registrate.fabric.EnvExecutor;
 
-import net.createmod.catnip.codecs.stream.CatnipStreamCodecs;
-import io.netty.buffer.ByteBuf;
-import net.minecraft.client.player.LocalPlayer;
+import net.fabricmc.api.EnvType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+public class ArmPlacementPacket extends SimplePacketBase {
 
-public record ArmPlacementPacket(ListTag tag, BlockPos pos) implements ServerboundPacketPayload {
-	public static final StreamCodec<FriendlyByteBuf, ArmPlacementPacket> STREAM_CODEC = StreamCodec.composite(
-			CatnipStreamCodecs.COMPOUND_LIST_TAG, ArmPlacementPacket::tag,
-			BlockPos.STREAM_CODEC, ArmPlacementPacket::pos,
-			ArmPlacementPacket::new
-	);
+	private Collection<ArmInteractionPoint> points;
+	private ListTag receivedTag;
+	private BlockPos pos;
 
 	public ArmPlacementPacket(Collection<ArmInteractionPoint> points, BlockPos pos) {
-		this(new ListTag(), pos);
+		this.points = points;
+		this.pos = pos;
+	}
 
-		for (ArmInteractionPoint point : points) {
-			this.tag.add(point.serialize(pos));
-		}
+	public ArmPlacementPacket(RegistryFriendlyByteBuf buffer) {
+		CompoundTag nbt = buffer.readNbt();
+		receivedTag = nbt.getList("Points", Tag.TAG_COMPOUND);
+		pos = buffer.readBlockPos();
 	}
 
 	@Override
-	public PacketTypeProvider getTypeProvider() {
-		return AllPackets.PLACE_ARM;
+	public void write(RegistryFriendlyByteBuf buffer) {
+		CompoundTag nbt = new CompoundTag();
+		ListTag pointsNBT = new ListTag();
+		points.stream()
+			.map(aip -> aip.serialize(pos))
+			.forEach(pointsNBT::add);
+		nbt.put("Points", pointsNBT);
+		buffer.writeNbt(nbt);
+		buffer.writeBlockPos(pos);
 	}
 
 	@Override
-	public void handle(ServerPlayer player) {
-		Level world = player.level();
-		if (!world.isLoaded(pos))
-			return;
-		BlockEntity blockEntity = world.getBlockEntity(pos);
-		if (!(blockEntity instanceof ArmBlockEntity arm))
-			return;
+	public boolean handle(Context context) {
+		context.enqueueWork(() -> {
+			ServerPlayer player = context.getSender();
+			if (player == null)
+				return;
+			Level world = player.level();
+			if (world == null || !world.isLoaded(pos))
+				return;
+			BlockEntity blockEntity = world.getBlockEntity(pos);
+			if (!(blockEntity instanceof ArmBlockEntity))
+				return;
 
-		arm.interactionPointTag = this.tag;
+			ArmBlockEntity arm = (ArmBlockEntity) blockEntity;
+			arm.interactionPointTag = receivedTag;
+		});
+		return true;
 	}
 
-	public record ClientBoundRequest(BlockPos pos) implements ClientboundPacketPayload {
-		public static final StreamCodec<ByteBuf, ClientBoundRequest> STREAM_CODEC = BlockPos.STREAM_CODEC.map(
-				ClientBoundRequest::new, ClientBoundRequest::pos
-		);
+	public static class ClientBoundRequest extends SimplePacketBase {
 
-		@Override
-		public PacketTypeProvider getTypeProvider() {
-			return AllPackets.S_PLACE_ARM;
+		BlockPos pos;
+
+		public ClientBoundRequest(BlockPos pos) {
+			this.pos = pos;
+		}
+
+		public ClientBoundRequest(RegistryFriendlyByteBuf buffer) {
+			this.pos = buffer.readBlockPos();
 		}
 
 		@Override
-		@Environment(EnvType.CLIENT)
-		public void handle(LocalPlayer player) {
-			// ArmInteractionPointHandler.flushSettings(pos);
+		public void write(RegistryFriendlyByteBuf buffer) {
+			buffer.writeBlockPos(pos);
 		}
+
+		@Override
+		public boolean handle(Context context) {
+			context.enqueueWork(() -> EnvExecutor.runWhenOn(EnvType.CLIENT,
+				() -> () -> ArmInteractionPointHandler.flushSettings(pos)));
+			return true;
+		}
+
 	}
 
 }

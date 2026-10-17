@@ -3,20 +3,22 @@ package com.simibubi.create.content.contraptions.mounted;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
-import com.simibubi.create.api.schematic.requirement.SpecialBlockItemRequirement;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.redstone.rail.ControllerRailBlock;
+import com.simibubi.create.content.schematics.requirement.ISpecialBlockItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement.ItemUseType;
 import com.simibubi.create.foundation.block.IBE;
 
+import io.github.fabricators_of_create.porting_lib_ufo.block.MinecartPassHandlerBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.block.SlopeCreationCheckingRailBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -62,7 +64,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class CartAssemblerBlock extends BaseRailBlock
-	implements IBE<CartAssemblerBlockEntity>, IWrenchable, SpecialBlockItemRequirement {
+	implements IBE<CartAssemblerBlockEntity>, IWrenchable, ISpecialBlockItemRequirement, SlopeCreationCheckingRailBlock, MinecartPassHandlerBlock {
 
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
 	public static final BooleanProperty BACKWARDS = BooleanProperty.create("backwards");
@@ -70,8 +72,6 @@ public class CartAssemblerBlock extends BaseRailBlock
 		EnumProperty.create("shape", RailShape.class, RailShape.EAST_WEST, RailShape.NORTH_SOUTH);
 	public static final Property<CartAssembleRailType> RAIL_TYPE =
 		EnumProperty.create("rail_type", CartAssembleRailType.class);
-
-	public static final MapCodec<CartAssemblerBlock> CODEC = simpleCodec(CartAssemblerBlock::new);
 
 	public CartAssemblerBlock(Properties properties) {
 		super(true, properties);
@@ -111,11 +111,13 @@ public class CartAssemblerBlock extends BaseRailBlock
 		super.createBlockStateDefinition(builder);
 	}
 
-	public boolean canMakeSlopes(BlockState state, BlockGetter world, BlockPos pos) {
+	@Override
+	public boolean canMakeSlopes(@Nonnull BlockState state, @Nonnull BlockGetter world, @Nonnull BlockPos pos) {
 		return false;
 	}
 
-	public void onMinecartPass(BlockState state, Level world, BlockPos pos,
+	@Override
+	public void onMinecartPass(@Nonnull BlockState state, @Nonnull Level world, @Nonnull BlockPos pos,
 		AbstractMinecart cart) {
 		if (!canAssembleTo(cart))
 			return;
@@ -159,13 +161,17 @@ public class CartAssemblerBlock extends BaseRailBlock
 	}
 
 	public static boolean canAssembleTo(AbstractMinecart cart) {
-		return (cart instanceof net.minecraft.world.entity.vehicle.Minecart) || cart instanceof MinecartFurnace || cart instanceof MinecartChest;
+		return cart.getMinecartType() == AbstractMinecart.Type.RIDEABLE || cart instanceof MinecartFurnace || cart instanceof MinecartChest;
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
+	@Nonnull
+	protected ItemInteractionResult useItemOn(@Nonnull ItemStack stack, @Nonnull BlockState state, @Nonnull Level world, 
+			@Nonnull BlockPos pos, @Nonnull Player player, @Nonnull InteractionHand hand, @Nonnull BlockHitResult hitResult) {
+		
+		ItemStack itemStack = player.getItemInHand(hand);
 		Item previousItem = getRailItem(state);
-		Item heldItem = stack.getItem();
+		Item heldItem = itemStack.getItem();
 		if (heldItem != previousItem) {
 
 			CartAssembleRailType newType = null;
@@ -174,11 +180,11 @@ public class CartAssemblerBlock extends BaseRailBlock
 					newType = type;
 			if (newType == null)
 				return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-			level.playSound(null, pos, SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 1, 1);
-			level.setBlockAndUpdate(pos, state.setValue(RAIL_TYPE, newType));
+			world.playSound(null, pos, SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 1, 1);
+			world.setBlockAndUpdate(pos, state.setValue(RAIL_TYPE, newType));
 
 			if (!player.isCreative()) {
-				stack.shrink(1);
+				itemStack.shrink(1);
 				player.getInventory()
 					.placeItemBackInInventory(new ItemStack(previousItem));
 			}
@@ -186,29 +192,30 @@ public class CartAssemblerBlock extends BaseRailBlock
 		}
 
 		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
 	}
 
 	@Override
-	public void neighborChanged(@NotNull BlockState state, @NotNull Level worldIn, @NotNull BlockPos pos,
-								@NotNull Block blockIn, @NotNull BlockPos fromPos, boolean isMoving) {
+	public void neighborChanged(@Nonnull BlockState state, @Nonnull Level worldIn, @Nonnull BlockPos pos,
+		@Nonnull Block blockIn, @Nonnull BlockPos fromPos, boolean isMoving) {
 		if (worldIn.isClientSide)
 			return;
 		boolean previouslyPowered = state.getValue(POWERED);
 		if (previouslyPowered != worldIn.hasNeighborSignal(pos))
-			worldIn.setBlock(pos, state.cycle(POWERED), Block.UPDATE_CLIENTS);
+			worldIn.setBlock(pos, state.cycle(POWERED), 2);
 		super.neighborChanged(state, worldIn, pos, blockIn, fromPos, isMoving);
 	}
 
 	@Override
-	@NotNull
+	@Nonnull
 	public Property<RailShape> getShapeProperty() {
 		return RAIL_SHAPE;
 	}
 
 	@Override
-	@NotNull
-	public VoxelShape getShape(BlockState state, @NotNull BlockGetter worldIn, @NotNull BlockPos pos,
-							   @NotNull CollisionContext context) {
+	@Nonnull
+	public VoxelShape getShape(BlockState state, @Nonnull BlockGetter worldIn, @Nonnull BlockPos pos,
+		@Nonnull CollisionContext context) {
 		return AllShapes.CART_ASSEMBLER.get(getRailAxis(state));
 	}
 
@@ -217,8 +224,8 @@ public class CartAssemblerBlock extends BaseRailBlock
 	}
 
 	@Override
-	@NotNull
-	public VoxelShape getCollisionShape(@NotNull BlockState state, @NotNull BlockGetter worldIn, @NotNull BlockPos pos,
+	@Nonnull
+	public VoxelShape getCollisionShape(@Nonnull BlockState state, @Nonnull BlockGetter worldIn, @Nonnull BlockPos pos,
 		CollisionContext context) {
 		if (context instanceof EntityCollisionContext) {
 			Entity entity = ((EntityCollisionContext) context).getEntity();
@@ -228,11 +235,6 @@ public class CartAssemblerBlock extends BaseRailBlock
 				return AllShapes.CART_ASSEMBLER_PLAYER_COLLISION.get(getRailAxis(state));
 		}
 		return Shapes.block();
-	}
-
-	@NotNull
-	public PushReaction getPistonPushReaction(@NotNull BlockState state) {
-		return PushReaction.BLOCK;
 	}
 
 	@Override
@@ -246,8 +248,8 @@ public class CartAssemblerBlock extends BaseRailBlock
 	}
 
 	@Override
-	public boolean canSurvive(@NotNull BlockState state, @NotNull LevelReader world, @NotNull BlockPos pos) {
-		return canSupportRigidBlock(world, pos.below());
+	public boolean canSurvive(@Nonnull BlockState state, @Nonnull LevelReader world, @Nonnull BlockPos pos) {
+		return false;
 	}
 
 	@Override
@@ -260,7 +262,7 @@ public class CartAssemblerBlock extends BaseRailBlock
 
 	@Override
 	@SuppressWarnings("deprecation")
-	@NotNull
+	@Nonnull
 	public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
 		List<ItemStack> drops = super.getDrops(state, builder);
 		drops.addAll(getRailBlock(state).getDrops(builder));
@@ -294,10 +296,6 @@ public class CartAssemblerBlock extends BaseRailBlock
 		return InteractionResult.SUCCESS;
 	}
 
-	public float getRailMaxSpeed(BlockState state, Level level, BlockPos pos, AbstractMinecart cart) {
-		return 0.4f;
-	}
-
 	public static class MinecartAnchorBlock extends Block {
 
 		public MinecartAnchorBlock(Properties p_i48440_1_) {
@@ -311,13 +309,13 @@ public class CartAssemblerBlock extends BaseRailBlock
 		}
 
 		@Override
-		@NotNull
-		public VoxelShape getShape(@NotNull BlockState p_220053_1_, @NotNull BlockGetter p_220053_2_,
-								   @NotNull BlockPos p_220053_3_, @NotNull CollisionContext p_220053_4_) {
+		@Nonnull
+		public VoxelShape getShape(@Nonnull BlockState p_220053_1_, @Nonnull BlockGetter p_220053_2_,
+			@Nonnull BlockPos p_220053_3_, @Nonnull CollisionContext p_220053_4_) {
 			return Shapes.empty();
 		}
 	}
-
+	
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;
@@ -329,7 +327,7 @@ public class CartAssemblerBlock extends BaseRailBlock
 		if (world.isClientSide)
 			return InteractionResult.SUCCESS;
 		BlockPos pos = context.getClickedPos();
-		world.setBlock(pos, rotate(state, Rotation.CLOCKWISE_90), Block.UPDATE_ALL);
+		world.setBlock(pos, rotate(state, Rotation.CLOCKWISE_90), 3);
 		world.updateNeighborsAt(pos.below(), this);
 		return InteractionResult.SUCCESS;
 	}
@@ -375,7 +373,8 @@ public class CartAssemblerBlock extends BaseRailBlock
 	}
 
 	@Override
-	protected @NotNull MapCodec<? extends BaseRailBlock> codec() {
-		return CODEC;
+	protected MapCodec<? extends BaseRailBlock> codec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

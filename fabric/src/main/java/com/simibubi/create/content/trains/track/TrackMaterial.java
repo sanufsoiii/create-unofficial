@@ -6,13 +6,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+
+import net.fabricmc.api.EnvType;
+
+import net.fabricmc.api.Environment;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.jozufozu.flywheel.core.PartialModel;
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllPartialModels;
 import com.simibubi.create.Create;
 import com.tterrag.registrate.util.nullness.NonNullSupplier;
 
+import io.github.fabricators_of_create.porting_lib_ufo.util.EnvExecutor;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -42,15 +50,24 @@ public class TrackMaterial {
 	@Nullable
 	private final TrackMaterial.TrackType.TrackBlockFactory customFactory;
 
-	public TrackMaterial(ResourceLocation id, String langName, NonNullSupplier<NonNullSupplier<? extends TrackBlock>> trackBlock,
-						 ResourceLocation particle, Ingredient sleeperIngredient, Ingredient railsIngredient,
-						 TrackType trackType) {
-		this(id, langName, trackBlock, particle, sleeperIngredient, railsIngredient, trackType, null);
+	@Environment(EnvType.CLIENT)
+	protected TrackModelHolder modelHolder;
+
+	@Environment(EnvType.CLIENT)
+	public TrackModelHolder getModelHolder() {
+		return modelHolder;
 	}
 
 	public TrackMaterial(ResourceLocation id, String langName, NonNullSupplier<NonNullSupplier<? extends TrackBlock>> trackBlock,
 						 ResourceLocation particle, Ingredient sleeperIngredient, Ingredient railsIngredient,
-						 TrackType trackType, @Nullable TrackType.TrackBlockFactory customFactory) {
+						 TrackType trackType, Supplier<Supplier<TrackModelHolder>> modelHolder) {
+		this(id, langName, trackBlock, particle, sleeperIngredient, railsIngredient, trackType, modelHolder, null);
+	}
+
+	public TrackMaterial(ResourceLocation id, String langName, NonNullSupplier<NonNullSupplier<? extends TrackBlock>> trackBlock,
+						 ResourceLocation particle, Ingredient sleeperIngredient, Ingredient railsIngredient,
+						 TrackType trackType, Supplier<Supplier<TrackModelHolder>> modelHolder,
+						 @Nullable TrackType.TrackBlockFactory customFactory) {
 		this.id = id;
 		this.langName = langName;
 		this.trackBlock = trackBlock;
@@ -59,6 +76,7 @@ public class TrackMaterial {
 		this.particle = particle;
 		this.trackType = trackType;
 		this.customFactory = customFactory;
+		EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> this.modelHolder = modelHolder.get().get());
 		ALL.put(this.id, this);
 	}
 
@@ -112,11 +130,11 @@ public class TrackMaterial {
 	}
 
 	public static TrackMaterial deserialize(String serializedName) {
-		if (serializedName == null || serializedName.isBlank())
+		if (serializedName.isBlank()) // Data migrating from 0.5
 			return ANDESITE;
 
 		ResourceLocation id = ResourceLocation.tryParse(serializedName);
-		if (id != null && ALL.containsKey(id))
+		if (ALL.containsKey(id))
 			return ALL.get(id);
 
 		Create.LOGGER.error("Failed to locate serialized track material: " + serializedName);
@@ -144,5 +162,11 @@ public class TrackMaterial {
 		if (item instanceof BlockItem blockItem && blockItem.getBlock() instanceof ITrackBlock trackBlock)
 			return trackBlock.getMaterial();
 		return TrackMaterial.ANDESITE;
+	}
+
+	@Environment(EnvType.CLIENT)
+	public record TrackModelHolder(PartialModel tie, PartialModel segment_left, PartialModel segment_right) {
+		static final TrackModelHolder DEFAULT = new TrackModelHolder(AllPartialModels.TRACK_TIE,
+			AllPartialModels.TRACK_SEGMENT_LEFT, AllPartialModels.TRACK_SEGMENT_RIGHT);
 	}
 }

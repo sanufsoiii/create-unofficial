@@ -1,33 +1,23 @@
 package com.simibubi.create.content.processing.sequenced;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.DataResult;
-import com.simibubi.create.content.processing.recipe.ProcessingRecipe;
+import java.util.Arrays;
 
-import io.netty.handler.codec.DecoderException;
-import net.fabricmc.fabric.api.recipe.v1.ingredient.DefaultCustomIngredients;
+import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonParseException;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipe;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeSerializer;
+import com.simibubi.create.foundation.utility.RegisteredObjects;
+
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 
-public class SequencedRecipe<T extends ProcessingRecipe<?, ?>> {
-	public static final Codec<SequencedRecipe<?>> CODEC = Recipe.CODEC
-		.comapFlatMap(recipe -> recipe instanceof ProcessingRecipe<?,?> processing && recipe instanceof IAssemblyRecipe
-				? DataResult.success(new SequencedRecipe<>(processing))
-				: DataResult.error(() -> recipe.getClass().getSimpleName() + " is not supported in Sequenced Assembly"),
-			SequencedRecipe::getRecipe
-		);
-	public static final StreamCodec<RegistryFriendlyByteBuf, SequencedRecipe<?>> STREAM_CODEC = Recipe.STREAM_CODEC
-		.map(recipe -> {
-				if (recipe instanceof ProcessingRecipe<?,?> processing && recipe instanceof IAssemblyRecipe)
-					return new SequencedRecipe<>(processing);
-				throw new DecoderException("Unexpected " + recipe.getClass().getSimpleName() + " not supported in Sequenced Assembly");
-			},
-			SequencedRecipe::getRecipe
-		);
-
-	private final T wrapped;
+public class SequencedRecipe<T extends ProcessingRecipe<?>> {
+	
+	private T wrapped;
 
 	public SequencedRecipe(T wrapped) {
 		this.wrapped = wrapped;
@@ -37,15 +27,71 @@ public class SequencedRecipe<T extends ProcessingRecipe<?, ?>> {
 		return (IAssemblyRecipe) wrapped;
 	}
 
-	public T getRecipe() {
+	public ProcessingRecipe<?> getRecipe() {
 		return wrapped;
 	}
 
-	void initFromSequencedAssembly(SequencedAssemblyRecipe parent, boolean isFirst) {
-		if (getAsAssemblyRecipe().supportsAssembly()) {
-			Ingredient transit = Ingredient.of(parent.getTransitionalItem());
-			wrapped.getIngredients()
-				.set(0, isFirst ? DefaultCustomIngredients.any(transit, parent.getIngredient()) : transit);
+//	public JsonObject toJson() {
+//		@SuppressWarnings("unchecked")
+//		ProcessingRecipeSerializer<T> serializer = (ProcessingRecipeSerializer<T>) wrapped.getSerializer();
+//		JsonObject json = new JsonObject();
+//		json.addProperty("type", RegisteredObjects.getKeyOrThrow(serializer)
+//			.toString());
+//		serializer.write(json, wrapped);
+//		return json;
+//	}
+//
+//	public static SequencedRecipe<?> fromJson(JsonObject json, SequencedAssemblyRecipe parent, int index) {
+//		ResourceLocation parentId = ResourceLocation.fromNamespaceAndPath(""); //parent.getId();
+//		RecipeHolder<?> recipe = null; //RecipeManager.fromJson(
+//			//ResourceLocation.fromNamespaceAndPath(parentId.getNamespace(), parentId.getPath() + "_step_" + index), json);
+//		if (recipe.value() instanceof ProcessingRecipe<?> && recipe.value() instanceof IAssemblyRecipe) {
+//			ProcessingRecipe<?> processingRecipe = (ProcessingRecipe<?>) recipe.value();
+//			IAssemblyRecipe assemblyRecipe = (IAssemblyRecipe) recipe.value();
+//			if (assemblyRecipe.supportsAssembly()) {
+//				Ingredient transit = Ingredient.of(parent.getTransitionalItem());
+//
+//				processingRecipe.getIngredients()
+//					.set(0, index == 0 ? Ingredient.fromValues(ImmutableList.of(transit, parent.getIngredient()).stream().flatMap(i -> Arrays.stream(i.values))) : transit);
+//				SequencedRecipe<?> sequencedRecipe = new SequencedRecipe<>(processingRecipe);
+//				return sequencedRecipe;
+//			}
+//		}
+//		throw new JsonParseException("Not a supported recipe type");
+//	}
+	
+	public static SequencedRecipe<?> fromParsed(Recipe<?> recipe, SequencedAssemblyRecipe parent, int index){
+		if(recipe instanceof ProcessingRecipe<?> && recipe instanceof IAssemblyRecipe) {
+			ProcessingRecipe<?> processingRecipe = (ProcessingRecipe<?>) recipe;
+			IAssemblyRecipe assemblyRecipe = (IAssemblyRecipe) recipe;
+			if (assemblyRecipe.supportsAssembly()) {
+				Ingredient transit = Ingredient.of(parent.getTransitionalItem());
+
+				processingRecipe.getIngredients()
+					.set(0, index == 0 ? Ingredient.fromValues(ImmutableList.of(transit, parent.getIngredient()).stream().flatMap(i -> Arrays.stream(i.values))) : transit);
+				SequencedRecipe<?> sequencedRecipe = new SequencedRecipe<>(processingRecipe);
+				return sequencedRecipe;
+			}
 		}
+		throw new JsonParseException("Not a supported recipe type");
 	}
+
+	public void writeToBuffer(RegistryFriendlyByteBuf buffer) {
+		@SuppressWarnings("unchecked")
+		ProcessingRecipeSerializer<T> serializer = (ProcessingRecipeSerializer<T>) wrapped.getSerializer();
+		buffer.writeResourceLocation(RegisteredObjects.getKeyOrThrow(serializer));
+		//buffer.writeResourceLocation(wrapped.getId());
+		serializer.writeToBuffer(buffer, wrapped);
+	}
+
+	public static SequencedRecipe<?> readFromBuffer(RegistryFriendlyByteBuf buffer) {
+		ResourceLocation resourcelocation = buffer.readResourceLocation();
+		RecipeSerializer<?> serializer = BuiltInRegistries.RECIPE_SERIALIZER.get(resourcelocation);
+		if (!(serializer instanceof ProcessingRecipeSerializer))
+			throw new JsonParseException("Not a supported recipe type");
+		@SuppressWarnings("rawtypes")
+		ProcessingRecipe recipe = (ProcessingRecipe) ((ProcessingRecipeSerializer)serializer).readFromBuffer(ResourceLocation.parse(""), buffer);
+		return new SequencedRecipe<>(recipe);
+	}
+
 }

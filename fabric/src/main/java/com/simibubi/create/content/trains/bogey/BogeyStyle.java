@@ -2,62 +2,72 @@ package com.simibubi.create.content.trains.bogey;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import org.jetbrains.annotations.NotNull;
+
+import com.jozufozu.flywheel.api.MaterialManager;
 import com.simibubi.create.AllBogeyStyles;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.content.trains.bogey.BogeySizes.BogeySize;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.content.trains.bogey.BogeyRenderer.CommonRenderer;
+import com.simibubi.create.content.trains.entity.CarriageBogey;
 
-import dev.engine_room.flywheel.api.visualization.VisualizationContext;
-import net.createmod.catnip.platform.CatnipServices;
-import net.minecraft.client.renderer.MultiBufferSource;
+import io.github.fabricators_of_create.porting_lib_ufo.util.EnvExecutor;
+import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.level.block.Block;
+
 
 public class BogeyStyle {
-	public final ResourceLocation id;
+
+	public final ResourceLocation name;
 	public final ResourceLocation cycleGroup;
 	public final Component displayName;
-	public final Supplier<SoundEvent> soundEvent;
+	public final ResourceLocation soundType;
 	public final ParticleOptions contactParticle;
 	public final ParticleOptions smokeParticle;
 	public final CompoundTag defaultData;
-	private final Map<BogeySizes.BogeySize, Supplier<? extends AbstractBogeyBlock<?>>> sizes;
 
-	private Map<BogeySizes.BogeySize, SizeRenderer> sizeRenderers;
+	private Optional<Supplier<? extends CommonRenderer>> commonRendererFactory;
+private Map<BogeySizes.BogeySize, ResourceLocation> sizes;
 
-	public BogeyStyle(ResourceLocation id, ResourceLocation cycleGroup, Component displayName,
-		Supplier<SoundEvent> soundEvent, ParticleOptions contactParticle, ParticleOptions smokeParticle,
-		CompoundTag defaultData, Map<BogeySizes.BogeySize, Supplier<? extends AbstractBogeyBlock<?>>> sizes,
-		Map<BogeySizes.BogeySize, Supplier<Supplier<? extends SizeRenderer>>> sizeRenderers) {
+	@Environment(EnvType.CLIENT)
+	private Map<BogeySizes.BogeySize, SizeRenderData> sizeRenderers;
 
-		this.id = id;
+	@Environment(EnvType.CLIENT)
+	private Optional<CommonRenderer> commonRenderer;
+
+	public BogeyStyle(ResourceLocation name, ResourceLocation cycleGroup, Component displayName,
+		ResourceLocation soundType, ParticleOptions contactParticle, ParticleOptions smokeParticle,
+		CompoundTag defaultData, Map<BogeySizes.BogeySize, ResourceLocation> sizes,
+		Map<BogeySizes.BogeySize, Supplier<SizeRenderData>> sizeRenderers,
+		Optional<Supplier<? extends CommonRenderer>> commonRenderer) {
+
+		this.name = name;
 		this.cycleGroup = cycleGroup;
 		this.displayName = displayName;
-		this.soundEvent = soundEvent;
+		this.soundType = soundType;
 		this.contactParticle = contactParticle;
 		this.smokeParticle = smokeParticle;
 		this.defaultData = defaultData;
 		this.sizes = sizes;
 
-		CatnipServices.PLATFORM.executeOnClientOnly(() -> () -> {
+		EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> {
 			this.sizeRenderers = new HashMap<>();
-			sizeRenderers.forEach((k, v) -> {
-				Supplier<? extends SizeRenderer> supplier = v.get();
-				if (supplier != null) {
-					this.sizeRenderers.put(k, supplier.get());
-				}
-			});
+			sizeRenderers.forEach((k, v) -> this.sizeRenderers.put(k, v.get()));
+			this.commonRendererFactory = commonRenderer;
+			this.commonRenderer = commonRenderer.map(Supplier::get);
 		});
 	}
 
@@ -65,111 +75,60 @@ public class BogeyStyle {
 		return AllBogeyStyles.getCycleGroup(cycleGroup);
 	}
 
+	public Block getNextBlock(BogeySizes.BogeySize currentSize) {
+		return Stream.iterate(currentSize.increment(), BogeySizes.BogeySize::increment)
+				.filter(sizes::containsKey)
+				.findFirst()
+				.map(this::getBlockOfSize)
+				.orElse(getBlockOfSize(currentSize));
+	}
+
+	public Block getBlockOfSize(BogeySizes.BogeySize size) {
+		return BuiltInRegistries.BLOCK.get(sizes.get(size));
+	}
+
 	public Set<BogeySizes.BogeySize> validSizes() {
 		return sizes.keySet();
 	}
 
-	public AbstractBogeyBlock<?> getBlockForSize(BogeySizes.BogeySize size) {
-		return sizes.get(size).get();
+	@NotNull
+	public SoundEvent getSoundType() {
+		AllSoundEvents.SoundEntry entry = AllSoundEvents.ALL.get(this.soundType);
+		if (entry == null || entry.getMainEvent() == null) entry = AllSoundEvents.TRAIN2;
+		return entry.getMainEvent();
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public AbstractBogeyBlock<?> getNextBlock(BogeySizes.BogeySize currentSize) {
-		return Stream.iterate(currentSize.nextBySize(), BogeySizes.BogeySize::nextBySize)
-				.filter(sizes::containsKey)
-				.findFirst()
-				.map(this::getBlockForSize)
-				.orElse((AbstractBogeyBlock) getBlockForSize(currentSize));
+	@Environment(EnvType.CLIENT)
+	public BogeyRenderer createRendererInstance(BogeySizes.BogeySize size) {
+		return this.sizeRenderers.get(size).createRenderInstance();
 	}
 
-	public void render(BogeySize size, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int light, int overlay, float wheelAngle, @Nullable CompoundTag bogeyData, boolean inContraption) {
-		if (sizeRenderers == null)
-			return;
-		if (bogeyData == null)
-			bogeyData = new CompoundTag();
-
-		poseStack.translate(0, -1.5 - 1 / 128f, 0);
-
-		SizeRenderer renderer = sizeRenderers.get(size);
-		if (renderer != null && renderer.renderer != null) {
-			renderer.renderer.render(bogeyData, wheelAngle, partialTick, poseStack, buffers, light, overlay, inContraption);
-		}
+	@Environment(EnvType.CLIENT)
+	public BogeyRenderer getInWorldRenderInstance(BogeySizes.BogeySize size) {
+		SizeRenderData sizeData = this.sizeRenderers.get(size);
+		return sizeData != null ? sizeData.getInWorldInstance() : BackupBogeyRenderer.INSTANCE;
 	}
 
-	@Nullable
-	public BogeyVisual createVisual(BogeySize size, VisualizationContext ctx, float partialTick, boolean inContraption) {
-		if (sizeRenderers == null)
-			return null;
-		SizeRenderer renderer = sizeRenderers.get(size);
-		if (renderer != null && renderer.visualizer != null) {
-			return renderer.visualizer.createVisual(ctx, partialTick, inContraption);
-		}
-		return null;
+	public Optional<CommonRenderer> getInWorldCommonRenderInstance() {
+		return this.commonRenderer;
 	}
 
-	public record SizeRenderer(@Nullable BogeyRenderer renderer, @Nullable BogeyVisualizer visualizer) {
+	public Optional<CommonRenderer> getNewCommonRenderInstance() {
+		return this.commonRendererFactory.map(Supplier::get);
 	}
 
-	public static class Builder {
-		protected final ResourceLocation id;
-		protected final ResourceLocation cycleGroup;
-		protected final Map<BogeySizes.BogeySize, Supplier<? extends AbstractBogeyBlock<?>>> sizes = new HashMap<>();
+	public BogeyInstance createInstance(CarriageBogey bogey, BogeySizes.BogeySize size, MaterialManager materialManager) {
+		return new BogeyInstance(bogey, this, size, materialManager);
+	}
 
-		protected Component displayName = CreateLang.translateDirect("bogey.style.invalid");
-		protected Supplier<SoundEvent> soundEvent = AllSoundEvents.TRAIN2::getMainEvent;
-		protected ParticleOptions contactParticle = ParticleTypes.CRIT;
-		protected ParticleOptions smokeParticle = ParticleTypes.POOF;
-		protected CompoundTag defaultData = new CompoundTag();
-
-		protected final Map<BogeySizes.BogeySize, Supplier<Supplier<? extends SizeRenderer>>> sizeRenderers =
-			new HashMap<>();
-
-		public Builder(ResourceLocation id, ResourceLocation cycleGroup) {
-			this.id = id;
-			this.cycleGroup = cycleGroup;
+	@Environment(EnvType.CLIENT)
+	public record SizeRenderData(Supplier<? extends BogeyRenderer> rendererFactory, BogeyRenderer instance) {
+		public BogeyRenderer createRenderInstance() {
+			return rendererFactory.get();
 		}
 
-		public Builder displayName(Component displayName) {
-			this.displayName = displayName;
-			return this;
-		}
-
-		public Builder soundEvent(Supplier<SoundEvent> soundEvent) {
-			this.soundEvent = soundEvent;
-			return this;
-		}
-
-		public Builder contactParticle(ParticleOptions contactParticle) {
-			this.contactParticle = contactParticle;
-			return this;
-		}
-
-		public Builder smokeParticle(ParticleOptions smokeParticle) {
-			this.smokeParticle = smokeParticle;
-			return this;
-		}
-
-		public Builder defaultData(CompoundTag defaultData) {
-			this.defaultData = defaultData;
-			return this;
-		}
-
-		public Builder size(BogeySizes.BogeySize size, Supplier<? extends AbstractBogeyBlock<?>> block,
-			 Supplier<Supplier<? extends SizeRenderer>> renderer) {
-			this.sizes.put(size, block);
-			CatnipServices.PLATFORM.executeOnClientOnly(() -> () -> {
-				this.sizeRenderers.put(size, renderer);
-			});
-			return this;
-		}
-
-		public BogeyStyle build() {
-			BogeyStyle entry = new BogeyStyle(id, cycleGroup, displayName, soundEvent, contactParticle, smokeParticle,
-				defaultData, sizes, sizeRenderers);
-			AllBogeyStyles.BOGEY_STYLES.put(id, entry);
-			AllBogeyStyles.CYCLE_GROUPS.computeIfAbsent(cycleGroup, l -> new HashMap<>())
-				.put(id, entry);
-			return entry;
+		public BogeyRenderer getInWorldInstance() {
+			return instance;
 		}
 	}
 }

@@ -10,16 +10,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
+import com.simibubi.create.content.contraptions.actors.psi.PortableFluidInterfaceBlockEntity.InterfaceFluidHandler;
 import com.simibubi.create.content.fluids.PipeConnection.Flow;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.BlockFace;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Pair;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.data.Pair;
-import net.createmod.catnip.math.BlockFace;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
@@ -81,6 +82,8 @@ public class FluidNetwork {
 				iterator.remove();
 			}
 
+//			drawDebugOutlines();
+
 			for (Iterator<Pair<BlockFace, PipeConnection>> iterator = frontier.iterator(); iterator.hasNext();) {
 				Pair<BlockFace, PipeConnection> pair = iterator.next();
 				BlockFace blockFace = pair.getFirst();
@@ -90,7 +93,7 @@ public class FluidNetwork {
 					continue;
 
 				Flow flow = pipeConnection.flow.get();
-				if (!fluid.isEmpty() && !FluidStack.isSameFluidSameComponents(flow.fluid, fluid)) {
+				if (!fluid.isEmpty() && !flow.fluid.isFluidEqual(fluid)) {
 					iterator.remove();
 					continue;
 				}
@@ -155,6 +158,8 @@ public class FluidNetwork {
 				break;
 		}
 
+//		drawDebugOutlines();
+
 		if (source == null)
 			source = sourceSupplier.get();
 		if (source == null)
@@ -187,8 +192,8 @@ public class FluidNetwork {
 			FluidStack transfer = FluidStack.EMPTY;
 			long transferredAmount = 0;
 			try (Transaction test = t.openNested()) {
-				long extracted = handler.extract(fluid.getVariant(), flowSpeed, test);
-				if (extracted > 0) transfer = new FluidStack(fluid.getVariant(), extracted);
+				long extracted = handler.extract(fluid.getType(), flowSpeed, test);
+				if (extracted > 0) transfer = new FluidStack(fluid.getType(), extracted);
 
 				if (transfer.isEmpty())
 					return;
@@ -219,7 +224,7 @@ public class FluidNetwork {
 
 					FluidStack divided = transfer.copy();
 					divided.setAmount(toTransfer);
-					long fill = targetHandler.insert(divided.getVariant(), divided.getAmount(), t);
+					long fill = targetHandler.insert(divided.getType(), divided.getAmount(), t);
 
 					transfer.setAmount(transfer.getAmount() - fill);
 					transferredAmount += fill;
@@ -230,15 +235,34 @@ public class FluidNetwork {
 			}
 
 			try (Transaction extract = t.openNested()) {
-				handler.extract(fluid.getVariant(), transferredAmount, extract);
+				handler.extract(fluid.getType(), transferredAmount, extract);
 				extract.commit();
 			}
 			t.commit();
 		}
 	}
 
+//	private void drawDebugOutlines() {
+//		FluidPropagator.showBlockFace(start)
+//			.lineWidth(1 / 8f)
+//			.colored(0xff0000);
+//		for (Pair<BlockFace, LazyOptional<IFluidHandler>> pair : targets)
+//			FluidPropagator.showBlockFace(pair.getFirst())
+//				.lineWidth(1 / 8f)
+//				.colored(0x00ff00);
+//		for (Pair<BlockFace, PipeConnection> pair : frontier)
+//			FluidPropagator.showBlockFace(pair.getFirst())
+//				.lineWidth(1 / 4f)
+//				.colored(0xfaaa33);
+//	}
+
 	private void keepPortableFluidInterfaceEngaged() {
-		// InterfaceFluidHandler will be supported when contraptions/PSI are ported
+		Storage<FluidVariant> handler = source;
+		if (!(handler instanceof InterfaceFluidHandler))
+			return;
+		if (frontier.isEmpty())
+			return;
+		((InterfaceFluidHandler) handler).keepAlive();
 	}
 
 	public void reset() {

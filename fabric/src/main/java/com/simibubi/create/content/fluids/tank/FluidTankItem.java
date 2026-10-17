@@ -4,9 +4,10 @@ import org.jetbrains.annotations.ApiStatus.Internal;
 
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.Create;
 import com.simibubi.create.api.connectivity.ConnectivityHandler;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
@@ -24,7 +25,15 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class FluidTankItem extends BlockItem {
-
+	// fabric: (#690) because of ordering differences, we need to delay connection
+	// by a tick when placing multiblocks with NBT.
+	// If the item has NBT, it needs to be applied to a controller. However,
+	// ordering is different on fabric.
+	// on forge, the block is placed, the data is set, and the tanks connect.
+	// on fabric, the block is placed, the tanks connect, and the data is set.
+	// However, now that the tank is not a controller, nothing happens.
+	// solution: hacky static state storage. If we're placing NBT, delay connection
+	// until next tick.
 	@Internal
 	public static boolean IS_PLACING_NBT = false;
 
@@ -57,10 +66,10 @@ public class FluidTankItem extends BlockItem {
 			nbt.remove("Controller");
 			nbt.remove("LastKnownPos");
 			if (nbt.contains("TankContent")) {
-				FluidStack fluid = FluidStack.CODEC.decode(RegistryOps.create(NbtOps.INSTANCE, p_195943_2_.registryAccess()), nbt.getCompound("TankContent")).getOrThrow().getFirst();
+				FluidStack fluid = FluidStack.CODEC.decode(RegistryOps.create(NbtOps.INSTANCE, Create.getRegistryAccess()), nbt.getCompound("TankContent")).getOrThrow().getFirst();
 				if (!fluid.isEmpty()) {
 					fluid.setAmount(Math.min(FluidTankBlockEntity.getCapacityMultiplier(), fluid.getAmount()));
-					nbt.put("TankContent", FluidStack.CODEC.encode(fluid, RegistryOps.create(NbtOps.INSTANCE, p_195943_2_.registryAccess()), new CompoundTag()).getOrThrow());
+					nbt.put("TankContent", FluidStack.CODEC.encode(fluid, RegistryOps.create(NbtOps.INSTANCE, Create.getRegistryAccess()), new CompoundTag()).getOrThrow());
 				}
 			}
 		}

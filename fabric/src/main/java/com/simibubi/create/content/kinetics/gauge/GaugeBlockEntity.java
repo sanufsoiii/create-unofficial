@@ -2,12 +2,12 @@ package com.simibubi.create.content.kinetics.gauge;
 
 import java.util.List;
 
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.Lang;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -25,17 +25,17 @@ public abstract class GaugeBlockEntity extends KineticBlockEntity implements IHa
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putFloat("Value", dialTarget);
 		compound.putInt("Color", color);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		dialTarget = compound.getFloat("Value");
 		color = compound.getInt("Color");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
 	@Override
@@ -49,7 +49,8 @@ public abstract class GaugeBlockEntity extends KineticBlockEntity implements IHa
 
 	@Override
 	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
-		CreateLang.translate("gui.gauge.info_header").forGoggles(tooltip);
+		tooltip.add(componentSpacing.plainCopy().append(Lang.translateDirect("gui.gauge.info_header")));
+
 		return true;
 	}
 

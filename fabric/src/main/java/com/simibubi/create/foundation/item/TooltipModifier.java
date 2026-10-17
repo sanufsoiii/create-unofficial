@@ -2,23 +2,35 @@ package com.simibubi.create.foundation.item;
 
 import java.util.List;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.player.Player;
+
 import org.jetbrains.annotations.Nullable;
 
-import com.simibubi.create.api.registry.SimpleRegistry;
+import com.simibubi.create.foundation.utility.AttachedRegistry;
 
+import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 
-@FunctionalInterface
 public interface TooltipModifier {
-	SimpleRegistry<Item, TooltipModifier> REGISTRY = SimpleRegistry.create();
+	AttachedRegistry<Item, TooltipModifier> REGISTRY = new AttachedRegistry<>(BuiltInRegistries.ITEM);
 
-	TooltipModifier EMPTY = (stack, player, flags, tooltip) -> {};
+	TooltipModifier EMPTY = new TooltipModifier() {
+		@Override
+		public void modify(ItemStack stack, Player player, TooltipFlag flags, List<Component> tooltip) {
+		}
 
-	void modify(ItemStack stack, @Nullable Player player, TooltipFlag flags, List<Component> tooltip);
+		@Override
+		public TooltipModifier andThen(TooltipModifier after) {
+			return after;
+		}
+	};
+
+	void modify(ItemStack stack, Player player, TooltipFlag flags, List<Component> tooltip);
 
 	default TooltipModifier andThen(TooltipModifier after) {
 		if (after == EMPTY) {

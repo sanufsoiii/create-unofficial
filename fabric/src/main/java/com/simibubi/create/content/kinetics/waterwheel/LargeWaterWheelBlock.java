@@ -4,8 +4,10 @@ import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.kinetics.base.RotatedPillarKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.simibubi.create.foundation.utility.Couple;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -19,7 +21,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -78,10 +79,29 @@ public class LargeWaterWheelBlock extends RotatedPillarKineticBlock implements I
 
 		return stateForPlacement;
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		return onBlockEntityUseItemOn(level, pos, wwt -> wwt.applyMaterialIfValid(stack));
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level pLevel, BlockPos pPos,
+			Player pPlayer, InteractionHand pHand, BlockHitResult hitResult) {
+		
+		if (AdventureUtil.isAdventure(pPlayer))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
+		if(stack.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+		return onBlockEntityUse(pLevel, pPos, wwt -> wwt.applyMaterialIfValid(pPlayer.getItemInHand(pHand)));
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level pLevel, BlockPos pPos, Player pPlayer,
+			BlockHitResult hitResult) {
+		
+		if (AdventureUtil.isAdventure(pPlayer))
+			return InteractionResult.PASS;
+		return onBlockEntityUse(pLevel, pPos, wwt -> wwt.applyMaterialIfValid(ItemStack.EMPTY)).result();
+		
 	}
 
 	@Override
@@ -164,8 +184,8 @@ public class LargeWaterWheelBlock extends RotatedPillarKineticBlock implements I
 		return 2.25f;
 	}
 
-	public boolean isFlammable(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
-		return false;
+	public static Couple<Integer> getSpeedRange() {
+		return Couple.create(4, 4);
 	}
 
 }

@@ -4,22 +4,24 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
 import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehaviour;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Pair;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
@@ -29,7 +31,7 @@ import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.base.SnapshotParticipant;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -77,9 +79,10 @@ public class ItemDrainBlockEntity extends SmartBlockEntity implements IHaveGoggl
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		behaviours.add(new DirectBeltInputBehaviour(this).allowingBeltFunnels()
 			.setInsertionHandler(this::tryInsertingFromSide));
-		behaviours.add(internalTank = SmartFluidTankBehaviour.single(this, (int) (FluidConstants.BUCKET * 1.5))
+		behaviours.add(internalTank = SmartFluidTankBehaviour.single(this, (long) (FluidConstants.BUCKET * 1.5))
 			.allowExtraction()
 			.forbidInsertion());
+		registerAwardables(behaviours, AllAdvancements.DRAIN, AllAdvancements.CHAINED_DRAIN);
 	}
 
 	private ItemStack tryInsertingFromSide(TransportedItemStack transportedStack, Direction side, boolean simulate) {
@@ -90,8 +93,8 @@ public class ItemDrainBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			return inserted;
 
 		if (inserted.getCount() > 1 && GenericItemEmptying.canItemBeEmptied(level, inserted)) {
-			returned = inserted.copyWithCount(inserted.getCount() - 1);
-			inserted = inserted.copyWithCount(1);
+			returned = ItemHandlerHelper.copyStackWithSize(inserted, inserted.getCount() - 1);
+			inserted = ItemHandlerHelper.copyStackWithSize(inserted, 1);
 		}
 
 		if (simulate)
@@ -200,6 +203,8 @@ public class ItemDrainBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			ItemStack returned = directBeltInputBehaviour.handleInsertion(heldItem.copy(), side, false);
 
 			if (returned.isEmpty()) {
+				if (level.getBlockEntity(nextPosition) instanceof ItemDrainBlockEntity)
+					award(AllAdvancements.CHAINED_DRAIN);
 				heldItem = null;
 				notifyUpdate();
 				return;
@@ -235,15 +240,14 @@ public class ItemDrainBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			return false;
 
 		Pair<FluidStack, ItemStack> emptyItem = GenericItemEmptying.emptyItem(level, heldItem.stack, true);
-		FluidStack fluidFromItem = emptyItem.getLeft();
+		FluidStack fluidFromItem = emptyItem.getFirst();
 
 		try (Transaction t = TransferUtil.getTransaction()) {
-			Storage<FluidVariant> internalStorage = internalTank.getCapability();
 			if (processingTicks > 5) {
 				internalTank.allowInsertion();
 				try (Transaction nested = t.openNested()) {
-					if (!fluidFromItem.isEmpty() && internalStorage != null) {
-						long inserted = internalStorage.insert(fluidFromItem.getVariant(), fluidFromItem.getAmount(), nested);
+					if (!fluidFromItem.isEmpty()) {
+						long inserted = internalTank.getPrimaryHandler().insert(fluidFromItem.getType(), fluidFromItem.getAmount(), nested);
 						if (inserted != fluidFromItem.getAmount()) {
 							internalTank.forbidInsertion();
 							processingTicks = FILLING_TIME;
@@ -256,17 +260,16 @@ public class ItemDrainBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			}
 
 			emptyItem = GenericItemEmptying.emptyItem(level, heldItem.stack.copy(), false);
+			award(AllAdvancements.DRAIN);
 
 			// Process finished
-			ItemStack out = emptyItem.getRight();
+			ItemStack out = emptyItem.getSecond();
 			if (!out.isEmpty())
 				heldItem.stack = out;
 			else
 				heldItem = null;
 			internalTank.allowInsertion();
-			if (internalStorage != null && !fluidFromItem.isEmpty()) {
-				TransferUtil.insertFluid(internalStorage, fluidFromItem);
-			}
+			TransferUtil.insertFluid(internalTank.getPrimaryHandler(), fluidFromItem);
 			t.commit();
 			internalTank.forbidInsertion();
 			notifyUpdate();
@@ -289,19 +292,19 @@ public class ItemDrainBlockEntity extends SmartBlockEntity implements IHaveGoggl
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("ProcessingTicks", processingTicks);
 		if (heldItem != null)
-			compound.put("HeldItem", heldItem.serializeNBT(registries));
-		super.write(compound, registries, clientPacket);
+			compound.put("HeldItem", heldItem.serializeNBT());
+		super.write(compound, clientPacket);
 	}
-
+	
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider registries, boolean clientPacket) {
 		heldItem = null;
 		processingTicks = compound.getInt("ProcessingTicks");
 		if (compound.contains("HeldItem"))
-			heldItem = TransportedItemStack.read(compound.getCompound("HeldItem"), registries);
+			heldItem = TransportedItemStack.read(compound.getCompound("HeldItem"));
 		super.read(compound, registries, clientPacket);
 	}
 

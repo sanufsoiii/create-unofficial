@@ -1,17 +1,16 @@
 package com.simibubi.create.content.logistics.filter;
 
 import com.simibubi.create.AllDataComponents;
-import com.simibubi.create.AllItems;
 import com.simibubi.create.AllMenuTypes;
 import com.simibubi.create.foundation.item.ItemHelper;
 
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.SlotItemHandler;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
-
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
-import io.github.fabricators_of_create.porting_lib.transfer.item.SlotItemHandler;
 
 public class FilterMenu extends AbstractFilterMenu {
 
@@ -43,7 +42,7 @@ public class FilterMenu extends AbstractFilterMenu {
 	@Override
 	protected void addFilterSlots() {
 		int x = 23;
-		int y = 25;
+		int y = 22;
 		for (int row = 0; row < 2; ++row)
 			for (int col = 0; col < 9; ++col)
 				this.addSlot(new SlotItemHandler(ghostInventory, col + row * 9, x + col * 18, y + row * 18));
@@ -51,21 +50,23 @@ public class FilterMenu extends AbstractFilterMenu {
 
 	@Override
 	protected ItemStackHandler createGhostInventory() {
-		return ItemHelper.getFilterItemHandler(contentHolder);
+		return FilterItem.getFilterItems(contentHolder);
 	}
 
 	@Override
 	protected void initAndReadInventory(ItemStack filterItem) {
 		super.initAndReadInventory(filterItem);
-		respectNBT = filterItem.getOrDefault(AllDataComponents.FILTER_ITEMS_RESPECT_NBT, false);
-		blacklist = filterItem.getOrDefault(AllDataComponents.FILTER_ITEMS_BLACKLIST, false);
+		CompoundTag tag = filterItem.getOrDefault(AllDataComponents.FILTER_DATA, new CompoundTag());
+		respectNBT = tag.getBoolean("RespectNBT");
+		blacklist = tag.getBoolean("Blacklist");
 	}
 
 	@Override
 	protected void saveData(ItemStack filterItem) {
 		super.saveData(filterItem);
-		filterItem.set(AllDataComponents.FILTER_ITEMS_RESPECT_NBT, respectNBT);
-		filterItem.set(AllDataComponents.FILTER_ITEMS_BLACKLIST, blacklist);
+		CompoundTag tag = ItemHelper.getOrCreateComponent(filterItem, AllDataComponents.FILTER_DATA, new CompoundTag());
+		tag.putBoolean("RespectNBT", respectNBT);
+		tag.putBoolean("Blacklist", blacklist);
 
 		if (respectNBT || blacklist)
 			return;
@@ -73,8 +74,7 @@ public class FilterMenu extends AbstractFilterMenu {
 			if (!ghostInventory.getStackInSlot(i)
 				.isEmpty())
 				return;
-		filterItem.remove(AllDataComponents.FILTER_ITEMS_RESPECT_NBT);
-		filterItem.remove(AllDataComponents.FILTER_ITEMS_BLACKLIST);
+		filterItem.remove(AllDataComponents.FILTER_DATA);
 	}
 
 }

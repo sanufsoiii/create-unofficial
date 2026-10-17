@@ -1,5 +1,9 @@
 package com.simibubi.create.content.schematics.cannon;
 
+import com.jozufozu.flywheel.backend.Backend;
+import com.jozufozu.flywheel.core.model.ModelUtil;
+import com.jozufozu.flywheel.core.virtual.VirtualEmptyBlockGetter;
+import com.jozufozu.flywheel.fabric.model.DefaultLayerFilteringBakedModel;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -9,20 +13,26 @@ import com.simibubi.create.content.schematics.cannon.LaunchedItem.ForBelt;
 import com.simibubi.create.content.schematics.cannon.LaunchedItem.ForBlockState;
 import com.simibubi.create.content.schematics.cannon.LaunchedItem.ForEntity;
 import com.simibubi.create.foundation.blockEntity.renderer.SafeBlockEntityRenderer;
+import com.simibubi.create.foundation.render.CachedBufferer;
+import com.simibubi.create.foundation.render.SuperByteBuffer;
 
-import dev.engine_room.flywheel.api.visualization.VisualizationManager;
-import net.createmod.catnip.render.CachedBuffers;
-import net.createmod.catnip.render.SuperByteBuffer;
+import io.github.fabricators_of_create.porting_lib_ufo.mixin.accessors.client.accessor.BlockRenderDispatcherAccessor;
+import io.github.fabricators_of_create.porting_lib_ufo.models.virtual.FixedLightBakedModel;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
@@ -38,7 +48,7 @@ public class SchematicannonRenderer extends SafeBlockEntityRenderer<Schematicann
 		if (blocksLaunching)
 			renderLaunchedBlocks(blockEntity, partialTicks, ms, buffer, light, overlay);
 
-		if (VisualizationManager.supportsVisualization(blockEntity.getLevel()))
+		if (Backend.canUseInstancing(blockEntity.getLevel()))
 			return;
 
 		BlockPos pos = blockEntity.getBlockPos();
@@ -55,17 +65,17 @@ public class SchematicannonRenderer extends SafeBlockEntityRenderer<Schematicann
 
 		VertexConsumer vb = buffer.getBuffer(RenderType.solid());
 
-		SuperByteBuffer connector = CachedBuffers.partial(AllPartialModels.SCHEMATICANNON_CONNECTOR, state);
+		SuperByteBuffer connector = CachedBufferer.partial(AllPartialModels.SCHEMATICANNON_CONNECTOR, state);
 		connector.translate(.5f, 0, .5f);
-		connector.rotate((float) ((yaw + 90) / 180 * Math.PI), Direction.UP);
+		connector.rotate(Direction.UP, (float) ((yaw + 90) / 180 * Math.PI));
 		connector.translate(-.5f, 0, -.5f);
 		connector.light(light)
 			.renderInto(ms, vb);
 
-		SuperByteBuffer pipe = CachedBuffers.partial(AllPartialModels.SCHEMATICANNON_PIPE, state);
+		SuperByteBuffer pipe = CachedBufferer.partial(AllPartialModels.SCHEMATICANNON_PIPE, state);
 		pipe.translate(.5f, 15 / 16f, .5f);
-		pipe.rotate((float) ((yaw + 90) / 180 * Math.PI), Direction.UP);
-		pipe.rotate((float) (pitch / 180 * Math.PI), Direction.SOUTH);
+		pipe.rotate(Direction.UP, (float) ((yaw + 90) / 180 * Math.PI));
+		pipe.rotate(Direction.SOUTH, (float) (pitch / 180 * Math.PI));
 		pipe.translate(-.5f, -15 / 16f, -.5f);
 		pipe.translate(0, -recoil / 100, 0);
 		pipe.light(light)
@@ -176,9 +186,21 @@ public class SchematicannonRenderer extends SafeBlockEntityRenderer<Schematicann
 				}
 				float scale = .3f;
 				ms.scale(scale, scale, scale);
-				Minecraft.getInstance()
-					.getBlockRenderer()
-					.renderSingleBlock(state, ms, buffer, light, overlay);
+//				Minecraft.getInstance()
+//					.getBlockRenderer()
+//					.renderSingleBlock(state, ms, buffer, light, overlay);
+				BlockRenderDispatcher dispatcher = Minecraft.getInstance()
+					.getBlockRenderer();
+				switch (state.getRenderShape()) {
+					case MODEL -> {
+						BakedModel model = dispatcher.getBlockModel(state);
+						model = DefaultLayerFilteringBakedModel.wrap(model);
+						model = FixedLightBakedModel.wrap(model, light);
+						dispatcher.getModelRenderer()
+								.tesselateBlock(VirtualEmptyBlockGetter.INSTANCE, model, state, BlockPos.ZERO, ms, buffer.getBuffer(ItemBlockRenderTypes.getRenderType(state, false)), false, RandomSource.create(), 42L, overlay);
+					}
+					case ENTITYBLOCK_ANIMATED -> ((BlockRenderDispatcherAccessor) dispatcher).getBlockEntityRenderer().renderByItem(new ItemStack(state.getBlock()), ItemDisplayContext.NONE, ms, buffer, light, overlay);
+				}
 			} else if (launched instanceof ForEntity) {
 				// Render the item
 				float scale = 1.2f;

@@ -1,34 +1,48 @@
 package com.simibubi.create.foundation.gui.menu;
 
-import com.simibubi.create.AllPackets;
-import com.simibubi.create.content.logistics.filter.FilterItem;
+import com.simibubi.create.foundation.networking.SimplePacketBase;
 
-import net.createmod.catnip.net.base.ServerboundPacketPayload;
-
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
-public record GhostItemSubmitPacket(ItemStack item, int slot) implements ServerboundPacketPayload {
-	public static final StreamCodec<RegistryFriendlyByteBuf, GhostItemSubmitPacket> STREAM_CODEC = StreamCodec.composite(
-	        ItemStack.OPTIONAL_STREAM_CODEC, GhostItemSubmitPacket::item,
-			ByteBufCodecs.INT, GhostItemSubmitPacket::slot,
-	        GhostItemSubmitPacket::new
-	);
+public class GhostItemSubmitPacket extends SimplePacketBase {
 
-	@Override
-	public void handle(ServerPlayer player) {
-		if (player.containerMenu instanceof GhostItemMenu<?> menu) {
-			menu.ghostInventory.setStackInSlot(slot, item);
-			menu.getSlot(36 + slot)
-					.setChanged();
-		}
+	private final ItemStack item;
+	private final int slot;
+
+	public GhostItemSubmitPacket(ItemStack item, int slot) {
+		this.item = item;
+		this.slot = slot;
+	}
+
+	public GhostItemSubmitPacket(RegistryFriendlyByteBuf buffer) {
+		item = ItemStack.STREAM_CODEC.decode(buffer);
+		//item = buffer.readItem();
+		slot = buffer.readInt();
 	}
 
 	@Override
-	public PacketTypeProvider getTypeProvider() {
-		return AllPackets.SUBMIT_GHOST_ITEM;
+	public void write(RegistryFriendlyByteBuf buffer) {
+		ItemStack.STREAM_CODEC.encode(buffer, item);
+		//buffer.writeItem(item);
+		buffer.writeInt(slot);
 	}
+
+	@Override
+	public boolean handle(Context context) {
+		context.enqueueWork(() -> {
+			ServerPlayer player = context.getSender();
+			if (player == null)
+				return;
+
+			if (player.containerMenu instanceof GhostItemMenu<?> menu) {
+				menu.ghostInventory.setStackInSlot(slot, item);
+				menu.getSlot(36 + slot).setChanged();
+			}
+		});
+		return true;
+	}
+
 }

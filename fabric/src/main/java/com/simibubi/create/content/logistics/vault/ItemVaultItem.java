@@ -5,7 +5,7 @@ import org.jetbrains.annotations.ApiStatus.Internal;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.api.connectivity.ConnectivityHandler;
 import com.simibubi.create.content.fluids.tank.FluidTankItem;
-import net.createmod.catnip.math.VecHelper;
+import com.simibubi.create.foundation.utility.VecHelper;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -49,8 +49,8 @@ public class ItemVaultItem extends BlockItem {
 		MinecraftServer minecraftserver = p_195943_2_.getServer();
 		if (minecraftserver == null)
 			return false;
-		CompoundTag nbt = p_195943_4_.has(DataComponents.BLOCK_ENTITY_DATA) 
-				? p_195943_4_.get(DataComponents.BLOCK_ENTITY_DATA).getUnsafe() : null;
+		CompoundTag nbt = p_195943_4_.get(DataComponents.BLOCK_ENTITY_DATA) == null 
+				? null : p_195943_4_.get(DataComponents.BLOCK_ENTITY_DATA).copyTag();
 		if (nbt != null) {
 			nbt.remove("Length");
 			nbt.remove("Size");

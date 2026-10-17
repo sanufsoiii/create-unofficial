@@ -3,15 +3,17 @@ package com.simibubi.create.content.kinetics.drill;
 import java.util.List;
 import java.util.function.Predicate;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.DirectionalKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.damageTypes.CreateDamageSources;
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
@@ -45,6 +47,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+
+@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class DrillBlock extends DirectionalKineticBlock implements IBE<DrillBlockEntity>, SimpleWaterloggedBlock {
 	private static final int placementHelperId = PlacementHelpers.register(new PlacementHelper());
@@ -129,10 +133,6 @@ public class DrillBlock extends DirectionalKineticBlock implements IBE<DrillBloc
 		return Mth.clamp(sub1 + sub2 + sub3, 1, 10);
 	}
 
-	public PushReaction getPistonPushReaction(BlockState state) {
-		return PushReaction.NORMAL;
-	}
-
 	@Override
 	public Class<DrillBlockEntity> getBlockEntityClass() {
 		return DrillBlockEntity.class;
@@ -142,11 +142,11 @@ public class DrillBlock extends DirectionalKineticBlock implements IBE<DrillBloc
 	public BlockEntityType<? extends DrillBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.DRILL.get();
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
 			Player player, InteractionHand hand, BlockHitResult ray) {
-
+		
 		ItemStack heldItem = player.getItemInHand(hand);
 		if(heldItem.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
@@ -161,12 +161,13 @@ public class DrillBlock extends DirectionalKineticBlock implements IBE<DrillBloc
 		}
 
 		return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
 	}
-
+	
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
 			BlockHitResult ray) {
-
+		
 		ItemStack heldItem = ItemStack.EMPTY;
 
 		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
@@ -179,6 +180,7 @@ public class DrillBlock extends DirectionalKineticBlock implements IBE<DrillBloc
 		}
 
 		return InteractionResult.PASS;
+		
 	}
 
 	@MethodsReturnNonnullByDefault

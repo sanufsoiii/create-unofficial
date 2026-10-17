@@ -3,12 +3,12 @@ package com.simibubi.create.content.fluids.pipes;
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.api.contraption.transformable.TransformableBlock;
+import com.simibubi.create.content.contraptions.ITransformableBlock;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.decoration.bracket.BracketedBlockEntityBehaviour;
 import com.simibubi.create.content.decoration.encasing.EncasableBlock;
@@ -16,10 +16,11 @@ import com.simibubi.create.content.equipment.wrench.IWrenchableWithBracket;
 import com.simibubi.create.content.fluids.FluidPropagator;
 import com.simibubi.create.content.fluids.FluidTransportBehaviour;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -56,11 +57,9 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.ticks.TickPriority;
 
 public class FluidPipeBlock extends PipeBlock implements SimpleWaterloggedBlock, IWrenchableWithBracket,
-		IBE<FluidPipeBlockEntity>, EncasableBlock, TransformableBlock {
+		IBE<FluidPipeBlockEntity>, EncasableBlock, ITransformableBlock {
 
 	private static final VoxelShape OCCLUSION_BOX = Block.box(4, 4, 4, 12, 12, 12);
-
-	public static final MapCodec<FluidPipeBlock> CODEC = simpleCodec(FluidPipeBlock::new);
 
 	public FluidPipeBlock(Properties properties) {
 		super(4 / 16f, properties);
@@ -97,6 +96,11 @@ public class FluidPipeBlock extends PipeBlock implements SimpleWaterloggedBlock,
 		if (clickedFace.getAxis() == axis)
 			return InteractionResult.PASS;
 		if (!world.isClientSide) {
+			withBlockEntityDo(world, pos,
+					fpte -> fpte.getBehaviour(FluidTransportBehaviour.TYPE).interfaces.values().stream()
+							.filter(pc -> pc != null && pc.hasFlow()).findAny()
+							.ifPresent($ -> AllAdvancements.GLASS_PIPE.awardTo(context.getPlayer())));
+
 			FluidTransportBehaviour.cacheFlows(world, pos);
 			world.setBlockAndUpdate(pos,
 					AllBlocks.GLASS_FLUID_PIPE.getDefaultState().setValue(GlassFluidPipeBlock.AXIS, axis).setValue(
@@ -344,6 +348,11 @@ public class FluidPipeBlock extends PipeBlock implements SimpleWaterloggedBlock,
 		return AllBlockEntityTypes.FLUID_PIPE.get();
 	}
 
+//	@Override // fabric: difficult to implement with little to gain
+//	public boolean supportsExternalFaceHiding(BlockState state) {
+//		return false;
+//	}
+
 	@Override
 	public VoxelShape getOcclusionShape(BlockState pState, BlockGetter pLevel, BlockPos pPos) {
 		return OCCLUSION_BOX;
@@ -366,7 +375,8 @@ public class FluidPipeBlock extends PipeBlock implements SimpleWaterloggedBlock,
 
 	@Override
 	protected MapCodec<? extends PipeBlock> codec() {
-		return CODEC;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

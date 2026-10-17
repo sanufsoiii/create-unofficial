@@ -6,15 +6,16 @@ import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.simpleRelays.AbstractShaftBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.ShaftBlock;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -22,12 +23,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
@@ -46,18 +45,42 @@ public class PoweredShaftBlock extends AbstractShaftBlock {
 	public BlockEntityType<? extends KineticBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.POWERED_SHAFT.get();
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (player.isShiftKeyDown() || !player.mayBuild())
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState pState, Level pLevel, BlockPos pPos,
+			Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
+		
+		if (pPlayer.isShiftKeyDown() || !pPlayer.mayBuild())
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+
+		ItemStack heldItem = pPlayer.getItemInHand(pHand);
+		if(heldItem.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-
+		
 		IPlacementHelper helper = PlacementHelpers.get(ShaftBlock.placementHelperId);
-		if (helper.matchesItem(stack))
-			return helper.getOffset(player, level, state, pos, hitResult)
-				.placeInWorld(level, (BlockItem) stack.getItem(), player, hand, hitResult);
+		if (helper.matchesItem(heldItem))
+			return helper.getOffset(pPlayer, pLevel, pState, pPos, pHit)
+				.placeInWorld(pLevel, (BlockItem) heldItem.getItem(), pPlayer, pHand, pHit);
 
-		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer,
+			BlockHitResult pHit) {
+		
+		if (pPlayer.isShiftKeyDown() || !pPlayer.mayBuild())
+			return InteractionResult.PASS;
+
+		ItemStack heldItem = ItemStack.EMPTY;
+		IPlacementHelper helper = PlacementHelpers.get(ShaftBlock.placementHelperId);
+		if (helper.matchesItem(heldItem))
+			return helper.getOffset(pPlayer, pLevel, pState, pPos, pHit)
+				.placeInWorld(pLevel, (BlockItem) heldItem.getItem(), pPlayer, InteractionHand.MAIN_HAND, pHit).result();
+
+		return InteractionResult.PASS;
+		
 	}
 
 	@Override
@@ -70,11 +93,11 @@ public class PoweredShaftBlock extends AbstractShaftBlock {
 		if (!stillValid(pState, pLevel, pPos))
 			pLevel.setBlock(pPos, AllBlocks.SHAFT.getDefaultState()
 				.setValue(ShaftBlock.AXIS, pState.getValue(AXIS))
-				.setValue(WATERLOGGED, pState.getValue(WATERLOGGED)), Block.UPDATE_ALL);
+				.setValue(WATERLOGGED, pState.getValue(WATERLOGGED)), 3);
 	}
 
 	@Override
-	public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+	public ItemStack getCloneItemStack(LevelReader pLevel, BlockPos pPos, BlockState pState) {
 		return AllBlocks.SHAFT.asStack();
 	}
 
@@ -89,7 +112,7 @@ public class PoweredShaftBlock extends AbstractShaftBlock {
 				continue;
 			BlockPos enginePos = pPos.relative(d, 2);
 			BlockState engineState = pLevel.getBlockState(enginePos);
-			if (!(engineState.getBlock() instanceof SteamEngineBlock engine))
+			if (!(engineState.getBlock()instanceof SteamEngineBlock engine))
 				continue;
 			if (!SteamEngineBlock.getShaftPos(engineState, enginePos)
 				.equals(pPos))

@@ -4,12 +4,15 @@ import java.util.List;
 import java.util.WeakHashMap;
 import java.util.stream.Collectors;
 
+import com.simibubi.create.AllPackets;
+import com.simibubi.create.foundation.networking.ISyncPersistentData.PersistentDataPacket;
+import com.simibubi.create.foundation.utility.NbtFixer;
+import com.simibubi.create.foundation.utility.WorldAttached;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.data.WorldAttached;
-import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -41,11 +44,12 @@ public class ToolboxHandler {
 			return;
 		if (!(world instanceof ServerLevel))
 			return;
-		if (!(entity instanceof ServerPlayer player))
+		if (!(entity instanceof ServerPlayer))
 			return;
 		if (entity.tickCount % validationTimer != 0)
 			return;
 
+		ServerPlayer player = (ServerPlayer) entity;
 		if (!player.getCustomData()
 			.contains("CreateToolboxData"))
 			return;
@@ -59,7 +63,7 @@ public class ToolboxHandler {
 				continue;
 
 			CompoundTag data = compound.getCompound(key);
-			BlockPos pos = NBTHelper.readBlockPos(data, "Pos");
+			BlockPos pos = NbtFixer.readBlockPos(data, "Pos");
 			int slot = data.getInt("Slot");
 
 			if (!world.isLoaded(pos))
@@ -86,14 +90,14 @@ public class ToolboxHandler {
 		if (player.getCustomData()
 			.contains("CreateToolboxData")
 			&& !player.getCustomData()
-			.getCompound("CreateToolboxData")
-			.isEmpty()) {
+				.getCompound("CreateToolboxData")
+				.isEmpty()) {
 			syncData(player);
 		}
 	}
 
 	public static void syncData(Player player) {
-		// TODO: Stage 4 (Networking / PersistentDataPacket)
+		AllPackets.getChannel().sendToClient(new PersistentDataPacket(player), (ServerPlayer) player);
 	}
 
 	public static List<ToolboxBlockEntity> getNearest(LevelAccessor world, Player player, int maxAmount) {
@@ -119,11 +123,12 @@ public class ToolboxHandler {
 			return;
 
 		CompoundTag prevData = compound.getCompound(key);
-		BlockPos prevPos = NBTHelper.readBlockPos(prevData, "Pos");
+		BlockPos prevPos = NbtFixer.readBlockPos(prevData, "Pos");
 		int prevSlot = prevData.getInt("Slot");
 
 		BlockEntity prevBlockEntity = world.getBlockEntity(prevPos);
-		if (prevBlockEntity instanceof ToolboxBlockEntity toolbox) {
+		if (prevBlockEntity instanceof ToolboxBlockEntity) {
+			ToolboxBlockEntity toolbox = (ToolboxBlockEntity) prevBlockEntity;
 			toolbox.unequip(prevSlot, player, hotbarSlot, keepItems || !ToolboxHandler.withinRange(player, toolbox));
 		}
 		compound.remove(key);

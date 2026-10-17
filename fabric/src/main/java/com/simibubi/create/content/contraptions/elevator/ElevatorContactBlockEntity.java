@@ -7,11 +7,11 @@ import com.simibubi.create.content.decoration.slidingDoor.DoorControlBehaviour;
 import com.simibubi.create.content.redstone.displayLink.DisplayLinkBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.Couple;
+import com.simibubi.create.foundation.utility.NBTHelper;
 
-import net.createmod.catnip.data.Couple;
-import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -25,7 +25,7 @@ public class ElevatorContactBlockEntity extends SmartBlockEntity {
 	public String shortName;
 	public String longName;
 
-	public String lastReportedCurrentFloor = "";
+	public String lastReportedCurrentFloor;
 
 	private int yTargetFromNBT = Integer.MIN_VALUE;
 	private boolean deferNameGenerator;
@@ -43,8 +43,8 @@ public class ElevatorContactBlockEntity extends SmartBlockEntity {
 	}
 
 	@Override
-	protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(tag, registries, clientPacket);
+	protected void write(CompoundTag tag, boolean clientPacket) {
+		super.write(tag, clientPacket);
 
 		tag.putString("ShortName", shortName);
 		tag.putString("LongName", longName);
@@ -65,11 +65,11 @@ public class ElevatorContactBlockEntity extends SmartBlockEntity {
 		if (column.isActive())
 			NBTHelper.putMarker(tag, "ColumnActive");
 	}
-
+	
 	@Override
-	protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag tag, Provider registries, boolean clientPacket) {
 		super.read(tag, registries, clientPacket);
-
+		
 		shortName = tag.getString("ShortName");
 		longName = tag.getString("LongName");
 

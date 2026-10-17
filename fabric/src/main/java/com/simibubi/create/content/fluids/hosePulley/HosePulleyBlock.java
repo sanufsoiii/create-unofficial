@@ -4,7 +4,7 @@ import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.content.fluids.pipes.FluidPipeBlock;
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
-import net.createmod.catnip.data.Iterate;
+import com.simibubi.create.foundation.utility.Iterate;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -48,20 +48,18 @@ public class HosePulleyBlock extends HorizontalKineticBlock implements IBE<HoseP
 		if (fromParent != null)
 			return fromParent;
 
-		Direction preferredSide = null;
+		Direction prefferedSide = null;
 		for (Direction facing : Iterate.horizontalDirections) {
 			BlockPos pos = context.getClickedPos().relative(facing);
 			BlockState blockState = context.getLevel().getBlockState(pos);
-			if (FluidPipeBlock.canConnectTo(context.getLevel(), pos, blockState, facing)) {
-				if (preferredSide != null && preferredSide.getAxis() != facing.getAxis()) {
-					preferredSide = null;
+			if (FluidPipeBlock.canConnectTo(context.getLevel(), pos, blockState, facing))
+				if (prefferedSide != null && prefferedSide.getAxis() != facing.getAxis()) {
+					prefferedSide = null;
 					break;
-				} else {
-					preferredSide = facing;
-				}
-			}
+				} else
+					prefferedSide = facing;
 		}
-		return preferredSide == null ? null : preferredSide.getOpposite();
+		return prefferedSide == null ? null : prefferedSide.getOpposite();
 	}
 
 	@Override

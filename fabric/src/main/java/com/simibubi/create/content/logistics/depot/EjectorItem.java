@@ -1,6 +1,9 @@
 package com.simibubi.create.content.logistics.depot;
 
+import com.simibubi.create.AllPackets;
+
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -34,6 +37,9 @@ public class EjectorItem extends BlockItem {
 	@Override
 	protected boolean updateCustomBlockEntityTag(BlockPos pos, Level world, Player player, ItemStack p_195943_4_,
 		BlockState p_195943_5_) {
+		if (!world.isClientSide && player instanceof ServerPlayer sp)
+			AllPackets.getChannel()
+				.sendToClient(new EjectorPlacementPacket.ClientBoundRequest(pos), sp);
 		return super.updateCustomBlockEntityTag(pos, world, player, p_195943_4_, p_195943_5_);
 	}
 

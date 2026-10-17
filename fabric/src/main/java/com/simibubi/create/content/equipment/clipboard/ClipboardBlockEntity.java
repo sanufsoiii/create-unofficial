@@ -3,26 +3,33 @@ package com.simibubi.create.content.equipment.clipboard;
 import java.util.List;
 import java.util.UUID;
 
-import com.mojang.datafixers.util.Pair;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllDataComponents;
+import com.simibubi.create.Create;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 
+import io.github.fabricators_of_create.porting_lib_ufo.util.EnvExecutor;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class ClipboardBlockEntity extends SmartBlockEntity {
+
+	public ItemStack dataContainer;
 	private UUID lastEdit;
 
 	public ClipboardBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
+		dataContainer = AllBlocks.CLIPBOARD.asStack();
 	}
 
 	@Override
@@ -44,7 +51,7 @@ public class ClipboardBlockEntity extends SmartBlockEntity {
 		if (level.isClientSide())
 			return;
 		boolean isWritten = blockState.getValue(ClipboardBlock.WRITTEN);
-		boolean shouldBeWritten = components().has(AllDataComponents.CLIPBOARD_CONTENT);
+		boolean shouldBeWritten = dataContainer.has(AllDataComponents.CLIPBOARD_EDITING);
 		if (isWritten == shouldBeWritten)
 			return;
 		level.setBlockAndUpdate(worldPosition, blockState.setValue(ClipboardBlock.WRITTEN, shouldBeWritten));
@@ -54,34 +61,33 @@ public class ClipboardBlockEntity extends SmartBlockEntity {
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
 
 	@Override
-	protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(tag, registries, clientPacket);
-
-		if (clientPacket) {
-			DataComponentMap.CODEC.encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), components())
-				.result()
-				.ifPresent(encoded -> tag.put("components", encoded));
-
-			if (lastEdit != null)
-				tag.putUUID("LastEdit", lastEdit);
-		}
+	protected void write(CompoundTag tag, boolean clientPacket) {
+		super.write(tag, clientPacket);
+		tag.put("Item", NBTSerializer.serializeNBT(dataContainer));
+		if (clientPacket && lastEdit != null)
+			tag.putUUID("LastEdit", lastEdit);
 	}
-
+	
 	@Override
-	protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag tag, Provider registries, boolean clientPacket) {
 		super.read(tag, registries, clientPacket);
+		dataContainer = ItemStack.parseOptional(Create.getRegistryAccess(), tag.getCompound("Item"));
 
-		if (clientPacket) {
-			if (tag.contains("components"))
-				DataComponentMap.CODEC.decode(registries.createSerializationContext(NbtOps.INSTANCE), tag.getCompound("components"))
-					.result()
-					.map(Pair::getFirst)
-					.ifPresent(this::setComponents);
-		}
+		if (clientPacket)
+			EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> readClientSide(tag));
 	}
 
-	@Override
-	public void setComponents(DataComponentMap components) {
-		super.setComponents(components);
+	@Environment(EnvType.CLIENT)
+	private void readClientSide(CompoundTag tag) {
+		Minecraft mc = Minecraft.getInstance();
+		if (!(mc.screen instanceof ClipboardScreen cs))
+			return;
+		if (tag.contains("LastEdit") && tag.getUUID("LastEdit")
+			.equals(mc.player.getUUID()))
+			return;
+		if (!worldPosition.equals(cs.targetedBlock))
+			return;
+		cs.reopenWith(dataContainer);
 	}
+
 }

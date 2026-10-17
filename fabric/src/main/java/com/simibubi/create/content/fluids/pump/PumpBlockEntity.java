@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
@@ -18,13 +18,14 @@ import com.simibubi.create.content.fluids.FluidTransportBehaviour;
 import com.simibubi.create.content.fluids.PipeAttachmentBlockEntity;
 import com.simibubi.create.content.fluids.PipeConnection;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.BlockFace;
+import com.simibubi.create.foundation.utility.Couple;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Pair;
 
-import net.createmod.catnip.data.Couple;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.data.Pair;
-import net.createmod.catnip.math.BlockFace;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -54,6 +55,7 @@ public class PumpBlockEntity extends KineticBlockEntity implements PipeAttachmen
 		super.addBehaviours(behaviours);
 		behaviours.add(new PumpFluidTransferBehaviour(this));
 		registerAwardables(behaviours, FluidPropagator.getSharedTriggers());
+		registerAwardables(behaviours, AllAdvancements.PUMP);
 	}
 
 	@Override
@@ -84,6 +86,8 @@ public class PumpBlockEntity extends KineticBlockEntity implements PipeAttachmen
 
 		if (Math.abs(previousSpeed) == Math.abs(getSpeed()))
 			return;
+		if (speed != 0)
+			award(AllAdvancements.PUMP);
 		if (level.isClientSide && !isVirtual())
 			return;
 

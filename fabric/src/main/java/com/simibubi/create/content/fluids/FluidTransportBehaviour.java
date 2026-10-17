@@ -6,7 +6,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.fluids.pipes.EncasedPipeBlock;
@@ -14,13 +14,12 @@ import com.simibubi.create.content.fluids.pump.PumpBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.WorldAttached;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.data.WorldAttached;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.Level;
@@ -71,6 +70,13 @@ public abstract class FluidTransportBehaviour extends BlockEntityBehaviour {
 		// Do not provide a lone pipe connection with its own flow input
 		PipeConnection singleSource = null;
 
+//		if (onClient) {
+//			connections.forEach(connection -> {
+//				connection.visualizeFlow(pos);
+//				connection.visualizePressure(pos);
+//			});
+//		}
+
 		if (phase == UpdatePhase.WAIT_FOR_PUMPS) {
 			phase = UpdatePhase.FLIP_FLOWS;
 			return;
@@ -104,7 +110,7 @@ public abstract class FluidTransportBehaviour extends BlockEntityBehaviour {
 					availableFlow = fluidInFlow;
 					continue;
 				}
-				if (FluidStack.isSameFluidSameComponents(availableFlow, fluidInFlow)) {
+				if (availableFlow.isFluidEqual(fluidInFlow)) {
 					singleSource = null;
 					availableFlow = fluidInFlow;
 					continue;
@@ -135,8 +141,8 @@ public abstract class FluidTransportBehaviour extends BlockEntityBehaviour {
 	}
 
 	@Override
-	public void read(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(nbt, registries, clientPacket);
+	public void read(CompoundTag nbt, boolean clientPacket) {
+		super.read(nbt, clientPacket);
 		if (interfaces == null)
 			interfaces = new IdentityHashMap<>();
 		for (Direction face : Iterate.directions)
@@ -150,19 +156,19 @@ public abstract class FluidTransportBehaviour extends BlockEntityBehaviour {
 		}
 
 		interfaces.values()
-			.forEach(connection -> connection.deserializeNBT(nbt, registries, blockEntity.getBlockPos(), clientPacket));
+			.forEach(connection -> connection.deserializeNBT(nbt, blockEntity.getBlockPos(), clientPacket));
 	}
 
 	@Override
-	public void write(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(nbt, registries, clientPacket);
+	public void write(CompoundTag nbt, boolean clientPacket) {
+		super.write(nbt, clientPacket);
 		if (clientPacket)
 			createConnectionData();
 		if (interfaces == null)
 			return;
 
 		interfaces.values()
-			.forEach(connection -> connection.serializeNBT(nbt, registries, clientPacket));
+			.forEach(connection -> connection.serializeNBT(nbt, clientPacket));
 	}
 
 	public FluidStack getProvidedOutwardFluid(Direction side) {
@@ -245,7 +251,7 @@ public abstract class FluidTransportBehaviour extends BlockEntityBehaviour {
 			return AttachmentTypes.RIM;
 
 		if (FluidPropagator.hasFluidCapability(world, offsetPos, direction.getOpposite())
-			&& !facingState.getBlock().getClass().getSimpleName().equals("HosePulleyBlock"))
+			&& !AllBlocks.HOSE_PULLEY.has(facingState))
 			return AttachmentTypes.DRAIN;
 
 		return AttachmentTypes.RIM;

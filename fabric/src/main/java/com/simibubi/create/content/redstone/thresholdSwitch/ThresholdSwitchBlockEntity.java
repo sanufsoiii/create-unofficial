@@ -2,9 +2,9 @@ package com.simibubi.create.content.redstone.thresholdSwitch;
 
 import java.util.List;
 
-import com.simibubi.create.content.processing.recipe.ProcessingInventory;
 import com.simibubi.create.content.redstone.DirectedDirectionalBlock;
 import com.simibubi.create.content.redstone.FilteredDetectorFilterSlot;
+import com.simibubi.create.content.redstone.displayLink.DisplayLinkBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
@@ -12,39 +12,30 @@ import com.simibubi.create.foundation.blockEntity.behaviour.inventory.CapManipul
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.TankManipulationBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.VersionedInventoryTrackerBehaviour;
-import com.simibubi.create.foundation.item.ItemTransferUtil;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.BlockFace;
 
-import dev.architectury.hooks.fluid.fabric.FluidStackHooksFabric;
-import net.createmod.catnip.math.BlockFace;
-import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
+import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
-import net.minecraft.world.Clearable;
-import net.minecraft.world.Container;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.ticks.TickPriority;
 
-public class ThresholdSwitchBlockEntity extends SmartBlockEntity implements Clearable {
-	public int onWhenAbove;
-	public int offWhenBelow;
+public class ThresholdSwitchBlockEntity extends SmartBlockEntity {
 
-	public int currentMinLevel;
-	public int currentLevel;
-	public int currentMaxLevel;
-	public boolean inStacks;
-
+	public float onWhenAbove;
+	public float offWhenBelow;
+	public float currentLevel;
 	private boolean redstoneState;
 	private boolean inverted;
 	private boolean poweredAfterDelay;
@@ -56,8 +47,8 @@ public class ThresholdSwitchBlockEntity extends SmartBlockEntity implements Clea
 
 	public ThresholdSwitchBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
-		onWhenAbove = 128;
-		offWhenBelow = 64;
+		onWhenAbove = .75f;
+		offWhenBelow = .25f;
 		currentLevel = -1;
 		redstoneState = false;
 		inverted = false;
@@ -66,136 +57,124 @@ public class ThresholdSwitchBlockEntity extends SmartBlockEntity implements Clea
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		onWhenAbove = compound.getInt("OnAboveAmount");
-		offWhenBelow = compound.getInt("OffBelowAmount");
-		currentLevel = compound.getInt("CurrentAmount");
-		currentMinLevel = compound.getInt("CurrentMinAmount");
-		currentMaxLevel = compound.getInt("CurrentMaxAmount");
-		inStacks = compound.getBoolean("InStacks");
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		onWhenAbove = compound.getFloat("OnAbove");
+		offWhenBelow = compound.getFloat("OffBelow");
+		currentLevel = compound.getFloat("Current");
 		redstoneState = compound.getBoolean("Powered");
 		inverted = compound.getBoolean("Inverted");
 		poweredAfterDelay = compound.getBoolean("PoweredAfterDelay");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
 	protected void writeCommon(CompoundTag compound) {
-		compound.putFloat("OnAboveAmount", onWhenAbove);
-		compound.putFloat("OffBelowAmount", offWhenBelow);
+		compound.putFloat("OnAbove", onWhenAbove);
+		compound.putFloat("OffBelow", offWhenBelow);
 		compound.putBoolean("Inverted", inverted);
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		writeCommon(compound);
-		compound.putInt("CurrentAmount", currentLevel);
-		compound.putInt("CurrentMinAmount", currentMinLevel);
-		compound.putInt("CurrentMaxAmount", currentMaxLevel);
-		compound.putBoolean("InStacks", inStacks);
+		compound.putFloat("Current", currentLevel);
 		compound.putBoolean("Powered", redstoneState);
 		compound.putBoolean("PoweredAfterDelay", poweredAfterDelay);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	public void writeSafe(CompoundTag compound, HolderLookup.Provider registries) {
+	public void writeSafe(CompoundTag compound) {
 		writeCommon(compound);
-		super.writeSafe(compound, registries);
+		super.writeSafe(compound);
 	}
 
-	public int getMinLevel() {
-		return currentMinLevel;
-	}
-
-	public int getStockLevel() {
+	public float getStockLevel() {
 		return currentLevel;
 	}
 
-	public int getMaxLevel() {
-		return currentMaxLevel;
-	}
-
 	public void updateCurrentLevel() {
+		if (Transaction.isOpen()) {
+			// can't do this during close callbacks.
+			// lazyTick should catch any updates we miss.
+			return;
+		}
 		boolean changed = false;
-		int prevLevel = currentLevel;
-		int prevMaxLevel = currentMaxLevel;
+		float occupied = 0;
+		float totalSpace = 0;
+		float prevLevel = currentLevel;
 
-		BlockPos target = getTargetPos();
+		BlockPos target = worldPosition.relative(ThresholdSwitchBlock.getTargetDirection(getBlockState()));
 		BlockEntity targetBlockEntity = level.getBlockEntity(target);
 
-		observedInventory.findNewCapability();
-		observedTank.findNewCapability();
-
 		if (targetBlockEntity instanceof ThresholdSwitchObservable observable) {
-			currentMinLevel = observable.getMinValue();
-			currentLevel = observable.getCurrentValue();
-			currentMaxLevel = observable.getMaxValue();
+			currentLevel = observable.getPercent() / 100f;
+
+//		} else if (StorageDrawers.isDrawer(targetBlockEntity) && observedInventory.hasInventory()) {
+//			currentLevel = StorageDrawers.getTrueFillLevel(observedInventory.getInventory(), filtering);
 
 		} else if (observedInventory.hasInventory() || observedTank.hasInventory()) {
-			currentMinLevel = 0;
-			currentLevel = 0;
-			currentMaxLevel = 0;
-
 			if (observedInventory.hasInventory()) {
-				Object invObj = observedInventory.getInventory();
-				if (invObj instanceof Storage<?> storage) {
-					@SuppressWarnings("unchecked")
-					Storage<ItemVariant> inv = (Storage<ItemVariant>) storage;
+
+				// Item inventory
+				Storage<ItemVariant> inv = observedInventory.getInventory();
+				if (invVersionTracker.stillWaiting(inv)) {
+					occupied = prevLevel;
+					totalSpace = 1f;
+
+				} else {
+					invVersionTracker.awaitNewVersion(inv);
 					if (invVersionTracker.stillWaiting(inv)) {
-						currentLevel = prevLevel;
-						currentMaxLevel = prevMaxLevel;
+						occupied = prevLevel;
+						totalSpace = 1f;
+
 					} else {
 						invVersionTracker.awaitNewVersion(inv);
 						for (StorageView<ItemVariant> view : inv) {
 							long space = view.getCapacity();
 							long count = view.getAmount();
-							if (space <= 0)
+							if (space == 0)
 								continue;
 
-							currentMaxLevel += space;
-							if (!view.isResourceBlank() && filtering.test(view.getResource().toStack((int) Math.min(count, 64))))
-								currentLevel += count;
+							totalSpace += 1;
+							if (filtering.test(view.getResource().toStack()))
+								occupied += count * (1f / space);
 						}
-					}
-				} else if (invObj instanceof Container container) {
-					for (int slot = 0; slot < container.getContainerSize(); slot++) {
-						ItemStack stackInSlot = container.getItem(slot);
-						long space = Math.min(stackInSlot.getOrDefault(DataComponents.MAX_STACK_SIZE, 64), container.getMaxStackSize());
-						int count = stackInSlot.getCount();
-						if (space <= 0)
-							continue;
-
-						currentMaxLevel += space;
-						if (filtering.test(stackInSlot))
-							currentLevel += count;
 					}
 				}
 			}
 
 			if (observedTank.hasInventory()) {
-				Storage<FluidVariant> tank = observedTank.getInventory();
-				if (tank != null) {
+				// Fluid inventory
+				try (Transaction t = TransferUtil.getTransaction()) {
+					Storage<FluidVariant> tank = observedTank.getInventory();
 					for (StorageView<FluidVariant> view : tank) {
-						long space = view.getCapacity() / 81; // 81 droplets = 1 mB
-						long count = view.getAmount() / 81;
-						if (space <= 0)
+						long space = view.getCapacity();
+						long count = view.getAmount();
+						if (space == 0)
 							continue;
 
-						currentMaxLevel += space;
-						if (!view.isResourceBlank() && filtering.test(FluidStackHooksFabric.fromFabric(view.getResource(), view.getAmount())))
-							currentLevel += count;
+						totalSpace += 1;
+						if (filtering.test(new FluidStack(view)))
+							occupied += count * (1f / space);
 					}
 				}
 			}
 
+			currentLevel = occupied / totalSpace;
+
+			// fabric: since fluid amounts are 81x larger, we lose floating point precision.
+			// Let's just round a little.
+			if (currentLevel > 0.999) {
+				currentLevel = 1;
+			} else if (currentLevel < 0.001) {
+				currentLevel = 0;
+			}
+
 		} else {
 			// No compatible inventories found
-			currentMinLevel = -1;
-			currentMaxLevel = -1;
 			if (currentLevel == -1)
 				return;
-
-			level.setBlock(worldPosition, getBlockState().setValue(ThresholdSwitchBlock.LEVEL, 0), Block.UPDATE_ALL);
+			level.setBlock(worldPosition, getBlockState().setValue(ThresholdSwitchBlock.LEVEL, 0), 3);
 			currentLevel = -1;
 			redstoneState = false;
 			sendData();
@@ -203,7 +182,7 @@ public class ThresholdSwitchBlockEntity extends SmartBlockEntity implements Clea
 			return;
 		}
 
-		currentLevel = Mth.clamp(currentLevel, currentMinLevel, currentMaxLevel);
+		currentLevel = Mth.clamp(currentLevel, 0, 1);
 		changed = currentLevel != prevLevel;
 
 		boolean previouslyPowered = redstoneState;
@@ -214,67 +193,23 @@ public class ThresholdSwitchBlockEntity extends SmartBlockEntity implements Clea
 		boolean update = previouslyPowered != redstoneState;
 
 		int displayLevel = 0;
-		float normedLevel = (float) (currentLevel - currentMinLevel) / (currentMaxLevel - currentMinLevel);
 		if (currentLevel > 0)
-			displayLevel = (int) (1 + normedLevel * 4);
+			displayLevel = (int) (1 + currentLevel * 4);
 		level.setBlock(worldPosition, getBlockState().setValue(ThresholdSwitchBlock.LEVEL, displayLevel),
-			update ? 3 : 2);
+				update ? 3 : 2);
 
 		if (update)
 			scheduleBlockTick();
 
 		if (changed || update) {
+			DisplayLinkBlock.notifyGatherers(level, worldPosition);
 			notifyUpdate();
 		}
 	}
 
-	private boolean isSuitableInventory(BlockEntity be) {
-		return be != null && !"StockTickerBlockEntity".equals(be.getClass().getSimpleName())
-			&& !(ItemTransferUtil.getInventory(level, be.getBlockPos(), null) instanceof ProcessingInventory);
-	}
-
-	private BlockPos getTargetPos() {
-		return worldPosition.relative(ThresholdSwitchBlock.getTargetDirection(getBlockState()));
-	}
-
-	public ItemStack getDisplayItemForScreen() {
-		BlockPos target = getTargetPos();
-		return new ItemStack(level.getBlockState(target)
-			.getBlock());
-	}
-
-	public static enum ThresholdType {
-		UNSUPPORTED, ITEM, FLUID, CUSTOM;
-	}
-
-	public MutableComponent format(int value, boolean stacks) {
-		ThresholdType type = getTypeOfCurrentTarget();
-		if (type == ThresholdType.CUSTOM)
-			if (level.getBlockEntity(getTargetPos()) instanceof ThresholdSwitchObservable tso)
-				return tso.format(value);
-
-		String suffix = type == ThresholdType.ITEM
-			? stacks ? "schedule.condition.threshold.stacks" : "schedule.condition.threshold.items"
-			: "schedule.condition.threshold.buckets";
-		return CreateLang.text((type == ThresholdType.FLUID ? value / 1000 : value) + " ")
-			.add(CreateLang.translate(suffix))
-			.component();
-	}
-
-	public ThresholdType getTypeOfCurrentTarget() {
-		if (observedInventory.hasInventory())
-			return ThresholdType.ITEM;
-		if (observedTank.hasInventory())
-			return ThresholdType.FLUID;
-		if (level.getBlockEntity(getTargetPos()) instanceof ThresholdSwitchObservable)
-			return ThresholdType.CUSTOM;
-		return ThresholdType.UNSUPPORTED;
-	}
-
 	protected void scheduleBlockTick() {
 		Block block = getBlockState().getBlock();
-		if (!level.getBlockTicks()
-			.willTickThisTick(worldPosition, block))
+		if (!level.getBlockTicks().willTickThisTick(worldPosition, block))
 			level.scheduleTick(worldPosition, block, 2, TickPriority.NORMAL);
 	}
 
@@ -287,25 +222,19 @@ public class ThresholdSwitchBlockEntity extends SmartBlockEntity implements Clea
 	}
 
 	@Override
-	public void clearContent() {
-		filtering.setFilter(ItemStack.EMPTY);
-	}
-
-	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		behaviours
-			.add(filtering = new FilteringBehaviour(this, new FilteredDetectorFilterSlot(true)).withCallback($ -> {
-				this.updateCurrentLevel();
-				invVersionTracker.reset();
-			}));
+				.add(filtering = new FilteringBehaviour(this, new FilteredDetectorFilterSlot(true)).withCallback($ -> {
+					this.updateCurrentLevel();
+					invVersionTracker.reset();
+				}));
 
 		behaviours.add(invVersionTracker = new VersionedInventoryTrackerBehaviour(this));
 
-		InterfaceProvider towardBlockFacing =
-			(w, p, s) -> new BlockFace(p, DirectedDirectionalBlock.getTargetDirection(s));
+		InterfaceProvider towardBlockFacing = (w, p, s) -> new BlockFace(p,
+				DirectedDirectionalBlock.getTargetDirection(s));
 
-		behaviours.add(observedInventory = new InvManipulationBehaviour(this, towardBlockFacing).bypassSidedness()
-			.withFilter(this::isSuitableInventory));
+		behaviours.add(observedInventory = new InvManipulationBehaviour(this, towardBlockFacing).bypassSidedness());
 		behaviours.add(observedTank = new TankManipulationBehaviour(this, towardBlockFacing).bypassSidedness());
 	}
 
@@ -324,7 +253,6 @@ public class ThresholdSwitchBlockEntity extends SmartBlockEntity implements Clea
 	public void updatePowerAfterDelay() {
 		poweredAfterDelay = shouldBePowered();
 		level.blockUpdated(worldPosition, getBlockState().getBlock());
-		sendData();
 	}
 
 	public boolean isPowered() {

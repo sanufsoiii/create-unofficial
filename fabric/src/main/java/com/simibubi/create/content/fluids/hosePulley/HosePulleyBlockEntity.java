@@ -7,20 +7,21 @@ import org.jetbrains.annotations.Nullable;
 import com.simibubi.create.content.fluids.transfer.FluidDrainingBehaviour;
 import com.simibubi.create.content.fluids.transfer.FluidFillingBehaviour;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.fluid.SmartFluidTank;
 import com.simibubi.create.foundation.item.TooltipHelper;
 import com.simibubi.create.foundation.utility.ServerSpeedProvider;
-import net.createmod.catnip.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -40,8 +41,12 @@ public class HosePulleyBlockEntity extends KineticBlockEntity implements SidedSt
 
 	public HosePulleyBlockEntity(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
 		super(typeIn, pos, state);
-		offset = LerpedFloat.linear().startWithValue(0);
-		isMoving = true;
+		offset = LerpedFloat.linear()
+			.startWithValue(0);
+		isMoving = true;					// fabric: we hold twice forge, due to differences in logic
+											// the handler refills from the world when stored > BUCKET, which could result in nearly 2 buckets worth.
+											// on forge, there's no risk of negative results with stored > capacity
+											// fabric does have this issue, so we can *not* allow it.
 		internalTank = new SmartFluidTank(FluidConstants.BUCKET * 3, this::onTankContentsChanged);
 		handler = new HosePulleyFluidHandler(internalTank, filler, drainer,
 			() -> worldPosition.below((int) Math.ceil(offset.getValue())), () -> !this.isMoving);
@@ -68,11 +73,10 @@ public class HosePulleyBlockEntity extends KineticBlockEntity implements SidedSt
 		behaviours.add(drainer);
 		behaviours.add(filler);
 		super.addBehaviours(behaviours);
-		// TODO: registerAwardables when AllAdvancements is ported
+		registerAwardables(behaviours, AllAdvancements.HOSE_PULLEY, AllAdvancements.HOSE_PULLEY_LAVA);
 	}
 
-	protected void onTankContentsChanged(FluidStack contents) {
-	}
+	protected void onTankContentsChanged(FluidStack contents) {}
 
 	@Override
 	public void onSpeedChanged(float previousSpeed) {
@@ -87,7 +91,8 @@ public class HosePulleyBlockEntity extends KineticBlockEntity implements SidedSt
 			float newOffset = offset.getValue() + getMovementSpeed();
 			if (newOffset < 0)
 				isMoving = false;
-			if (!level.getBlockState(worldPosition.below((int) Math.ceil(newOffset))).canBeReplaced()) {
+			if (!level.getBlockState(worldPosition.below((int) Math.ceil(newOffset)))
+				.canBeReplaced()) {
 				isMoving = false;
 			}
 			if (isMoving) {
@@ -112,7 +117,8 @@ public class HosePulleyBlockEntity extends KineticBlockEntity implements SidedSt
 			newOffset = 0;
 			isMoving = false;
 		}
-		if (!level.getBlockState(worldPosition.below((int) Math.ceil(newOffset))).canBeReplaced()) {
+		if (!level.getBlockState(worldPosition.below((int) Math.ceil(newOffset)))
+			.canBeReplaced()) {
 			newOffset = (int) newOffset;
 			isMoving = false;
 		}
@@ -132,7 +138,8 @@ public class HosePulleyBlockEntity extends KineticBlockEntity implements SidedSt
 			return;
 
 		int ceil = (int) Math.ceil(offset.getValue() + getMovementSpeed());
-		if (getMovementSpeed() > 0 && level.getBlockState(worldPosition.below(ceil)).canBeReplaced()) {
+		if (getMovementSpeed() > 0 && level.getBlockState(worldPosition.below(ceil))
+			.canBeReplaced()) {
 			isMoving = true;
 			drainer.reset(null);
 			filler.reset(null);
@@ -143,23 +150,28 @@ public class HosePulleyBlockEntity extends KineticBlockEntity implements SidedSt
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void write(CompoundTag compound, boolean clientPacket) {
 		if (clientPacket)
 			offset.forceNextSync();
 		compound.put("Offset", offset.writeNBT());
-		compound.put("Tank", internalTank.writeToNBT(registries, new CompoundTag()));
-		super.write(compound, registries, clientPacket);
+		compound.put("Tank", internalTank.writeToNBT(new CompoundTag()));
+		super.write(compound, clientPacket);
 		if (clientPacket)
 			compound.putBoolean("Infinite", infinite);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		offset.readNBT(compound.getCompound("Offset"), clientPacket);
-		internalTank.readFromNBT(registries, compound.getCompound("Tank"));
-		super.read(compound, registries, clientPacket);
+		internalTank.readFromNBT(compound.getCompound("Tank"));
+		super.read(compound, reg, clientPacket);
 		if (clientPacket)
 			infinite = compound.getBoolean("Infinite");
+	}
+
+	@Override
+	public void invalidate() {
+		super.invalidate();
 	}
 
 	public float getMovementSpeed() {

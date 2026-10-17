@@ -4,11 +4,11 @@ import java.lang.ref.WeakReference;
 import java.util.function.Predicate;
 
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import net.createmod.catnip.math.BlockFace;
+import com.simibubi.create.foundation.utility.BlockFace;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import io.github.fabricators_of_create.porting_lib.util.StorageProvider;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.util.StorageProvider;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.ResourceAmount;
@@ -34,6 +34,7 @@ public abstract class FlowSource {
 		}
 	}
 
+	// Layer III. PFIs need active attention to prevent them from disengaging early
 	public void keepAlive() {}
 
 	public abstract boolean isEndpoint();

@@ -1,12 +1,13 @@
 package com.simibubi.create.content.contraptions.mounted;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.redstone.rail.ControllerRailBlock;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.Lang;
 
+import io.github.fabricators_of_create.porting_lib_ufo.util.MinecartAndRailUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.AxisDirection;
@@ -28,8 +29,8 @@ public class CartAssemblerBlockItem extends BlockItem {
 		super(block, properties);
 	}
 
-	@NotNull
 	@Override
+	@Nonnull
 	public InteractionResult useOn(UseOnContext context) {
 		if (tryPlaceAssembler(context)) {
 			context.getLevel()
@@ -49,12 +50,12 @@ public class CartAssemblerBlockItem extends BlockItem {
 		if (player == null)
 			return false;
 		if (!(block instanceof BaseRailBlock)) {
-			CreateLang.translate("block.cart_assembler.invalid")
+			Lang.translate("block.cart_assembler.invalid")
 				.sendStatus(player);
 			return false;
 		}
 
-		RailShape shape = state.getValue(((BaseRailBlock) block).getShapeProperty());
+		RailShape shape = MinecartAndRailUtil.getDirectionOfRail(state, world, pos, null);
 		if (shape != RailShape.EAST_WEST && shape != RailShape.NORTH_SOUTH)
 			return false;
 

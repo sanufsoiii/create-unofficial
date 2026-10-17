@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
@@ -24,10 +25,6 @@ public class DeployerItemHandler extends SnapshotParticipant<Unit> implements St
 	public DeployerItemHandler(DeployerBlockEntity be) {
 		this.be = be;
 		this.player = be.player;
-	}
-
-	public void setPlayer(DeployerFakePlayer player) {
-		this.player = player;
 	}
 
 	public ItemStack getHeld() {
@@ -58,7 +55,7 @@ public class DeployerItemHandler extends SnapshotParticipant<Unit> implements St
 			return maxInsert;
 		}
 
-		if (!ItemStack.isSameItemSameComponents(held, stack))
+		if (!ItemHandlerHelper.canItemStacksStack(held, stack))
 			return 0;
 
 		int space = held.getMaxStackSize() - held.getCount();
@@ -82,6 +79,9 @@ public class DeployerItemHandler extends SnapshotParticipant<Unit> implements St
 		return extracted;
 	}
 
+	/**
+	 * @return number of items extracted from the TE's overflow slots
+	 */
 	public long extractFromOverflow(ItemVariant resource, long maxAmount, TransactionContext transaction) {
 		long extracted = 0;
 		for (int i = 0; i < be.overflowItems.size(); i++) {
@@ -101,11 +101,14 @@ public class DeployerItemHandler extends SnapshotParticipant<Unit> implements St
 		return extracted;
 	}
 
+	/**
+	 * @return the number of items extracted from the TE's held stack
+	 */
 	public long extractFromHeld(ItemVariant resource, long maxAmount, TransactionContext transaction) {
 		ItemStack held = getHeld();
 		if (held.isEmpty() || !resource.matches(held))
 			return 0;
-		if (be.filtering != null && !be.filtering.getFilter().isEmpty() && be.filtering.test(held))
+		if (!be.filtering.getFilter().isEmpty() && be.filtering.test(held))
 			return 0;
 		int toExtract = (int) Math.min(maxAmount, held.getCount());
 		be.snapshotParticipant.updateSnapshots(transaction);
@@ -160,12 +163,9 @@ public class DeployerItemHandler extends SnapshotParticipant<Unit> implements St
 			Consumer<ItemStack> heldSetter = (stack) -> be.overflowItems.set(indexFinal, stack);
 			Predicate<ItemStack> mayExtract = stack -> true;
 			if (index == -1) {
-				heldGetter = () -> player == null ? ItemStack.EMPTY : player.getMainHandItem();
-				heldSetter = s -> {
-					if (player != null)
-						player.setItemInHand(InteractionHand.MAIN_HAND, s);
-				};
-				mayExtract = s -> be.filtering == null || be.filtering.getFilter().isEmpty() || !be.filtering.test(s);
+				heldGetter = player::getMainHandItem;
+				heldSetter = s -> player.setItemInHand(InteractionHand.MAIN_HAND, s);
+				mayExtract = s -> be.filtering.getFilter().isEmpty() || !be.filtering.test(s);
 				index = be.overflowItems.size(); // hasNext will be false now
 			}
 			index++;
@@ -194,8 +194,7 @@ public class DeployerItemHandler extends SnapshotParticipant<Unit> implements St
 				return 0;
 			int toExtract = (int) Math.min(maxAmount, stack.getCount());
 			updateSnapshots(transaction);
-			int remaining = stack.getCount() - toExtract;
-			ItemStack newStack = remaining <= 0 ? ItemStack.EMPTY : stack.copyWithCount(remaining);
+			ItemStack newStack = ItemHandlerHelper.copyStackWithSize(stack, stack.getCount() - toExtract);
 			heldSetter.accept(newStack);
 			return toExtract;
 		}

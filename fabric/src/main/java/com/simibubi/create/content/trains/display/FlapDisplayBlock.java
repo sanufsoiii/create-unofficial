@@ -8,17 +8,21 @@ import java.util.function.Predicate;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.equipment.clipboard.ClipboardEntry;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
+import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.simibubi.create.foundation.utility.Components;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
+import io.github.fabricators_of_create.porting_lib_ufo.util.TagUtil;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
@@ -32,6 +36,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -115,81 +120,122 @@ public class FlapDisplayBlock extends HorizontalKineticBlock
 	}
 
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (player.isShiftKeyDown())
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult ray) {
+		
+		if (player.isShiftKeyDown() || AdventureUtil.isAdventure(player))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+
+		ItemStack heldItem = player.getItemInHand(hand);
+		if(heldItem.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 
 		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
-		if (placementHelper.matchesItem(stack))
-			return placementHelper.getOffset(player, level, state, pos, hitResult)
-				.placeInWorld(level, (BlockItem) stack.getItem(), player, hand, hitResult);
+		if (placementHelper.matchesItem(heldItem))
+			return placementHelper.getOffset(player, world, state, pos, ray)
+				.placeInWorld(world, (BlockItem) heldItem.getItem(), player, hand, ray);
 
-		FlapDisplayBlockEntity flapBE = getBlockEntity(level, pos);
+		FlapDisplayBlockEntity flapBE = getBlockEntity(world, pos);
 
 		if (flapBE == null)
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 		flapBE = flapBE.getController();
 		if (flapBE == null)
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 
-		double yCoord = hitResult.getLocation()
-			.add(Vec3.atLowerCornerOf(hitResult.getDirection()
-					.getOpposite()
-					.getNormal())
+		double yCoord = ray.getLocation()
+			.add(Vec3.atLowerCornerOf(ray.getDirection()
+				.getOpposite()
+				.getNormal())
 				.scale(.125f)).y;
 
 		int lineIndex = flapBE.getLineIndexAt(yCoord);
 
-		if (stack.isEmpty()) {
-			if (!flapBE.isSpeedRequirementFulfilled())
-				return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-			flapBE.applyTextManually(lineIndex, null);
-			return ItemInteractionResult.SUCCESS;
-		}
-
-		if (stack.getItem() == Items.GLOW_INK_SAC) {
-			if (!level.isClientSide) {
-				level.playSound(null, pos, SoundEvents.INK_SAC_USE, SoundSource.BLOCKS, 1.0F, 1.0F);
+		if (heldItem.getItem() == Items.GLOW_INK_SAC) {
+			if (!world.isClientSide) {
+				world.playSound(null, pos, SoundEvents.INK_SAC_USE, SoundSource.BLOCKS, 1.0F, 1.0F);
 				flapBE.setGlowing(lineIndex);
 			}
 			return ItemInteractionResult.SUCCESS;
 		}
 
-		boolean isClipboard = false;
 		boolean display =
-			stack.getItem() == Items.NAME_TAG && stack.has(DataComponents.CUSTOM_NAME) || isClipboard;
-		DyeColor dye = stack.getItem() instanceof net.minecraft.world.item.DyeItem dyeItem ? dyeItem.getDyeColor() : null;
+			heldItem.getItem() == Items.NAME_TAG && heldItem.has(DataComponents.CUSTOM_NAME) || AllBlocks.CLIPBOARD.isIn(heldItem);
+		DyeColor dye = TagUtil.getColorFromStack(heldItem);
 
 		if (!display && dye == null)
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 		if (dye == null && !flapBE.isSpeedRequirementFulfilled())
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		if (level.isClientSide)
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		if (world.isClientSide)
 			return ItemInteractionResult.SUCCESS;
 
-		Component customName = stack.get(DataComponents.CUSTOM_NAME);
-
+		//CompoundTag tag = heldItem.getTagElement("display");
+		//String tagElement = tag != null && tag.contains("Name", Tag.TAG_STRING) ? tag.getString("Name") : null;
+		String tagElement = heldItem.has(DataComponents.CUSTOM_NAME) ? heldItem.get(DataComponents.CUSTOM_NAME).getString() : null;
+		
 		if (display) {
-			if (isClipboard) {
-				List<ClipboardEntry> entries = ClipboardEntry.getLastViewedEntries(stack);
+			if (AllBlocks.CLIPBOARD.isIn(heldItem)) {
+				List<ClipboardEntry> entries = ClipboardEntry.getLastViewedEntries(heldItem);
 				int line = lineIndex;
-				for (ClipboardEntry entry : entries) {
-					for (String string : entry.text.getString()
-						.split("\n")) {
-						flapBE.applyTextManually(line++, Component.literal(string));
-					}
+				for (int i = 0; i < entries.size(); i++) {
+					for (String string : entries.get(i).text.getString()
+						.split("\n"))
+						flapBE.applyTextManually(line++, Component.Serializer.toJson(Components.literal(string), Create.getRegistryAccess()));
 				}
 				return ItemInteractionResult.SUCCESS;
 			}
 
-			flapBE.applyTextManually(lineIndex, customName);
+			flapBE.applyTextManually(lineIndex, tagElement);
 		}
 		if (dye != null) {
-			level.playSound(null, pos, SoundEvents.DYE_USE, SoundSource.BLOCKS, 1.0F, 1.0F);
+			world.playSound(null, pos, SoundEvents.DYE_USE, SoundSource.BLOCKS, 1.0F, 1.0F);
 			flapBE.setColour(lineIndex, dye);
 		}
 
 		return ItemInteractionResult.SUCCESS;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
+			BlockHitResult ray) {
+		
+		if (player.isShiftKeyDown() || AdventureUtil.isAdventure(player))
+			return InteractionResult.PASS;
+
+		ItemStack heldItem = ItemStack.EMPTY;
+
+		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
+		if (placementHelper.matchesItem(heldItem))
+			return placementHelper.getOffset(player, world, state, pos, ray)
+				.placeInWorld(world, (BlockItem) heldItem.getItem(), player, InteractionHand.MAIN_HAND, ray).result();
+
+		FlapDisplayBlockEntity flapBE = getBlockEntity(world, pos);
+
+		if (flapBE == null)
+			return InteractionResult.PASS;
+		flapBE = flapBE.getController();
+		if (flapBE == null)
+			return InteractionResult.PASS;
+
+		double yCoord = ray.getLocation()
+			.add(Vec3.atLowerCornerOf(ray.getDirection()
+				.getOpposite()
+				.getNormal())
+				.scale(.125f)).y;
+
+		int lineIndex = flapBE.getLineIndexAt(yCoord);
+
+		if (heldItem.isEmpty()) {
+			if (!flapBE.isSpeedRequirementFulfilled())
+				return InteractionResult.PASS;
+			flapBE.applyTextManually(lineIndex, null);
+			return InteractionResult.SUCCESS;
+		}
+
+		return InteractionResult.PASS;
+		
 	}
 
 	@Override
@@ -224,8 +270,7 @@ public class FlapDisplayBlock extends HorizontalKineticBlock
 		for (Direction connection : Iterate.directionsInAxis(Axis.Y)) {
 			boolean connect = true;
 
-			Move:
-			for (Direction movement : Iterate.directionsInAxis(axis)) {
+			Move: for (Direction movement : Iterate.directionsInAxis(axis)) {
 				currentPos.set(pos);
 				for (int i = 0; i < 1000; i++) {
 					if (!level.isLoaded(currentPos))
@@ -275,12 +320,12 @@ public class FlapDisplayBlock extends HorizontalKineticBlock
 
 	@Override
 	public BlockState updateShape(BlockState state, Direction pDirection, BlockState pNeighborState,
-								  LevelAccessor pLevel, BlockPos pCurrentPos, BlockPos pNeighborPos) {
+		LevelAccessor pLevel, BlockPos pCurrentPos, BlockPos pNeighborPos) {
 		return updatedShapeInner(state, pDirection, pNeighborState, pLevel, pCurrentPos);
 	}
 
 	private BlockState updatedShapeInner(BlockState state, Direction pDirection, BlockState pNeighborState,
-										 LevelAccessor pLevel, BlockPos pCurrentPos) {
+		LevelAccessor pLevel, BlockPos pCurrentPos) {
 		if (state.getValue(BlockStateProperties.WATERLOGGED))
 			pLevel.scheduleTick(pCurrentPos, Fluids.WATER, Fluids.WATER.getTickDelay(pLevel));
 		if (!canConnect(state, pNeighborState))
@@ -348,7 +393,7 @@ public class FlapDisplayBlock extends HorizontalKineticBlock
 
 		@Override
 		public PlacementOffset getOffset(Player player, Level world, BlockState state, BlockPos pos,
-										 BlockHitResult ray) {
+			BlockHitResult ray) {
 			List<Direction> directions = IPlacementHelper.orderedByDistanceExceptAxis(pos, ray.getLocation(),
 				state.getValue(FlapDisplayBlock.HORIZONTAL_FACING)
 					.getAxis(),
@@ -357,8 +402,8 @@ public class FlapDisplayBlock extends HorizontalKineticBlock
 
 			return directions.isEmpty() ? PlacementOffset.fail()
 				: PlacementOffset.success(pos.relative(directions.get(0)), s -> AllBlocks.DISPLAY_BOARD.get()
-				.updateColumn(world, pos.relative(directions.get(0)),
-					s.setValue(HORIZONTAL_FACING, state.getValue(FlapDisplayBlock.HORIZONTAL_FACING)), true));
+					.updateColumn(world, pos.relative(directions.get(0)),
+						s.setValue(HORIZONTAL_FACING, state.getValue(FlapDisplayBlock.HORIZONTAL_FACING)), true));
 		}
 	}
 

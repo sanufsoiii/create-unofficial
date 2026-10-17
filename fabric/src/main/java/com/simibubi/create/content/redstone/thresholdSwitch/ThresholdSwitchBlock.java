@@ -4,17 +4,22 @@ import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.content.redstone.DirectedDirectionalBlock;
 import com.simibubi.create.foundation.block.IBE;
-import com.simibubi.create.foundation.fluid.FluidTransferUtil;
-import com.simibubi.create.foundation.item.ItemTransferUtil;
+import com.simibubi.create.foundation.gui.ScreenOpener;
+import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.tterrag.registrate.fabric.EnvExecutor;
 
+import io.github.fabricators_of_create.porting_lib_ufo.block.ConnectableRedstoneBlock;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -23,7 +28,6 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
@@ -31,7 +35,8 @@ import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.BlockHitResult;
 
-public class ThresholdSwitchBlock extends DirectedDirectionalBlock implements IBE<ThresholdSwitchBlockEntity> {
+public class ThresholdSwitchBlock extends DirectedDirectionalBlock
+		implements IBE<ThresholdSwitchBlockEntity>, ConnectableRedstoneBlock {
 
 	public static final IntegerProperty LEVEL = IntegerProperty.create("level", 0, 5);
 
@@ -48,6 +53,7 @@ public class ThresholdSwitchBlock extends DirectedDirectionalBlock implements IB
 		withBlockEntityDo(world, pos, ThresholdSwitchBlockEntity::updateCurrentLevel);
 	}
 
+	@Override
 	public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, Direction side) {
 		return side != null && side.getOpposite() != getTargetDirection(state);
 	}
@@ -59,12 +65,10 @@ public class ThresholdSwitchBlock extends DirectedDirectionalBlock implements IB
 
 	@Override
 	public int getSignal(BlockState blockState, BlockGetter blockAccess, BlockPos pos, Direction side) {
-		if (side == getTargetDirection(blockState)
-			.getOpposite())
+		if (side == getTargetDirection(blockState).getOpposite())
 			return 0;
-		return getBlockEntityOptional(blockAccess, pos).filter(ThresholdSwitchBlockEntity::isPowered)
-			.map($ -> 15)
-			.orElse(0);
+		return getBlockEntityOptional(blockAccess, pos).filter(ThresholdSwitchBlockEntity::isPowered).map($ -> 15)
+				.orElse(0);
 	}
 
 	@Override
@@ -76,18 +80,38 @@ public class ThresholdSwitchBlock extends DirectedDirectionalBlock implements IB
 	protected void createBlockStateDefinition(Builder<Block, BlockState> builder) {
 		super.createBlockStateDefinition(builder.add(LEVEL));
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (player != null && AllItems.WRENCH.isIn(stack))
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
+			Player player, InteractionHand handIn, BlockHitResult hitResult) {
+		
+		if(stack.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		withBlockEntityDo(level, pos, be -> this.displayScreen(be, player));
+		if (AdventureUtil.isAdventure(player))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		if (player != null && AllItems.WRENCH.isIn(player.getItemInHand(handIn)))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		EnvExecutor.runWhenOn(EnvType.CLIENT,
+				() -> () -> withBlockEntityDo(worldIn, pos, be -> this.displayScreen(be, player)));
 		return ItemInteractionResult.SUCCESS;
+		
+	}
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		if (AdventureUtil.isAdventure(player))
+			return InteractionResult.PASS;
+		EnvExecutor.runWhenOn(EnvType.CLIENT,
+				() -> () -> withBlockEntityDo(worldIn, pos, be -> this.displayScreen(be, player)));
+		return InteractionResult.SUCCESS;
+		
 	}
 
-	@Environment(EnvType.CLIENT)
+	@Environment(value = EnvType.CLIENT)
 	protected void displayScreen(ThresholdSwitchBlockEntity be, Player player) {
-		// Screen opening will be connected on UI porting phase
+		if (player instanceof LocalPlayer)
+			ScreenOpener.open(new ThresholdSwitchScreen(be));
 	}
 
 	@Override
@@ -96,10 +120,10 @@ public class ThresholdSwitchBlock extends DirectedDirectionalBlock implements IB
 
 		Direction preferredFacing = null;
 		for (Direction face : context.getNearestLookingDirections()) {
-			BlockPos checkPos = context.getClickedPos().relative(face);
-			BlockEntity be = context.getLevel().getBlockEntity(checkPos);
-			if (be != null && (ItemTransferUtil.getInventory(context.getLevel(), checkPos, null) != null ||
-					FluidTransferUtil.hasFluidHandler(context.getLevel(), checkPos, null))) {
+			BlockPos offsetPos = context.getClickedPos().relative(face);
+			Level world = context.getLevel();
+			if (TransferUtil.getItemStorage(world, offsetPos, face.getOpposite()) != null
+					|| TransferUtil.getFluidStorage(world, offsetPos, face.getOpposite()) != null) {
 				preferredFacing = face;
 				break;
 			}
@@ -107,8 +131,8 @@ public class ThresholdSwitchBlock extends DirectedDirectionalBlock implements IB
 
 		if (preferredFacing == null) {
 			Direction facing = context.getNearestLookingDirection();
-			preferredFacing = context.getPlayer() != null && context.getPlayer()
-				.isShiftKeyDown() ? facing : facing.getOpposite();
+			preferredFacing = context.getPlayer() != null && context.getPlayer().isShiftKeyDown() ? facing
+					: facing.getOpposite();
 		}
 
 		if (preferredFacing.getAxis() == Axis.Y) {

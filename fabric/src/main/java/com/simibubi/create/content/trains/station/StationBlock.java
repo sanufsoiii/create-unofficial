@@ -1,12 +1,31 @@
 package com.simibubi.create.content.trains.station;
 
 import com.simibubi.create.AllBlockEntityTypes;
+import com.simibubi.create.AllItems;
+import com.simibubi.create.AllShapes;
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
+import com.simibubi.create.content.logistics.depot.SharedDepotBlockMethods;
+import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
+import com.simibubi.create.foundation.gui.ScreenOpener;
 
+import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.tterrag.registrate.fabric.EnvExecutor;
+
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.MapItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -17,6 +36,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 
 public class StationBlock extends Block implements IBE<StationBlockEntity>, IWrenchable, ProperWaterloggedBlock {
 
@@ -46,6 +72,12 @@ public class StationBlock extends Block implements IBE<StationBlockEntity>, IWre
 	}
 
 	@Override
+	public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, LivingEntity pPlacer, ItemStack pStack) {
+		super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
+		AdvancementBehaviour.setPlacedBy(pLevel, pPos, pPlacer);
+	}
+
+	@Override
 	public FluidState getFluidState(BlockState pState) {
 		return fluidState(pState);
 	}
@@ -62,6 +94,115 @@ public class StationBlock extends Block implements IBE<StationBlockEntity>, IWre
 	}
 
 	@Override
+	public void onRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
+		IBE.onRemove(state, worldIn, pos, newState);
+	}
+
+	@Override
+	public void updateEntityAfterFallOn(BlockGetter worldIn, Entity entityIn) {
+		super.updateEntityAfterFallOn(worldIn, entityIn);
+		SharedDepotBlockMethods.onLanded(worldIn, entityIn);
+	}
+	
+	@Override
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level pLevel, BlockPos pPos,
+			Player pPlayer, InteractionHand pHand, BlockHitResult hitResult) {
+		
+		if (pPlayer == null || pPlayer.isShiftKeyDown())
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		ItemStack itemInHand = pPlayer.getItemInHand(pHand);
+		if(itemInHand.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+		if (AllItems.WRENCH.isIn(itemInHand))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+
+		if (itemInHand.getItem() == Items.FILLED_MAP) {
+			return onBlockEntityUse(pLevel, pPos, station -> {
+				if (pLevel.isClientSide)
+					return ItemInteractionResult.SUCCESS;
+
+				if (station.getStation() == null || station.getStation().getId() == null)
+					return ItemInteractionResult.FAIL;
+
+				MapItemSavedData savedData = MapItem.getSavedData(itemInHand, pLevel);
+				if (!(savedData instanceof StationMapData stationMapData))
+					return ItemInteractionResult.FAIL;
+
+				if (!stationMapData.toggleStation(pLevel, pPos, station))
+					return ItemInteractionResult.FAIL;
+
+				return ItemInteractionResult.SUCCESS;
+			});
+		}
+
+		ItemInteractionResult result = onBlockEntityUse(pLevel, pPos, station -> {
+			ItemStack autoSchedule = station.getAutoSchedule();
+			if (autoSchedule.isEmpty())
+				return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+			if (pLevel.isClientSide)
+				return ItemInteractionResult.SUCCESS;
+			pPlayer.getInventory()
+				.placeItemBackInInventory(autoSchedule.copy());
+			station.depotBehaviour.removeHeldItem();
+			station.notifyUpdate();
+			AllSoundEvents.playItemPickup(pPlayer);
+			return ItemInteractionResult.SUCCESS;
+		});
+
+		if (result == ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION)
+			EnvExecutor.runWhenOn(EnvType.CLIENT,
+				() -> () -> withBlockEntityDo(pLevel, pPos, be -> this.displayScreen(be, pPlayer)));
+		return ItemInteractionResult.SUCCESS;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level pLevel, BlockPos pPos, Player pPlayer,
+			BlockHitResult hitResult) {
+		
+		if (pPlayer == null || pPlayer.isShiftKeyDown())
+			return InteractionResult.PASS;
+
+		InteractionResult result = onBlockEntityUse(pLevel, pPos, station -> {
+			ItemStack autoSchedule = station.getAutoSchedule();
+			if (autoSchedule.isEmpty())
+				return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+			if (pLevel.isClientSide)
+				return ItemInteractionResult.SUCCESS;
+			pPlayer.getInventory()
+				.placeItemBackInInventory(autoSchedule.copy());
+			station.depotBehaviour.removeHeldItem();
+			station.notifyUpdate();
+			AllSoundEvents.playItemPickup(pPlayer);
+			return ItemInteractionResult.SUCCESS;
+		}).result();
+
+		if (result == InteractionResult.PASS)
+			EnvExecutor.runWhenOn(EnvType.CLIENT,
+				() -> () -> withBlockEntityDo(pLevel, pPos, be -> this.displayScreen(be, pPlayer)));
+		return InteractionResult.SUCCESS;
+		
+	}
+
+	@Environment(value = EnvType.CLIENT)
+	protected void displayScreen(StationBlockEntity be, Player player) {
+		if (!(player instanceof LocalPlayer))
+			return;
+		GlobalStation station = be.getStation();
+		BlockState blockState = be.getBlockState();
+		if (station == null || blockState == null)
+			return;
+		boolean assembling = blockState.getBlock() == this && blockState.getValue(ASSEMBLING);
+		ScreenOpener.open(assembling ? new AssemblyScreen(be, station) : new StationScreen(be, station));
+	}
+
+	@Override
+	public VoxelShape getShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {
+		return AllShapes.STATION;
+	}
+
+	@Override
 	public Class<StationBlockEntity> getBlockEntityClass() {
 		return StationBlockEntity.class;
 	}
@@ -70,4 +211,10 @@ public class StationBlock extends Block implements IBE<StationBlockEntity>, IWre
 	public BlockEntityType<? extends StationBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.TRACK_STATION.get();
 	}
+
+	@Override
+	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
+		return false;
+	}
+
 }

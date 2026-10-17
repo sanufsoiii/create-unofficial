@@ -1,15 +1,18 @@
 package com.simibubi.create.content.logistics.chute;
 
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
 
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehaviour;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.block.render.ReducedDestroyEffects;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -31,11 +34,16 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public abstract class AbstractChuteBlock extends Block implements IWrenchable, IBE<ChuteBlockEntity> {
+public abstract class AbstractChuteBlock extends Block implements IWrenchable, IBE<ChuteBlockEntity>, ReducedDestroyEffects {
 
-	public AbstractChuteBlock(Properties properties) {
-		super(properties);
+	public AbstractChuteBlock(Properties p_i48440_1_) {
+		super(p_i48440_1_);
 	}
+
+//	@OnlyIn(Dist.CLIENT)
+//	public void initializeClient(Consumer<IClientBlockExtensions> consumer) {
+//		consumer.accept(new ReducedDestroyEffects());
+//	}
 
 	public static boolean isChute(BlockState state) {
 		return state.getBlock() instanceof AbstractChuteBlock;
@@ -67,9 +75,9 @@ public abstract class AbstractChuteBlock extends Block implements IWrenchable, I
 	}
 
 	@Override
-	public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
-		super.setPlacedBy(level, pos, state, placer, stack);
-		AdvancementBehaviour.setPlacedBy(level, pos, placer);
+	public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, LivingEntity pPlacer, ItemStack pStack) {
+		super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
+		AdvancementBehaviour.setPlacedBy(pLevel, pPos, pPlacer);
 	}
 
 	@Override
@@ -82,7 +90,9 @@ public abstract class AbstractChuteBlock extends Block implements IWrenchable, I
 		if (!entityIn.isAlive())
 			return;
 		DirectBeltInputBehaviour input = BlockEntityBehaviour.get(entityIn.level(),
-			BlockPos.containing(entityIn.position().add(0, 0.5f, 0)).below(),
+			BlockPos.containing(entityIn.position()
+				.add(0, 0.5f, 0))
+				.below(),
 			DirectBeltInputBehaviour.TYPE);
 		if (input == null)
 			return;
@@ -100,7 +110,7 @@ public abstract class AbstractChuteBlock extends Block implements IWrenchable, I
 	}
 
 	@Override
-	public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean isMoving) {
+	public void onPlace(BlockState state, Level world, BlockPos pos, BlockState p_220082_4_, boolean p_220082_5_) {
 		withBlockEntityDo(world, pos, ChuteBlockEntity::onAdded);
 		updateDiagonalNeighbour(state, world, pos);
 	}
@@ -111,11 +121,13 @@ public abstract class AbstractChuteBlock extends Block implements IWrenchable, I
 		AbstractChuteBlock block = (AbstractChuteBlock) state.getBlock();
 		Direction facing = block.getFacing(state);
 		BlockPos toUpdate = pos.below();
-		if (facing.getAxis().isHorizontal())
+		if (facing.getAxis()
+			.isHorizontal())
 			toUpdate = toUpdate.relative(facing.getOpposite());
 
 		BlockState stateToUpdate = world.getBlockState(toUpdate);
-		if (isChute(stateToUpdate) && !world.getBlockTicks().hasScheduledTick(toUpdate, stateToUpdate.getBlock()))
+		if (isChute(stateToUpdate) && !world.getBlockTicks()
+			.hasScheduledTick(toUpdate, stateToUpdate.getBlock()))
 			world.scheduleTick(toUpdate, stateToUpdate.getBlock(), 1);
 	}
 
@@ -129,61 +141,72 @@ public abstract class AbstractChuteBlock extends Block implements IWrenchable, I
 		updateDiagonalNeighbour(state, world, pos);
 
 		for (Direction direction : Iterate.horizontalDirections) {
-			BlockPos toUpdate = pos.above().relative(direction);
+			BlockPos toUpdate = pos.above()
+				.relative(direction);
 			BlockState stateToUpdate = world.getBlockState(toUpdate);
-			if (isChute(stateToUpdate) && !world.getBlockTicks().hasScheduledTick(toUpdate, stateToUpdate.getBlock()))
+			if (isChute(stateToUpdate) && !world.getBlockTicks()
+				.hasScheduledTick(toUpdate, stateToUpdate.getBlock()))
 				world.scheduleTick(toUpdate, stateToUpdate.getBlock(), 1);
 		}
 	}
 
 	@Override
-	public void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
-		BlockState updated = updateChuteState(state, level.getBlockState(pos.above()), level, pos);
-		if (state != updated)
-			level.setBlockAndUpdate(pos, updated);
+	public void tick(BlockState pState, ServerLevel pLevel, BlockPos pPos, RandomSource pRandom) {
+		BlockState updated = updateChuteState(pState, pLevel.getBlockState(pPos.above()), pLevel, pPos);
+		if (pState != updated)
+			pLevel.setBlockAndUpdate(pPos, updated);
 	}
 
 	@Override
 	public BlockState updateShape(BlockState state, Direction direction, BlockState above, LevelAccessor world,
-		BlockPos pos, BlockPos neighborPos) {
+		BlockPos pos, BlockPos p_196271_6_) {
 		if (direction != Direction.UP)
 			return state;
 		return updateChuteState(state, above, world, pos);
 	}
 
 	@Override
-	public void neighborChanged(BlockState state, Level world, BlockPos pos, Block block,
-		BlockPos neighbourPos, boolean isMoving) {
-		if (pos.below().equals(neighbourPos))
+	public void neighborChanged(BlockState p_220069_1_, Level world, BlockPos pos, Block p_220069_4_,
+		BlockPos neighbourPos, boolean p_220069_6_) {
+		if (pos.below()
+			.equals(neighbourPos))
 			withBlockEntityDo(world, pos, ChuteBlockEntity::blockBelowChanged);
+		// fabric: unnecessary, not how it works here
+//		else if (pos.above()
+//				.equals(neighbourPos))
+//			withBlockEntityDo(world, pos, chute -> chute.capAbove = LazyOptional.empty());
 	}
 
 	public abstract BlockState updateChuteState(BlockState state, BlockState above, BlockGetter world, BlockPos pos);
 
 	@Override
-	public VoxelShape getShape(BlockState state, BlockGetter reader, BlockPos pos, CollisionContext context) {
-		return ChuteShapes.getShape(state);
+	public VoxelShape getShape(BlockState p_220053_1_, BlockGetter p_220053_2_, BlockPos p_220053_3_,
+		CollisionContext p_220053_4_) {
+		return ChuteShapes.getShape(p_220053_1_);
 	}
 
 	@Override
-	public VoxelShape getCollisionShape(BlockState state, BlockGetter reader, BlockPos pos, CollisionContext context) {
-		return ChuteShapes.getCollisionShape(state);
+	public VoxelShape getCollisionShape(BlockState p_220071_1_, BlockGetter p_220071_2_, BlockPos p_220071_3_,
+		CollisionContext p_220071_4_) {
+		return ChuteShapes.getCollisionShape(p_220071_1_);
 	}
 
 	@Override
 	public Class<ChuteBlockEntity> getBlockEntityClass() {
 		return ChuteBlockEntity.class;
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
 			Player player, InteractionHand hand, BlockHitResult hitResult) {
-		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-	}
 
+		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+	}
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
 			BlockHitResult hitResult) {
+		
 		if (AdventureUtil.isAdventure(player))
 			return InteractionResult.PASS;
 		if (world.isClientSide)
@@ -191,11 +214,13 @@ public abstract class AbstractChuteBlock extends Block implements IWrenchable, I
 
 		return onBlockEntityUse(world, pos, be -> {
 			if (be.item.isEmpty())
-				return InteractionResult.PASS;
-			player.getInventory().placeItemBackInInventory(be.item);
+				return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+			player.getInventory()
+				.placeItemBackInInventory(be.item);
 			be.setItem(ItemStack.EMPTY);
-			return InteractionResult.SUCCESS;
-		});
+			return ItemInteractionResult.SUCCESS;
+		}).result();
+		
 	}
 
 }

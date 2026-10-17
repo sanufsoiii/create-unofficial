@@ -3,12 +3,17 @@ package com.simibubi.create.content.processing.recipe;
 import java.util.Iterator;
 import java.util.function.Consumer;
 
-import io.github.fabricators_of_create.porting_lib.transfer.ViewOnlyWrappedIterator;
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandlerContainer;
+import org.jetbrains.annotations.Nullable;
+
+import com.google.common.collect.AbstractIterator;
+
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.ViewOnlyWrappedIterator;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.ViewOnlyWrappedStorageView;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.callbacks.TransactionCallback;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandlerContainer;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 
@@ -41,6 +46,7 @@ public class ProcessingInventory extends ItemStackHandlerContainer {
 		appliedRecipe = false;
 	}
 
+	// moved from insertItem
 	@Override
 	protected void onContentsChanged(int slot) {
 		if (slot == 0) {
@@ -52,8 +58,8 @@ public class ProcessingInventory extends ItemStackHandlerContainer {
 	}
 
 	@Override
-	public CompoundTag serializeNBT(HolderLookup.Provider registries) {
-		CompoundTag nbt = super.serializeNBT(registries);
+	public CompoundTag serializeNBT() {
+		CompoundTag nbt = super.serializeNBT();
 		nbt.putFloat("ProcessingTime", remainingTime);
 		nbt.putFloat("RecipeTime", recipeDuration);
 		nbt.putBoolean("AppliedRecipe", appliedRecipe);
@@ -61,12 +67,12 @@ public class ProcessingInventory extends ItemStackHandlerContainer {
 	}
 
 	@Override
-	public void deserializeNBT(HolderLookup.Provider registries, CompoundTag nbt) {
+	public void deserializeNBT(CompoundTag nbt) {
 		remainingTime = nbt.getFloat("ProcessingTime");
 		recipeDuration = nbt.getFloat("RecipeTime");
 		appliedRecipe = nbt.getBoolean("AppliedRecipe");
-		super.deserializeNBT(registries, nbt);
-		if (empty())
+		super.deserializeNBT(nbt);
+		if(isEmpty())
 			appliedRecipe = false;
 	}
 
@@ -77,7 +83,7 @@ public class ProcessingInventory extends ItemStackHandlerContainer {
 
 	@Override
 	public boolean isItemValid(int slot, ItemVariant resource, int count) {
-		return slot == 0 && empty();
+		return slot == 0 && isEmpty();
 	}
 
 	@Override

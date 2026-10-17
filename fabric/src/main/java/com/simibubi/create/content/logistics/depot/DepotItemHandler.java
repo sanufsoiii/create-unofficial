@@ -16,6 +16,7 @@ import net.minecraft.world.item.ItemStack;
 
 public class DepotItemHandler extends SnapshotParticipant<Unit> implements Storage<ItemVariant> {
 
+	private static final int MAIN_SLOT = 0;
 	private DepotBehaviour behaviour;
 
 	public DepotItemHandler(DepotBehaviour behaviour) {

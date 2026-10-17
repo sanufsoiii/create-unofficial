@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.AllItems;
 import com.simibubi.create.api.behaviour.BlockSpoutingBehaviour;
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.fluids.FluidFX;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour.ProcessingResult;
@@ -18,25 +18,23 @@ import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackH
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour.TransportedResult;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.fluid.FluidHelper;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import io.github.fabricators_of_create.porting_lib.block.CustomRenderBoundingBoxBlockEntity;
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import net.createmod.catnip.math.VecHelper;
-import net.createmod.catnip.nbt.NBTHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomRenderBoundingBoxBlockEntity;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
-import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
-import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -71,14 +69,14 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
-		tank = SmartFluidTankBehaviour.single(this, (int) FluidConstants.BUCKET);
+		tank = SmartFluidTankBehaviour.single(this, FluidConstants.BUCKET);
 		behaviours.add(tank);
 
 		beltProcessing = new BeltProcessingBehaviour(this).whenItemEnters(this::onItemReceived)
 			.whileItemHeld(this::whenItemHeld);
 		behaviours.add(beltProcessing);
 
-		// Advancements can be triggered once AllAdvancements is ported to common/fabric
+		registerAwardables(behaviours, AllAdvancements.SPOUT, AllAdvancements.FOODS);
 	}
 
 	protected ProcessingResult onItemReceived(TransportedItemStack transported,
@@ -128,39 +126,30 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 			handler.handleProcessingOnItem(transported, TransportedResult.convertToAndLeaveHeld(outList, held));
 		}
 
+		award(AllAdvancements.SPOUT);
 		if (trackFoods()) {
 			createdChocolateBerries |= AllItems.CHOCOLATE_BERRIES.isIn(out);
 			createdHoneyApple |= AllItems.HONEYED_APPLE.isIn(out);
 			createdSweetRoll |= AllItems.SWEET_ROLL.isIn(out);
+			if (createdChocolateBerries && createdHoneyApple && createdSweetRoll)
+				award(AllAdvancements.FOODS);
 		}
 
-		try (Transaction t = TransferUtil.getTransaction()) {
-			Storage<FluidVariant> storage = tank.getCapability();
-			if (storage != null) {
-				storage.extract(fluid.getVariant(), requiredAmountForItem, t);
-				t.commit();
-			}
-		}
-
+		tank.getPrimaryHandler()
+			.setFluid(fluid.isEmpty() ? FluidStack.EMPTY : fluid); // fabric: if the FluidStack is empty it should actually be empty
 		sendSplash = true;
 		notifyUpdate();
 		return HOLD;
 	}
 
 	private FluidStack getCurrentFluidInTank() {
-		Storage<FluidVariant> storage = tank.getCapability();
-		if (storage == null)
-			return FluidStack.EMPTY;
-		for (StorageView<FluidVariant> view : storage) {
-			if (!view.isResourceBlank() && view.getAmount() > 0)
-				return new FluidStack(view.getResource(), view.getAmount());
-		}
-		return FluidStack.EMPTY;
+		return tank.getPrimaryHandler()
+			.getFluid();
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(compound, registries, clientPacket);
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		super.write(compound, clientPacket);
 
 		compound.putInt("ProcessingTicks", processingTicks);
 		if (sendSplash && clientPacket) {
@@ -179,12 +168,11 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 	}
 
 	private boolean trackFoods() {
-		AdvancementBehaviour behaviour = getBehaviour(AdvancementBehaviour.TYPE);
-		return behaviour != null && behaviour.isOwnerPresent();
+		return getBehaviour(AdvancementBehaviour.TYPE).isOwnerPresent();
 	}
-
+	
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider registries, boolean clientPacket) {
 		super.read(compound, registries, clientPacket);
 		processingTicks = compound.getInt("ProcessingTicks");
 
@@ -195,7 +183,8 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 		if (!clientPacket)
 			return;
 		if (compound.contains("Splash"))
-			spawnSplash(getCurrentFluidInTank());
+			spawnSplash(tank.getPrimaryTank()
+				.getRenderedFluid());
 	}
 
 	@Nullable
@@ -207,7 +196,6 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 		return null;
 	}
 
-	@Override
 	public void tick() {
 		super.tick();
 
@@ -230,13 +218,13 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 				long fillBlock = customProcess.fillBlock(level, worldPosition.below(2), this, currentFluidInTank, false);
 				customProcess = null;
 				if (fillBlock > 0) {
-					try (Transaction t = TransferUtil.getTransaction()) {
-						Storage<FluidVariant> storage = tank.getCapability();
-						if (storage != null) {
-							storage.extract(currentFluidInTank.getVariant(), fillBlock, t);
-							t.commit();
-						}
-					}
+					// fabric: if the FluidStack is empty it should actually be empty
+					FluidStack newStack = FluidHelper.copyStackWithAmount(currentFluidInTank,
+							currentFluidInTank.getAmount() - fillBlock);
+					if (newStack.isEmpty())
+						newStack = FluidStack.EMPTY;
+					tank.getPrimaryHandler()
+						.setFluid(newStack);
 					sendSplash = true;
 					notifyUpdate();
 				}
@@ -244,11 +232,12 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 		}
 
 		if (processingTicks >= 8 && level.isClientSide)
-			spawnProcessingParticles(getCurrentFluidInTank());
+			spawnProcessingParticles(tank.getPrimaryTank()
+				.getRenderedFluid());
 	}
 
 	protected void spawnProcessingParticles(FluidStack fluid) {
-		if (isVirtual() || fluid.isEmpty())
+		if (isVirtual())
 			return;
 		Vec3 vec = VecHelper.getCenterOf(worldPosition);
 		vec = vec.subtract(0, 8 / 16f, 0);
@@ -259,7 +248,7 @@ public class SpoutBlockEntity extends SmartBlockEntity implements IHaveGoggleInf
 	protected static int SPLASH_PARTICLE_COUNT = 20;
 
 	protected void spawnSplash(FluidStack fluid) {
-		if (isVirtual() || fluid.isEmpty())
+		if (isVirtual())
 			return;
 		Vec3 vec = VecHelper.getCenterOf(worldPosition);
 		vec = vec.subtract(0, 2 - 5 / 16f, 0);

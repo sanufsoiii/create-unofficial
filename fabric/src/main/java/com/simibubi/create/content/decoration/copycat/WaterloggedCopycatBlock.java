@@ -32,7 +32,7 @@ public abstract class WaterloggedCopycatBlock extends CopycatBlock implements Pr
 	public BlockState getStateForPlacement(BlockPlaceContext pContext) {
 		return withWater(super.getStateForPlacement(pContext), pContext);
 	}
-
+	
 	@Override
 	public BlockState updateShape(BlockState pState, Direction pDirection, BlockState pNeighborState,
 		LevelAccessor pLevel, BlockPos pCurrentPos, BlockPos pNeighborPos) {

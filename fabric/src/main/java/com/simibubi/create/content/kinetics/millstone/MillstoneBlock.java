@@ -5,10 +5,11 @@ import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.KineticBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import com.simibubi.create.foundation.block.IBE;
-import net.createmod.catnip.data.Iterate;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
@@ -47,17 +48,18 @@ public class MillstoneBlock extends KineticBlock implements IBE<MillstoneBlockEn
 	public boolean hasShaftTowards(LevelReader world, BlockPos pos, BlockState state, Direction face) {
 		return face == Direction.DOWN;
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
 			Player player, InteractionHand hand, BlockHitResult hitResult) {
+		
 		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 	}
-
+	
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
 			BlockHitResult hitResult) {
-
+		
 		if (worldIn.isClientSide)
 			return InteractionResult.SUCCESS;
 
@@ -87,6 +89,7 @@ public class MillstoneBlock extends KineticBlock implements IBE<MillstoneBlockEn
 		});
 
 		return InteractionResult.SUCCESS;
+		
 	}
 
 	@Override
@@ -118,7 +121,7 @@ public class MillstoneBlock extends KineticBlock implements IBE<MillstoneBlockEn
 			long inserted = handler.insert(ItemVariant.of(inEntity), inEntity.getCount(), t);
 			if (inserted == inEntity.getCount())
 				itemEntity.discard();
-			else itemEntity.setItem(inEntity.copyWithCount((int) (inEntity.getCount() - inserted)));
+			else itemEntity.setItem(ItemHandlerHelper.copyStackWithSize(inEntity, (int) (inEntity.getCount() - inserted)));
 			t.commit();
 		}
 	}

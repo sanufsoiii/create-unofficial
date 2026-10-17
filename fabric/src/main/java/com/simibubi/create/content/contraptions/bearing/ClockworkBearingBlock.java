@@ -20,16 +20,26 @@ public class ClockworkBearingBlock extends BearingBlock implements IBE<Clockwork
 	public ClockworkBearingBlock(Properties properties) {
 		super(properties);
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult hitResult) {
+		
+		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
 		if (!player.mayBuild())
-			return ItemInteractionResult.FAIL;
+			return InteractionResult.FAIL;
 		if (player.isShiftKeyDown())
-			return ItemInteractionResult.FAIL;
-		if (stack.isEmpty()) {
-			if (!level.isClientSide) {
-				withBlockEntityDo(level, pos, be -> {
+			return InteractionResult.FAIL;
+		
+		if(player.getMainHandItem().isEmpty()) {
+			if (!worldIn.isClientSide) {
+				withBlockEntityDo(worldIn, pos, be -> {
 					if (be.running) {
 						be.disassemble();
 						return;
@@ -37,9 +47,9 @@ public class ClockworkBearingBlock extends BearingBlock implements IBE<Clockwork
 					be.assembleNextTick = true;
 				});
 			}
-			return ItemInteractionResult.SUCCESS;
+			return InteractionResult.SUCCESS;
 		}
-		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		return InteractionResult.PASS;
 	}
 
 	@Override

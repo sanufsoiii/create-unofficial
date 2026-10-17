@@ -1,17 +1,19 @@
 package com.simibubi.create.content.schematics.cannon;
 
 import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllSoundEvents;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.kinetics.belt.BeltBlock;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity.CasingType;
@@ -23,36 +25,35 @@ import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement.ItemUseType;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.item.ItemHelper.ExtractionCountMode;
-import com.simibubi.create.foundation.item.ItemHelper;
 import com.simibubi.create.foundation.utility.BlockHelper;
-import com.simibubi.create.foundation.utility.CreateLang;
-import com.simibubi.create.foundation.utility.IInteractionChecker;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Lang;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.simibubi.create.infrastructure.config.CSchematics;
 
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import net.createmod.catnip.codecs.CatnipCodecUtils;
-import net.createmod.catnip.data.Iterate;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomRenderBoundingBoxBlockEntity;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
+import io.github.fabricators_of_create.porting_lib_ufo.util.StorageProvider;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
-import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
-import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
+import net.fabricmc.fabric.api.transfer.v1.storage.base.ResourceAmount;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
+import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap.Builder;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.Clearable;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
@@ -62,6 +63,8 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -72,7 +75,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.phys.AABB;
 
-public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuProvider, IInteractionChecker, Clearable, SidedStorageBlockEntity {
+public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuProvider, CustomRenderBoundingBoxBlockEntity {
 
 	public static final int NEIGHBOUR_CHECKING = 100;
 	public static final int MAX_ANCHOR_DISTANCE = 256;
@@ -80,53 +83,50 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 	// Inventory
 	public SchematicannonInventory inventory;
 
-	public LinkedHashSet<Storage<ItemVariant>> attachedInventories;
-	public boolean hasCreativeCrate;
-
-	// Sync & GUI
-	public int remainingFuel;
-	public String statusMsg;
-	public float schematicProgress;
-	public float bookPrintingProgress;
-	public boolean firstRenderTick;
+	public boolean sendUpdate;
+	// Sync
 	public boolean dontUpdateChecklist;
 	public int neighbourCheckCooldown;
 
 	// Printer
 	public SchematicPrinter printer;
+	public ItemStack missingItem;
+	public boolean positionNotLoaded;
+	public boolean hasCreativeCrate;
+	private int printerCooldown;
+	private int skipsLeft;
+	private boolean blockSkipped;
+
 	public BlockPos previousTarget;
 	public List<LaunchedItem> flyingBlocks;
 	public MaterialChecklist checklist;
 
-	public boolean blockSkipped;
-	public int skipsLeft;
-	public boolean sendUpdate;
-	public boolean positionNotLoaded;
-	public boolean hasNewState;
-	public int blockListSendDelay;
-	public boolean playShoulderSurfingSound;
+	// Gui information
+	public float fuelLevel;
+	public float bookPrintingProgress;
+	public float schematicProgress;
+	public String statusMsg;
+	public State state;
+	public int blocksPlaced;
+	public int blocksToPlace;
 
-	// Gui settings
+	// Settings
 	public int replaceMode;
 	public boolean skipMissing;
 	public boolean replaceBlockEntities;
 
-	// Stats
-	public int blocksPlaced;
-	public int blocksToPlace;
-
-	public ItemStack missingItem;
-	public State state;
-
+	// Render
+	public boolean firstRenderTick;
 	public float defaultYaw;
 
-	protected int printerCooldown;
+	// fabric: transfer
+	private final Map<Direction, StorageProvider<ItemVariant>> storages = new HashMap<>();
 
 	public SchematicannonBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
-		inventory = new SchematicannonInventory(this);
-		attachedInventories = new LinkedHashSet<>();
+		setLazyTickRate(30);
 		flyingBlocks = new LinkedList<>();
+		inventory = new SchematicannonInventory(this);
 		statusMsg = "idle";
 		this.state = State.STOPPED;
 		replaceMode = 2;
@@ -134,77 +134,69 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		printer = new SchematicPrinter();
 	}
 
+	@Override
+	public void setLevel(Level level) {
+		super.setLevel(level);
+		for (Direction direction : Iterate.directions) {
+			BlockPos pos = worldPosition.relative(direction);
+			StorageProvider<ItemVariant> provider = StorageProvider.createForItems(level, pos);
+			storages.put(direction, provider);
+		}
+	}
+
+	// fabric: storages not stored, only check for creative crate
 	public void findInventories() {
 		hasCreativeCrate = false;
-		attachedInventories.clear();
+
 		for (Direction facing : Iterate.directions) {
-			BlockPos targetPos = worldPosition.relative(facing);
-			if (!level.isLoaded(targetPos))
+			BlockPos pos = worldPosition.relative(facing);
+
+			if (!level.isLoaded(pos))
 				continue;
 
-			if (AllBlocks.CREATIVE_CRATE.has(level.getBlockState(targetPos)))
+			if (AllBlocks.CREATIVE_CRATE.has(level.getBlockState(pos)))
 				hasCreativeCrate = true;
-
-			Storage<ItemVariant> storage = ItemStorage.SIDED.find(level, targetPos, facing.getOpposite());
-			if (storage != null) {
-				attachedInventories.add(storage);
-			}
 		}
 	}
 
 	@Override
-	public void clearContent() {
-		for (int i = 0; i < inventory.getSlotCount(); i++) {
-			inventory.setStackInSlot(i, ItemStack.EMPTY);
-		}
-	}
-
-	@Nullable
-	@Override
-	public Storage<ItemVariant> getItemStorage(@Nullable Direction direction) {
-		return inventory;
-	}
-
-	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		if (!clientPacket) {
-			inventory.deserializeNBT(registries, compound.getCompound("Inventory"));
+			inventory.deserializeNBT(compound.getCompound("Inventory"));
 		}
 
 		// Gui information
 		statusMsg = compound.getString("Status");
 		schematicProgress = compound.getFloat("Progress");
 		bookPrintingProgress = compound.getFloat("PaperProgress");
-		remainingFuel = compound.getInt("RemainingFuel");
+		fuelLevel = compound.getFloat("Fuel");
 		String stateString = compound.getString("State");
 		state = stateString.isEmpty() ? State.STOPPED : State.valueOf(compound.getString("State"));
 		blocksPlaced = compound.getInt("AmountPlaced");
 		blocksToPlace = compound.getInt("AmountToPlace");
 
 		missingItem = null;
-		if (compound.contains("MissingItem")) {
-			ItemStack.parse(registries, compound.getCompound("MissingItem")).ifPresent(i -> missingItem = i);
-		}
+		if (compound.contains("MissingItem"))
+			missingItem = ItemStack.parseOptional(Create.getRegistryAccess(), compound.getCompound("MissingItem"));
 
 		// Settings
-		SchematicannonOptions options = CatnipCodecUtils.decode(SchematicannonOptions.CODEC, registries, compound.getCompound("Options"))
-			.orElse(new SchematicannonOptions(2, false, false));
-		replaceMode = options.replaceMode();
-		skipMissing = options.skipMissing();
-		replaceBlockEntities = options.replaceBlockEntities();
+		CompoundTag options = compound.getCompound("Options");
+		replaceMode = options.getInt("ReplaceMode");
+		skipMissing = options.getBoolean("SkipMissing");
+		replaceBlockEntities = options.getBoolean("ReplaceTileEntities");
 
 		// Printer & Flying Blocks
 		if (compound.contains("Printer"))
 			printer.fromTag(compound.getCompound("Printer"), clientPacket);
 		if (compound.contains("FlyingBlocks"))
-			readFlyingBlocks(compound, registries);
+			readFlyingBlocks(compound);
 
 		defaultYaw = compound.getFloat("DefaultYaw");
 
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
-	protected void readFlyingBlocks(CompoundTag compound, HolderLookup.Provider registries) {
+	protected void readFlyingBlocks(CompoundTag compound) {
 		ListTag tagBlocks = compound.getList("FlyingBlocks", 10);
 		if (tagBlocks.isEmpty())
 			flyingBlocks.clear();
@@ -213,7 +205,7 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 
 		for (int i = 0; i < tagBlocks.size(); i++) {
 			CompoundTag c = tagBlocks.getCompound(i);
-			LaunchedItem launched = LaunchedItem.fromNBT(c, registries, blockHolderGetter());
+			LaunchedItem launched = LaunchedItem.fromNBT(c, blockHolderGetter());
 			BlockPos readBlockPos = launched.target;
 
 			// Always write to Server block entity
@@ -234,13 +226,15 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 				flyingBlocks.add(launched);
 				continue;
 			}
+
+			// Don't do anything with existing
 		}
 	}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		if (!clientPacket) {
-			compound.put("Inventory", inventory.serializeNBT(registries));
+			compound.put("Inventory", inventory.serializeNBT());
 			if (state == State.RUNNING) {
 				compound.putBoolean("Running", true);
 			}
@@ -249,17 +243,20 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		// Gui information
 		compound.putFloat("Progress", schematicProgress);
 		compound.putFloat("PaperProgress", bookPrintingProgress);
-		compound.putInt("RemainingFuel", remainingFuel);
+		compound.putFloat("Fuel", fuelLevel);
 		compound.putString("Status", statusMsg);
 		compound.putString("State", state.name());
 		compound.putInt("AmountPlaced", blocksPlaced);
 		compound.putInt("AmountToPlace", blocksToPlace);
 
 		if (missingItem != null)
-			compound.put("MissingItem", missingItem.saveOptional(registries));
+			compound.put("MissingItem", NBTSerializer.serializeNBT(missingItem));
 
 		// Settings
-		Tag options = CatnipCodecUtils.encode(SchematicannonOptions.CODEC, registries, new SchematicannonOptions(replaceMode, skipMissing, replaceBlockEntities)).orElseThrow();
+		CompoundTag options = new CompoundTag();
+		options.putInt("ReplaceMode", replaceMode);
+		options.putBoolean("SkipMissing", skipMissing);
+		options.putBoolean("ReplaceTileEntities", replaceBlockEntities);
 		compound.put("Options", options);
 
 		// Printer & Flying Blocks
@@ -269,12 +266,12 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 
 		ListTag tagFlyingBlocks = new ListTag();
 		for (LaunchedItem b : flyingBlocks)
-			tagFlyingBlocks.add(b.serializeNBT(registries));
+			tagFlyingBlocks.add(b.serializeNBT());
 		compound.put("FlyingBlocks", tagFlyingBlocks);
 
 		compound.putFloat("DefaultYaw", defaultYaw);
 
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
@@ -338,7 +335,7 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 			return;
 		}
 
-		if (state == State.PAUSED && !positionNotLoaded && missingItem == null && remainingFuel > 0)
+		if (state == State.PAUSED && !positionNotLoaded && missingItem == null && fuelLevel > getFuelUsageRate())
 			return;
 
 		// Initialize Printer
@@ -354,18 +351,15 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		}
 
 		// Check Fuel
-		if (remainingFuel <= 0 && !hasCreativeCrate) {
-			refillFuelIfPossible();
-			if (remainingFuel <= 0) {
-				state = State.PAUSED;
-				statusMsg = "noGunpowder";
-				sendUpdate = true;
-				return;
-			}
+		if (fuelLevel <= 0 && !hasCreativeCrate) {
+			fuelLevel = 0;
+			state = State.PAUSED;
+			statusMsg = "noGunpowder";
+			sendUpdate = true;
+			return;
 		}
 
 		if (hasCreativeCrate) {
-			remainingFuel = 0;
 			if (missingItem != null) {
 				missingItem = null;
 				state = State.RUNNING;
@@ -406,33 +400,33 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		// Find item
 		List<ItemRequirement.StackRequirement> requiredItems = requirement.getRequiredItems();
 		if (!requirement.isEmpty()) {
-			for (ItemRequirement.StackRequirement required : requiredItems) {
-				if (!grabItemsFromAttachedInventories(required, true)) {
-					if (skipMissing) {
-						statusMsg = "skipping";
-						blockSkipped = true;
-						if (missingItem != null) {
-							missingItem = null;
-							state = State.RUNNING;
+			try (Transaction t = TransferUtil.getTransaction()) {
+				for (ItemRequirement.StackRequirement required : requiredItems) {
+					if (!grabItemsFromAttachedInventories(required, t)) {
+						if (skipMissing) {
+							statusMsg = "skipping";
+							blockSkipped = true;
+							if (missingItem != null) {
+								missingItem = null;
+								state = State.RUNNING;
+							}
+							return;
 						}
+
+						missingItem = required.stack;
+						state = State.PAUSED;
+						statusMsg = "missingBlock";
 						return;
 					}
-
-					missingItem = required.stack;
-					state = State.PAUSED;
-					statusMsg = "missingBlock";
-					return;
 				}
-			}
 
-			for (ItemRequirement.StackRequirement required : requiredItems)
-				grabItemsFromAttachedInventories(required, false);
+				t.commit();
+			}
 		}
 
 		// Success
 		state = State.RUNNING;
 		ItemStack icon = requirement.isEmpty() || requiredItems.isEmpty() ? ItemStack.EMPTY : requiredItems.get(0).stack;
-
 		printer.handleCurrentTarget((target, blockState, blockEntity) -> {
 			// Launch block
 			statusMsg = blockState.getBlock() != Blocks.AIR ? "placing" : "clearing";
@@ -444,24 +438,25 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		});
 
 		printerCooldown = config().schematicannonDelay.get();
-		remainingFuel -= 1;
+		fuelLevel -= getFuelUsageRate();
 		sendUpdate = true;
 		missingItem = null;
 	}
 
-	public int getShotsPerGunpowder() {
-		return hasCreativeCrate ? 0 : config().schematicannonShotsPerGunpowder.get();
+	public double getFuelUsageRate() {
+		return hasCreativeCrate ? 0 : config().schematicannonFuelUsage.get() / 100f;
 	}
 
 	protected void initializePrinter(ItemStack blueprint) {
-		if (!blueprint.has(AllDataComponents.SCHEMATIC_ANCHOR)) {
+		if (!blueprint.has(AllDataComponents.SCHEMATIC_DATA)) {
 			state = State.STOPPED;
 			statusMsg = "schematicInvalid";
 			sendUpdate = true;
 			return;
 		}
 
-		if (!blueprint.getOrDefault(AllDataComponents.SCHEMATIC_DEPLOYED, false)) {
+		if (!blueprint.get(AllDataComponents.SCHEMATIC_DATA)
+				.getBoolean("Deployed")) {
 			state = State.STOPPED;
 			statusMsg = "schematicNotPlaced";
 			sendUpdate = true;
@@ -492,7 +487,7 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		}
 
 		if (!printer.getAnchor()
-			.closerThan(getBlockPos(), MAX_ANCHOR_DISTANCE)) {
+				.closerThan(getBlockPos(), MAX_ANCHOR_DISTANCE)) {
 			state = State.STOPPED;
 			statusMsg = "targetOutsideRange";
 			printer.resetSchematic();
@@ -512,83 +507,72 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		return item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item);
 	}
 
-	protected boolean grabItemsFromAttachedInventories(ItemRequirement.StackRequirement required, boolean simulate) {
+	protected boolean grabItemsFromAttachedInventories(ItemRequirement.StackRequirement required, TransactionContext transaction) {
 		if (hasCreativeCrate)
 			return true;
 
-		attachedInventories.removeIf(Objects::isNull);
-
+		ItemStack stack = required.stack;
 		ItemUseType usage = required.usage;
 
 		// Find and apply damage
+		// fabric - can't modify directly, extract and re-insert
 		if (usage == ItemUseType.DAMAGE) {
-			for (Storage<ItemVariant> cap : attachedInventories) {
-				for (StorageView<ItemVariant> view : cap.nonEmptyViews()) {
-					ItemStack extractItem = view.getResource().toStack((int) view.getAmount());
-					if (!required.matches(extractItem))
-						continue;
-					if (!extractItem.isDamageableItem())
-						continue;
+			if (!stack.isDamageableItem())
+				return false;
 
-					if (!simulate) {
-						try (Transaction t = TransferUtil.getTransaction()) {
-							long extracted = view.extract(view.getResource(), 1, t);
-							if (extracted > 0) {
-								ItemStack stack = view.getResource().toStack(1);
-								stack.setDamageValue(stack.getDamageValue() + 1);
-								if (stack.getDamageValue() <= stack.getMaxDamage()) {
-									cap.insert(ItemVariant.of(stack), 1, t);
-								}
-								t.commit();
-							}
-						}
+			for (Entry<Direction, StorageProvider<ItemVariant>> entry : storages.entrySet()) {
+				Storage<ItemVariant> storage = entry.getValue().get(entry.getKey().getOpposite());
+				if (storage == null)
+					continue;
+				try (Transaction t = transaction.openNested()) {
+					ResourceAmount<ItemVariant> resource = TransferUtil.extractMatching(storage, required::matches, 1, t);
+					if (resource == null || resource.amount() != 1)
+						continue; // failed, skip
+					ItemVariant variant = resource.resource();
+					ItemStack newStack = variant.toStack();
+					newStack.setDamageValue(newStack.getDamageValue() + 1);
+					if (stack.getDamageValue() < stack.getMaxDamage()) {
+						// stack not broken, re-insert
+						ItemVariant newVariant = ItemVariant.of(newStack);
+						long inserted = storage.insert(newVariant, 1, t);
+						if (inserted != 1)
+							continue; // failed to re-insert, cancel this whole attempt
 					}
-
+					t.commit();
 					return true;
 				}
 			}
-
+			// could not find in any storage
 			return false;
 		}
 
 		// Find and remove
-		boolean success = false;
-		int amountFound = 0;
-		for (Storage<ItemVariant> cap : attachedInventories) {
-			amountFound += ItemHelper
-				.extract(cap, required::matches, ExtractionCountMode.UPTO,
-					required.stack.getCount(), true)
-				.getCount();
-
-			if (amountFound < required.stack.getCount())
-				continue;
-
-			success = true;
-			break;
-		}
-
-		if (!simulate && success) {
-			amountFound = 0;
-			for (Storage<ItemVariant> cap : attachedInventories) {
-				amountFound += ItemHelper
-					.extract(cap, required::matches, ExtractionCountMode.UPTO,
-						required.stack.getCount(), false)
-					.getCount();
-				if (amountFound < required.stack.getCount())
+		int toExtract = stack.getCount();
+		try (Transaction t = transaction.openNested()) {
+			for (Entry<Direction, StorageProvider<ItemVariant>> entry : storages.entrySet()) {
+				Storage<ItemVariant> storage = entry.getValue().get(entry.getKey().getOpposite());
+				if (storage == null)
 					continue;
-				break;
+
+				ResourceAmount<ItemVariant> resource = TransferUtil.extractMatching(storage, required::matches, stack.getCount(), t);
+				if (resource == null)
+					continue;
+				toExtract -= resource.amount();
+				if (toExtract > 0) // still need to extract more
+					continue;
+				// extracted enough
+				t.commit();
+				return true;
 			}
 		}
-
-		return success;
+		// if we get here we didn't find enough
+		return false;
 	}
 
 	public void finishedPrinting() {
-		if (replaceMode == ConfigureSchematicannonPacket.Option.REPLACE_EMPTY.ordinal())
-			printer.sendBlockUpdates(level);
 		inventory.setStackInSlot(0, ItemStack.EMPTY);
 		inventory.setStackInSlot(1, new ItemStack(AllItems.EMPTY_SCHEMATIC.get(), inventory.getStackInSlot(1)
-			.getCount() + 1));
+				.getCount() + 1));
 		state = State.STOPPED;
 		statusMsg = "finished";
 		resetPrinter();
@@ -606,11 +590,11 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 	}
 
 	protected boolean shouldPlace(BlockPos pos, BlockState state, BlockEntity be, BlockState toReplace,
-		BlockState toReplaceOther, boolean isNormalCube) {
+								  BlockState toReplaceOther, boolean isNormalCube) {
 		if (pos.closerThan(getBlockPos(), 2f))
 			return false;
 		if (!replaceBlockEntities
-			&& (toReplace.hasBlockEntity() || (toReplaceOther != null && toReplaceOther.hasBlockEntity())))
+				&& (toReplace.hasBlockEntity() || (toReplaceOther != null && toReplaceOther.hasBlockEntity())))
 			return false;
 
 		if (shouldIgnoreBlockState(state, be))
@@ -623,10 +607,10 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		if (replaceMode == 2 && !placingAir)
 			return true;
 		if (replaceMode == 1 && (isNormalCube || (!toReplace.isRedstoneConductor(level, pos)
-			&& (toReplaceOther == null || !toReplaceOther.isRedstoneConductor(level, pos)))) && !placingAir)
+				&& (toReplaceOther == null || !toReplaceOther.isRedstoneConductor(level, pos)))) && !placingAir)
 			return true;
 		if (replaceMode == 0 && !toReplace.isRedstoneConductor(level, pos)
-			&& (toReplaceOther == null || !toReplaceOther.isRedstoneConductor(level, pos)) && !placingAir)
+				&& (toReplaceOther == null || !toReplaceOther.isRedstoneConductor(level, pos)) && !placingAir)
 			return true;
 
 		return false;
@@ -645,10 +629,10 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 
 		// Block doesn't need to be placed twice (Doors, beds, double plants)
 		if (state.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
-			&& state.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER)
+				&& state.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER)
 			return true;
 		if (state.hasProperty(BlockStateProperties.BED_PART)
-			&& state.getValue(BlockStateProperties.BED_PART) == BedPart.HEAD)
+				&& state.getValue(BlockStateProperties.BED_PART) == BedPart.HEAD)
 			return true;
 		if (state.getBlock() instanceof PistonHeadBlock)
 			return true;
@@ -669,36 +653,15 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 	protected void refillFuelIfPossible() {
 		if (hasCreativeCrate)
 			return;
-		if (remainingFuel > getShotsPerGunpowder()) {
-			remainingFuel = getShotsPerGunpowder();
-			sendUpdate = true;
+		if (1 - fuelLevel + 1 / 128f < getFuelAddedByGunPowder())
 			return;
-		}
-
-		if (remainingFuel > 0)
+		if (inventory.getStackInSlot(4)
+				.isEmpty())
 			return;
 
-		if (!inventory.getStackInSlot(4)
-			.isEmpty())
-			inventory.getStackInSlot(4)
+		inventory.getStackInSlot(4)
 				.shrink(1);
-		else {
-			boolean externalGunpowderFound = false;
-			for (Storage<ItemVariant> cap : attachedInventories) {
-				if (cap == null)
-					continue;
-
-				if (ItemHelper.extract(cap, stack -> inventory.isItemValid(4, stack), 1, false)
-					.isEmpty())
-					continue;
-				externalGunpowderFound = true;
-				break;
-			}
-			if (!externalGunpowderFound)
-				return;
-		}
-
-		remainingFuel += getShotsPerGunpowder();
+		fuelLevel += getFuelAddedByGunPowder();
 		if (statusMsg.equals("noGunpowder")) {
 			if (blocksPlaced > 0)
 				state = State.RUNNING;
@@ -707,16 +670,20 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		sendUpdate = true;
 	}
 
+	public double getFuelAddedByGunPowder() {
+		return config().schematicannonGunpowderWorth.get() / 100f;
+	}
+
 	protected void tickPaperPrinter() {
 		int BookInput = 2;
 		int BookOutput = 3;
 
 		ItemStack blueprint = inventory.getStackInSlot(0);
-		ItemStack paper = inventory.extractItem(BookInput, 1, true);
+		ItemStack paper = inventory.getStackInSlot(BookInput).copy();
+		paper.setCount(1);
 		boolean outputFull = inventory.getStackInSlot(BookOutput)
-			.getCount() == inventory.getSlotLimit(BookOutput);
-
-		if (printer.isErrored())
+				.getCount() == inventory.getSlotLimit(BookOutput);
+if (printer.isErrored())
 			return;
 
 		if (!printer.isLoaded()) {
@@ -740,11 +707,13 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 				updateChecklist();
 
 			dontUpdateChecklist = true;
-			ItemStack extractItem = inventory.extractItem(BookInput, 1, false);
+			ItemStack extractItem = inventory.getStackInSlot(BookInput);
+			// non-empty, would early exit above
+			TransferUtil.extract(inventory, ItemVariant.of(extractItem), 1);
 			ItemStack stack = AllBlocks.CLIPBOARD.isIn(extractItem) ? checklist.createWrittenClipboard()
 				: checklist.createWrittenBook();
 			stack.setCount(inventory.getStackInSlot(BookOutput)
-				.getCount() + 1);
+					.getCount() + 1);
 			inventory.setStackInSlot(BookOutput, stack);
 			sendUpdate = true;
 			return;
@@ -768,22 +737,22 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		boolean end = part == BeltPart.END;
 
 		switch (slope) {
-		case DOWNWARD:
-			isLastSegment = start;
-			break;
-		case UPWARD:
-			isLastSegment = end;
-			break;
-		default:
-			isLastSegment = positive && end || !positive && start;
+			case DOWNWARD:
+				isLastSegment = start;
+				break;
+			case UPWARD:
+				isLastSegment = end;
+				break;
+			default:
+				isLastSegment = positive && end || !positive && start;
 		}
 		if (isLastSegment)
 			return blockState;
 
 		return AllBlocks.SHAFT.getDefaultState()
-			.setValue(AbstractSimpleShaftBlock.AXIS, slope == BeltSlope.SIDEWAYS ? Axis.Y
-				: facing.getClockWise()
-					.getAxis());
+				.setValue(AbstractSimpleShaftBlock.AXIS, slope == BeltSlope.SIDEWAYS ? Axis.Y
+						:facing.getClockWise()
+								.getAxis());
 	}
 
 	protected void launchBlockOrBelt(BlockPos target, ItemStack icon, BlockState blockState, BlockEntity blockEntity) {
@@ -811,7 +780,7 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 			return;
 		}
 
-		CompoundTag data = BlockHelper.prepareBlockEntityData(level, blockState, blockEntity);
+		CompoundTag data = BlockHelper.prepareBlockEntityData(blockState, blockEntity);
 		launchBlock(target, icon, blockState, data);
 	}
 
@@ -839,14 +808,19 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		AllSoundEvents.SCHEMATICANNON_LAUNCH_BLOCK.playOnServer(level, worldPosition);
 	}
 
+	public void sendToMenu(RegistryFriendlyByteBuf buffer) {
+		buffer.writeBlockPos(getBlockPos());
+		buffer.writeNbt(getUpdateTag(Create.getRegistryAccess()));
+	}
+
 	@Override
 	public AbstractContainerMenu createMenu(int id, Inventory inv, Player player) {
-		return null;
+		return SchematicannonMenu.create(id, inv, this);
 	}
 
 	@Override
 	public Component getDisplayName() {
-		return CreateLang.translateDirect("gui.schematicannon.title");
+		return Lang.translateDirect("gui.schematicannon.title");
 	}
 
 	public void updateChecklist() {
@@ -861,21 +835,20 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 		}
 
 		checklist.gathered.clear();
-		findInventories();
-		for (Storage<ItemVariant> cap : attachedInventories) {
-			if (cap == null)
-				continue;
-			try (Transaction t = TransferUtil.getTransaction()) {
-				for (StorageView<ItemVariant> view : cap.nonEmptyViews()) {
-					checklist.collect(view.getResource().toStack((int) view.getAmount()));
-				}
+		try (Transaction t = TransferUtil.getTransaction()) {
+			for (Entry<Direction, StorageProvider<ItemVariant>> entry : storages.entrySet()) {
+				Storage<ItemVariant> storage = entry.getValue().get(entry.getKey().getOpposite());
+				if (storage == null)
+					continue;
+				storage.nonEmptyViews().forEach(checklist::collect);
 			}
 		}
 		sendUpdate = true;
 	}
 
 	@Override
-	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+	}
 
 	@Override
 	public void lazyTick() {
@@ -886,33 +859,26 @@ public class SchematicannonBlockEntity extends SmartBlockEntity implements MenuP
 	@Override
 	@Environment(EnvType.CLIENT)
 	public AABB getRenderBoundingBox() {
-		return new AABB(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+		return INFINITE_EXTENT_AABB;
 	}
-
+	
 	@Override
-	protected void applyImplicitComponents(DataComponentInput componentInput) {
-		SchematicannonOptions options = componentInput.getOrDefault(AllDataComponents.SCHEMATICANNON_OPTIONS,
-				new SchematicannonOptions(2, true, false));
-		replaceMode = options.replaceMode();
-		skipMissing = options.skipMissing();
-		replaceBlockEntities = options.replaceBlockEntities();
-	}
-
-	@Override
-	protected void collectImplicitComponents(Builder components) {
-		components.set(AllDataComponents.SCHEMATICANNON_OPTIONS,
-			new SchematicannonOptions(replaceMode, skipMissing, replaceBlockEntities));
-	}
-
-	@Override
-	public boolean canPlayerUse(Player player) {
-		if (level == null || level.getBlockEntity(worldPosition) != this)
-			return false;
-		return player.distanceToSqr(worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D,
-			worldPosition.getZ() + 0.5D) <= 64.0D;
+	public void syncComponents() {
+		CompoundTag compound = new CompoundTag();
+		CompoundTag options = new CompoundTag();
+		options.putInt("ReplaceMode", replaceMode);
+		options.putBoolean("SkipMissing", skipMissing);
+		options.putBoolean("ReplaceTileEntities", replaceBlockEntities);
+		compound.put("Options", options);
+		
+		DataComponentPatch.Builder builder = DataComponentPatch.builder();
+		super.components().forEach(type -> builder.set((DataComponentType)type.type(), type.value()));
+		builder.set(DataComponents.BLOCK_ENTITY_DATA, CustomData.of(compound));
+		super.applyComponents(super.components(), builder.build());
 	}
 
 	public enum State {
 		STOPPED, PAUSED, RUNNING;
 	}
+
 }

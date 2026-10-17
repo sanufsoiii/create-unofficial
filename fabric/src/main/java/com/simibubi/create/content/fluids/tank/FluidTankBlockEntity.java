@@ -4,24 +4,25 @@ import static java.lang.Math.abs;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.api.connectivity.ConnectivityHandler;
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.fluids.tank.FluidTankBlock.Shape;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.fluid.SmartFluidTank;
 import com.simibubi.create.foundation.utility.NbtFixer;
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import io.github.fabricators_of_create.porting_lib.block.CustomRenderBoundingBoxBlockEntity;
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import io.github.fabricators_of_create.porting_lib.transfer.fluid.FluidTank;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomRenderBoundingBoxBlockEntity;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.fluid.FluidTank;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariantAttributeHandler;
@@ -73,6 +74,7 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 		height = 1;
 		width = 1;
 		boiler = new BoilerData();
+//		refreshCapability(); // fabric: lazy init to prevent access too early
 	}
 
 	protected SmartFluidTank createInventory() {
@@ -141,7 +143,7 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			return;
 
 		FluidVariantAttributeHandler handler = FluidVariantAttributes.getHandlerOrDefault(newFluidStack.getFluid());
-		FluidVariant variant = newFluidStack.getVariant();
+		FluidVariant variant = newFluidStack.getType();
 		int luminosity = (int) (handler.getLuminance(variant) / 1.2f);
 		boolean reversed = handler.isLighterThanAir(variant);
 		int maxY = (int) ((getFillState() * height) + 1);
@@ -293,11 +295,14 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 
 					Shape shape = Shape.PLAIN;
 					if (window) {
+						// SIZE 1: Every tank has a window
 						if (width == 1)
 							shape = Shape.WINDOW;
+						// SIZE 2: Every tank has a corner window
 						if (width == 2)
 							shape = xOffset == 0 ? zOffset == 0 ? Shape.WINDOW_NW : Shape.WINDOW_SW
 								: zOffset == 0 ? Shape.WINDOW_NE : Shape.WINDOW_SE;
+						// SIZE 3: Tanks in the center have a window
 						if (width == 3 && abs(abs(xOffset) - abs(zOffset)) == 1)
 							shape = Shape.WINDOW;
 					}
@@ -391,11 +396,11 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 		return containedFluidTooltip(tooltip, isPlayerSneaking,
 				controllerBE.getFluidStorage(null));
 	}
-
+	
 	@Override
 	protected void read(CompoundTag compound, Provider registries, boolean clientPacket) {
 		super.read(compound, registries, clientPacket);
-
+		
 		BlockPos controllerBefore = controller;
 		int prevSize = width;
 		int prevHeight = height;
@@ -416,7 +421,7 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			width = compound.getInt("Size");
 			height = compound.getInt("Height");
 			tankInventory.setCapacity(getTotalTankSize() * getCapacityMultiplier());
-			tankInventory.readFromNBT(registries, compound.getCompound("TankContent"));
+			tankInventory.readFromNBT(compound.getCompound("TankContent"));
 			if (tankInventory.getSpace() < 0) {
 				try (Transaction t = TransferUtil.getTransaction()) {
 					tankInventory.extract(tankInventory.variant, -tankInventory.getSpace(), t);
@@ -464,7 +469,7 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 	}
 
 	@Override
-	protected void write(CompoundTag compound, Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		if (updateConnectivity)
 			compound.putBoolean("Uninitialized", true);
 		compound.put("Boiler", boiler.write());
@@ -474,12 +479,12 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 			compound.put("Controller", NbtUtils.writeBlockPos(controller));
 		if (isController()) {
 			compound.putBoolean("Window", window);
-			compound.put("TankContent", tankInventory.writeToNBT(registries, new CompoundTag()));
+			compound.put("TankContent", tankInventory.writeToNBT(new CompoundTag()));
 			compound.putInt("Size", width);
 			compound.putInt("Height", height);
 		}
 		compound.putInt("Luminosity", luminosity);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 
 		if (!clientPacket)
 			return;
@@ -497,6 +502,7 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+		registerAwardables(behaviours, AllAdvancements.STEAM_ENGINE_MAXED, AllAdvancements.PIPE_ORGAN);
 	}
 
 	public FluidTank getTankInventory() {
@@ -532,6 +538,7 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 		updateConnectivity = false;
 	}
 
+	// fabric: see comment in FluidTankItem
 	public void queueConnectivityUpdate() {
 		updateConnectivity = true;
 	}
@@ -539,7 +546,7 @@ public class FluidTankBlockEntity extends SmartBlockEntity implements IHaveGoggl
 	@Override
 	public void notifyMultiUpdated() {
 		BlockState state = this.getBlockState();
-		if (FluidTankBlock.isTank(state)) {
+		if (FluidTankBlock.isTank(state)) { // safety
 			state = state.setValue(FluidTankBlock.BOTTOM, getController().getY() == getBlockPos().getY());
 			state = state.setValue(FluidTankBlock.TOP, getController().getY() + height - 1 == getBlockPos().getY());
 			level.setBlock(getBlockPos(), state, 6);

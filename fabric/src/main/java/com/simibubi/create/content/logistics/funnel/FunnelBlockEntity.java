@@ -5,31 +5,35 @@ import java.util.List;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
+import com.jozufozu.flywheel.backend.instancing.InstancedRenderDispatcher;
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllPackets;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.api.equipment.goggles.IHaveHoveringInformation;
+import com.simibubi.create.content.equipment.goggles.IHaveHoveringInformation;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.BeltHelper;
 import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehaviour;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
 import com.simibubi.create.content.logistics.funnel.BeltFunnelBlock.Shape;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.VersionedInventoryTrackerBehaviour;
-import com.simibubi.create.foundation.item.CommonItemHelper.ExtractionCountMode;
+import com.simibubi.create.foundation.item.ItemHelper.ExtractionCountMode;
+import com.simibubi.create.foundation.utility.BlockFace;
+import com.simibubi.create.foundation.utility.VecHelper;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
-import net.createmod.catnip.math.BlockFace;
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.util.EnvExecutor;
+import net.fabricmc.api.EnvType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.Clearable;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -38,7 +42,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHoveringInformation, Clearable {
+public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHoveringInformation {
+
 	private FilteringBehaviour filtering;
 	private InvManipulationBehaviour invManipulation;
 	private VersionedInventoryTrackerBehaviour invVersionTracker;
@@ -48,7 +53,7 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 
 	LerpedFloat flap;
 
-	enum Mode {
+	static enum Mode {
 		INVALID, PAUSED, COLLECT, PUSHING_TO_BELT, TAKING_FROM_BELT, EXTRACT
 	}
 
@@ -58,7 +63,7 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 		flap = createChasingFlap();
 	}
 
-	Mode determineCurrentMode() {
+	public Mode determineCurrentMode() {
 		BlockState state = getBlockState();
 		if (!FunnelBlock.isFunnel(state))
 			return Mode.INVALID;
@@ -113,22 +118,32 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 	private void activateExtractor() {
 		if (invVersionTracker.stillWaiting(invManipulation))
 			return;
-
+		
 		BlockState blockState = getBlockState();
 		Direction facing = AbstractFunnelBlock.getFunnelFacing(blockState);
 
 		if (facing == null)
 			return;
 
+		boolean trackingEntityPresent = true;
+		AABB area = getEntityOverflowScanningArea();
+
 		// Check if last item is still blocking the extractor
-		ItemEntity lastEntity = lastObserved != null ? lastObserved.get() : null;
-		if (lastEntity != null && lastEntity.isAlive()) {
-			AABB area = getEntityOverflowScanningArea();
-			if (lastEntity.getBoundingBox().intersects(area))
-				return;
-			lastObserved = null;
+		if (lastObserved == null) {
+			trackingEntityPresent = false;
+		} else {
+			ItemEntity lastEntity = lastObserved.get();
+			if (lastEntity == null || !lastEntity.isAlive() || !lastEntity.getBoundingBox()
+				.intersects(area)) {
+				trackingEntityPresent = false;
+				lastObserved = null;
+			}
 		}
 
+		if (trackingEntityPresent)
+			return;
+
+		// Find other entities blocking the extract (only if necessary)
 		int amountToExtract = getAmountToExtract();
 		ExtractionCountMode mode = getModeToExtract();
 		ItemStack stack = invManipulation.simulate()
@@ -137,9 +152,6 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 			invVersionTracker.awaitNewVersion(invManipulation);
 			return;
 		}
-
-		// Only scan for blocking entities if there's something to extract
-		AABB area = getEntityOverflowScanningArea();
 		for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class, area)) {
 			lastObserved = new WeakReference<>(itemEntity);
 			return;
@@ -176,7 +188,7 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 		startCooldown();
 	}
 
-	static final AABB coreBB = new AABB(BlockPos.ZERO);
+	static final AABB coreBB = new AABB(VecHelper.CENTER_OF_ORIGIN, VecHelper.CENTER_OF_ORIGIN).inflate(.75f);
 
 	private AABB getEntityOverflowScanningArea() {
 		Direction facing = AbstractFunnelBlock.getFunnelFacing(getBlockState());
@@ -214,7 +226,7 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 		});
 		if (stack.isEmpty()) {
 			if (deniedByInsertion.isFalse())
-				invVersionTracker.awaitNewVersion(invManipulation);
+				invVersionTracker.awaitNewVersion(invManipulation.getInventory());
 			return;
 		}
 		flap(false);
@@ -248,7 +260,7 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 			new InvManipulationBehaviour(this, (w, p, s) -> new BlockFace(p, AbstractFunnelBlock.getFunnelFacing(s)
 				.getOpposite()));
 		behaviours.add(invManipulation);
-
+		
 		behaviours.add(invVersionTracker = new VersionedInventoryTrackerBehaviour(this));
 
 		filtering = new FilteringBehaviour(this, new FunnelFilterSlotPositioning());
@@ -256,9 +268,10 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 		filtering.onlyActiveWhen(this::supportsFiltering);
 		filtering.withCallback($ -> invVersionTracker.reset());
 		behaviours.add(filtering);
-
+		
 		behaviours.add(new DirectBeltInputBehaviour(this).onlyInsertWhen(this::supportsDirectBeltInput)
 			.setInsertionHandler(this::handleDirectBeltInput));
+		registerAwardables(behaviours, AllAdvancements.FUNNEL);
 	}
 
 	private boolean supportsAmountOnFilter() {
@@ -305,47 +318,59 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 	}
 
 	public void flap(boolean inward) {
-		flap.setValue(inward ? -1 : 1);
-		if (level != null)
+		if (!level.isClientSide) {
+			AllPackets.getChannel()
+				.sendToClientsTracking(new FunnelFlapPacket(this, inward), this);
+		} else {
+			flap.setValue(inward ? 1 : -1);
 			AllSoundEvents.FUNNEL_FLAP.playAt(level, worldPosition, 1, 1, true);
+		}
 	}
 
 	public boolean hasFlap() {
 		BlockState blockState = getBlockState();
-		return AbstractFunnelBlock.getFunnelFacing(blockState)
+		if (!AbstractFunnelBlock.getFunnelFacing(blockState)
 			.getAxis()
-			.isHorizontal();
+			.isHorizontal())
+			return false;
+		return true;
 	}
 
 	public float getFlapOffset() {
 		BlockState blockState = getBlockState();
 		if (!(blockState.getBlock() instanceof BeltFunnelBlock))
 			return -1 / 16f;
-		return switch (blockState.getValue(BeltFunnelBlock.SHAPE)) {
-			case EXTENDED -> 8 / 16f;
-			case PULLING, PUSHING -> -2 / 16f;
-			default -> 0;
-		};
+		switch (blockState.getValue(BeltFunnelBlock.SHAPE)) {
+		default:
+		case RETRACTED:
+			return 0;
+		case EXTENDED:
+			return 8 / 16f;
+		case PULLING:
+		case PUSHING:
+			return -2 / 16f;
+		}
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(compound, registries, clientPacket);
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		super.write(compound, clientPacket);
 		compound.putInt("TransferCooldown", extractionCooldown);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		super.read(compound, reg, clientPacket);
 		extractionCooldown = compound.getInt("TransferCooldown");
-	}
 
-	@Override
-	public void clearContent() {
-		filtering.setFilter(ItemStack.EMPTY);
+		if (clientPacket)
+			EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> InstancedRenderDispatcher.enqueueUpdate(this));
 	}
 
 	public void onTransfer(ItemStack stack) {
+		AllBlocks.SMART_OBSERVER.get()
+			.onFunnelTransfer(level, worldPosition, stack);
+		award(AllAdvancements.FUNNEL);
 	}
 
 	private LerpedFloat createChasingFlap() {
@@ -353,4 +378,5 @@ public class FunnelBlockEntity extends SmartBlockEntity implements IHaveHovering
 			.startWithValue(.25f)
 			.chase(0, .05f, Chaser.EXP);
 	}
+
 }

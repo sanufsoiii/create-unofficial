@@ -4,26 +4,28 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 
-import org.jetbrains.annotations.ApiStatus.Internal;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
+import com.simibubi.create.AllRecipeTypes;
 import com.simibubi.create.AllTags.AllBlockTags;
 import com.simibubi.create.AllTags.AllFluidTags;
 import com.simibubi.create.Create;
-import com.simibubi.create.api.registry.CreateBuiltInRegistries;
+import com.simibubi.create.content.kinetics.fan.processing.HauntingRecipe.HauntingWrapper;
+import com.simibubi.create.content.kinetics.fan.processing.SplashingRecipe.SplashingWrapper;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
 import com.simibubi.create.content.processing.burner.LitBlazeBurnerBlock;
 import com.simibubi.create.foundation.damageTypes.CreateDamageSources;
 import com.simibubi.create.foundation.recipe.RecipeApplier;
+import com.simibubi.create.foundation.utility.Color;
+import com.simibubi.create.foundation.utility.VecHelper;
 
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.RecipeWrapper;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
-import net.createmod.catnip.math.VecHelper;
-import net.createmod.catnip.theme.Color;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -46,6 +48,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.BlastingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.item.crafting.SmeltingRecipe;
@@ -58,10 +61,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 
 public class AllFanProcessingTypes {
-	public static final Predicate<RecipeHolder<?>> CAN_BE_AUTOMATED = r -> !r.id()
-		.getPath()
-		.endsWith("_manual_only");
-
+	public static final NoneType NONE = register("none", new NoneType());
 	public static final BlastingType BLASTING = register("blasting", new BlastingType());
 	public static final HauntingType HAUNTING = register("haunting", new HauntingType());
 	public static final SmokingType SMOKING = register("smoking", new SmokingType());
@@ -71,6 +71,7 @@ public class AllFanProcessingTypes {
 
 	static {
 		Object2ReferenceOpenHashMap<String, FanProcessingType> map = new Object2ReferenceOpenHashMap<>();
+		map.put("NONE", NONE);
 		map.put("BLASTING", BLASTING);
 		map.put("HAUNTING", HAUNTING);
 		map.put("SMOKING", SMOKING);
@@ -79,13 +80,9 @@ public class AllFanProcessingTypes {
 		LEGACY_NAME_MAP = map;
 	}
 
-	private static <T extends FanProcessingType> T register(String name, T type) {
-		return Registry.register(CreateBuiltInRegistries.FAN_PROCESSING_TYPE, Create.asResource(name), type);
-	}
-
-	@Internal
-	public static void init() {
-		FanProcessingTypeRegistry.init();
+	private static <T extends FanProcessingType> T register(String id, T type) {
+		FanProcessingTypeRegistry.register(Create.asResource(id), type);
+		return type;
 	}
 
 	@Nullable
@@ -93,7 +90,9 @@ public class AllFanProcessingTypes {
 		return LEGACY_NAME_MAP.get(name);
 	}
 
-	@Nullable
+	public static void register() {
+	}
+
 	public static FanProcessingType parseLegacy(String str) {
 		FanProcessingType type = ofLegacyName(str);
 		if (type != null) {
@@ -102,7 +101,44 @@ public class AllFanProcessingTypes {
 		return FanProcessingType.parse(str);
 	}
 
+	public static class NoneType implements FanProcessingType {
+		@Override
+		public boolean isValidAt(Level level, BlockPos pos) {
+			return true;
+		}
+
+		@Override
+		public int getPriority() {
+			return -1000000;
+		}
+
+		@Override
+		public boolean canProcess(ItemStack stack, Level level) {
+			return false;
+		}
+
+		@Override
+		@Nullable
+		public List<ItemStack> process(ItemStack stack, Level level) {
+			return null;
+		}
+
+		@Override
+		public void spawnProcessingParticles(Level level, Vec3 pos) {
+		}
+
+		@Override
+		public void morphAirFlow(AirFlowParticleAccess particleAccess, RandomSource random) {
+		}
+
+		@Override
+		public void affectEntity(Entity entity, Level level) {
+		}
+	}
+
 	public static class BlastingType implements FanProcessingType {
+		//private static final RecipeWrapper RECIPE_WRAPPER = new RecipeWrapper(new ItemStackHandler(1));
+
 		@Override
 		public boolean isValidAt(Level level, BlockPos pos) {
 			FluidState fluidState = level.getFluidState(pos);
@@ -111,7 +147,10 @@ public class AllFanProcessingTypes {
 			}
 			BlockState blockState = level.getBlockState(pos);
 			if (AllBlockTags.FAN_PROCESSING_CATALYSTS_BLASTING.matches(blockState)) {
-				return !blockState.hasProperty(BlazeBurnerBlock.HEAT_LEVEL) || blockState.getValue(BlazeBurnerBlock.HEAT_LEVEL).isAtLeast(BlazeBurnerBlock.HeatLevel.FADING);
+				if (blockState.hasProperty(BlazeBurnerBlock.HEAT_LEVEL) && !blockState.getValue(BlazeBurnerBlock.HEAT_LEVEL).isAtLeast(BlazeBurnerBlock.HeatLevel.FADING)) {
+					return false;
+				}
+				return true;
 			}
 			return false;
 		}
@@ -123,17 +162,16 @@ public class AllFanProcessingTypes {
 
 		@Override
 		public boolean canProcess(ItemStack stack, Level level) {
-			SingleRecipeInput input = new SingleRecipeInput(stack);
+			//RECIPE_WRAPPER.setItem(0, stack);
 			Optional<RecipeHolder<SmeltingRecipe>> smeltingRecipe = level.getRecipeManager()
-				.getRecipeFor(RecipeType.SMELTING, input, level)
-				.filter(CAN_BE_AUTOMATED);
+				.getRecipeFor(RecipeType.SMELTING, new SingleRecipeInput(stack), level);
 
 			if (smeltingRecipe.isPresent())
 				return true;
 
+			//RECIPE_WRAPPER.setItem(0, stack);
 			Optional<RecipeHolder<BlastingRecipe>> blastingRecipe = level.getRecipeManager()
-				.getRecipeFor(RecipeType.BLASTING, input, level)
-				.filter(CAN_BE_AUTOMATED);
+				.getRecipeFor(RecipeType.BLASTING, new SingleRecipeInput(stack), level);
 
 			if (blastingRecipe.isPresent())
 				return true;
@@ -144,28 +182,31 @@ public class AllFanProcessingTypes {
 		@Override
 		@Nullable
 		public List<ItemStack> process(ItemStack stack, Level level) {
-			SingleRecipeInput input = new SingleRecipeInput(stack);
+			//RECIPE_WRAPPER.setItem(0, stack);
 			Optional<RecipeHolder<SmokingRecipe>> smokingRecipe = level.getRecipeManager()
-				.getRecipeFor(RecipeType.SMOKING, input, level)
-				.filter(CAN_BE_AUTOMATED);
+				.getRecipeFor(RecipeType.SMOKING, new SingleRecipeInput(stack), level);
 
-			Optional<? extends RecipeHolder<? extends AbstractCookingRecipe>> smeltingRecipe = level.getRecipeManager()
-				.getRecipeFor(RecipeType.SMELTING, input, level)
-				.filter(CAN_BE_AUTOMATED);
-
-			if (smeltingRecipe.isEmpty()) {
-				smeltingRecipe = level.getRecipeManager()
-					.getRecipeFor(RecipeType.BLASTING, input, level)
-					.filter(CAN_BE_AUTOMATED);
+			//RECIPE_WRAPPER.setItem(0, stack);
+			Optional<RecipeHolder<SmeltingRecipe>> smeltingRecipe = level.getRecipeManager()
+				.getRecipeFor(RecipeType.SMELTING, new SingleRecipeInput(stack), level);
+			AbstractCookingRecipe acr = null;
+			if (!smeltingRecipe.isPresent()) {
+				//RECIPE_WRAPPER.setItem(0, stack);
+				Optional<RecipeHolder<BlastingRecipe>> blastingRecipe = level.getRecipeManager()
+						.getRecipeFor(RecipeType.BLASTING, new SingleRecipeInput(stack), level);
+				if(blastingRecipe.isPresent()) {
+					acr = blastingRecipe.get().value();
+				}
+			}else {
+				acr = smeltingRecipe.get().value();
 			}
 
-			if (smeltingRecipe.isPresent()) {
+			if (acr != null) {
 				RegistryAccess registryAccess = level.registryAccess();
-				if (smokingRecipe.isEmpty() || !ItemStack.isSameItem(smokingRecipe.get().value()
-						.getResultItem(registryAccess),
-					smeltingRecipe.get().value()
-						.getResultItem(registryAccess))) {
-					return RecipeApplier.applyRecipeOn(level, stack, smeltingRecipe.get().value(), false);
+				if (!smokingRecipe.isPresent() || !ItemStack.isSameItem(smokingRecipe.get().value()
+					.getResultItem(registryAccess),
+					acr.getResultItem(registryAccess))) {
+					return RecipeApplier.applyRecipeOn(level, stack, acr);
 				}
 			}
 
@@ -202,6 +243,8 @@ public class AllFanProcessingTypes {
 	}
 
 	public static class HauntingType implements FanProcessingType {
+		private static final HauntingWrapper HAUNTING_WRAPPER = new HauntingWrapper();
+
 		@Override
 		public boolean isValidAt(Level level, BlockPos pos) {
 			FluidState fluidState = level.getFluidState(pos);
@@ -213,7 +256,10 @@ public class AllFanProcessingTypes {
 				if (blockState.is(BlockTags.CAMPFIRES) && blockState.hasProperty(CampfireBlock.LIT) && !blockState.getValue(CampfireBlock.LIT)) {
 					return false;
 				}
-				return !blockState.hasProperty(LitBlazeBurnerBlock.FLAME_TYPE) || blockState.getValue(LitBlazeBurnerBlock.FLAME_TYPE) == LitBlazeBurnerBlock.FlameType.SOUL;
+				if (blockState.hasProperty(LitBlazeBurnerBlock.FLAME_TYPE) && blockState.getValue(LitBlazeBurnerBlock.FLAME_TYPE) != LitBlazeBurnerBlock.FlameType.SOUL) {
+					return false;
+				}
+				return true;
 			}
 			return false;
 		}
@@ -225,17 +271,19 @@ public class AllFanProcessingTypes {
 
 		@Override
 		public boolean canProcess(ItemStack stack, Level level) {
-			return com.simibubi.create.AllRecipeTypes.HAUNTING.find(new SingleRecipeInput(stack), level)
-				.isPresent();
+			HAUNTING_WRAPPER.setItem(0, stack);
+			Optional<HauntingRecipe> recipe = AllRecipeTypes.HAUNTING.find(HAUNTING_WRAPPER, level);
+			return recipe.isPresent();
 		}
 
 		@Override
 		@Nullable
 		public List<ItemStack> process(ItemStack stack, Level level) {
-			return com.simibubi.create.AllRecipeTypes.HAUNTING.find(new SingleRecipeInput(stack), level)
-				.map(RecipeHolder::value)
-				.map(r -> RecipeApplier.applyRecipeOn(level, stack, r, true))
-				.orElse(null);
+			HAUNTING_WRAPPER.setItem(0, stack);
+			Optional<HauntingRecipe> recipe = AllRecipeTypes.HAUNTING.find(HAUNTING_WRAPPER, level);
+			if (recipe.isPresent())
+				return RecipeApplier.applyRecipeOn(level, stack, recipe.get());
+			return null;
 		}
 
 		@Override
@@ -300,22 +348,23 @@ public class AllFanProcessingTypes {
 					SoundSource.NEUTRAL, 1.25f, 0.65f);
 
 				SkeletonHorse skeletonHorse = EntityType.SKELETON_HORSE.create(level);
-				if (skeletonHorse != null) {
-					CompoundTag serializeNBT = horse.saveWithoutId(new CompoundTag());
-					serializeNBT.remove("UUID");
-					if (!horse.getBodyArmorItem().isEmpty())
-						horse.spawnAtLocation(horse.getBodyArmorItem());
+				CompoundTag serializeNBT = horse.saveWithoutId(new CompoundTag());
+				serializeNBT.remove("UUID");
+				if (!horse.getBodyArmorItem()
+					.isEmpty())
+					horse.spawnAtLocation(horse.getBodyArmorItem());
 
-					skeletonHorse.load(serializeNBT);
-					skeletonHorse.setPos(horse.getPosition(0));
-					level.addFreshEntity(skeletonHorse);
-					horse.discard();
-				}
+				NBTSerializer.deserializeNBT(skeletonHorse, serializeNBT);
+				skeletonHorse.setPos(horse.getPosition(0));
+				level.addFreshEntity(skeletonHorse);
+				horse.discard();
 			}
 		}
 	}
 
 	public static class SmokingType implements FanProcessingType {
+		private static final RecipeWrapper RECIPE_WRAPPER = new RecipeWrapper(new ItemStackHandler(1));
+
 		@Override
 		public boolean isValidAt(Level level, BlockPos pos) {
 			FluidState fluidState = level.getFluidState(pos);
@@ -330,7 +379,10 @@ public class AllFanProcessingTypes {
 				if (blockState.hasProperty(LitBlazeBurnerBlock.FLAME_TYPE) && blockState.getValue(LitBlazeBurnerBlock.FLAME_TYPE) != LitBlazeBurnerBlock.FlameType.REGULAR) {
 					return false;
 				}
-				return !blockState.hasProperty(BlazeBurnerBlock.HEAT_LEVEL) || blockState.getValue(BlazeBurnerBlock.HEAT_LEVEL) == BlazeBurnerBlock.HeatLevel.SMOULDERING;
+				if (blockState.hasProperty(BlazeBurnerBlock.HEAT_LEVEL) && blockState.getValue(BlazeBurnerBlock.HEAT_LEVEL) != BlazeBurnerBlock.HeatLevel.SMOULDERING) {
+					return false;
+				}
+				return true;
 			}
 			return false;
 		}
@@ -342,21 +394,23 @@ public class AllFanProcessingTypes {
 
 		@Override
 		public boolean canProcess(ItemStack stack, Level level) {
-			return level.getRecipeManager()
-				.getRecipeFor(RecipeType.SMOKING, new SingleRecipeInput(stack), level)
-				.filter(CAN_BE_AUTOMATED)
-				.isPresent();
+			//RECIPE_WRAPPER.setItem(0, stack);
+			Optional<RecipeHolder<SmokingRecipe>> recipe = level.getRecipeManager()
+				.getRecipeFor(RecipeType.SMOKING, new SingleRecipeInput(stack), level);
+			return recipe.isPresent();
 		}
 
 		@Override
 		@Nullable
 		public List<ItemStack> process(ItemStack stack, Level level) {
-			return level.getRecipeManager()
-				.getRecipeFor(RecipeType.SMOKING, new SingleRecipeInput(stack), level)
-				.filter(CAN_BE_AUTOMATED)
-				.map(RecipeHolder::value)
-				.map(r -> RecipeApplier.applyRecipeOn(level, stack, r, false))
-				.orElse(null);
+			//RECIPE_WRAPPER.setItem(0, stack);
+			Optional<RecipeHolder<SmokingRecipe>> smokingRecipe = level.getRecipeManager()
+				.getRecipeFor(RecipeType.SMOKING, new SingleRecipeInput(stack), level);
+
+			if (smokingRecipe.isPresent())
+				return RecipeApplier.applyRecipeOn(level, stack, smokingRecipe.get().value());
+
+			return null;
 		}
 
 		@Override
@@ -389,6 +443,8 @@ public class AllFanProcessingTypes {
 	}
 
 	public static class SplashingType implements FanProcessingType {
+		private static final SplashingWrapper SPLASHING_WRAPPER = new SplashingWrapper();
+
 		@Override
 		public boolean isValidAt(Level level, BlockPos pos) {
 			FluidState fluidState = level.getFluidState(pos);
@@ -396,7 +452,10 @@ public class AllFanProcessingTypes {
 				return true;
 			}
 			BlockState blockState = level.getBlockState(pos);
-			return AllBlockTags.FAN_PROCESSING_CATALYSTS_SPLASHING.matches(blockState);
+			if (AllBlockTags.FAN_PROCESSING_CATALYSTS_SPLASHING.matches(blockState)) {
+				return true;
+			}
+			return false;
 		}
 
 		@Override
@@ -406,17 +465,19 @@ public class AllFanProcessingTypes {
 
 		@Override
 		public boolean canProcess(ItemStack stack, Level level) {
-			return com.simibubi.create.AllRecipeTypes.SPLASHING.find(new SingleRecipeInput(stack), level)
-				.isPresent();
+			SPLASHING_WRAPPER.setItem(0, stack);
+			Optional<SplashingRecipe> recipe = AllRecipeTypes.SPLASHING.find(SPLASHING_WRAPPER, level);
+			return recipe.isPresent();
 		}
 
 		@Override
 		@Nullable
 		public List<ItemStack> process(ItemStack stack, Level level) {
-			return com.simibubi.create.AllRecipeTypes.SPLASHING.find(new SingleRecipeInput(stack), level)
-				.map(RecipeHolder::value)
-				.map(r -> RecipeApplier.applyRecipeOn(level, stack, r, true))
-				.orElse(null);
+			SPLASHING_WRAPPER.setItem(0, stack);
+			Optional<SplashingRecipe> recipe = AllRecipeTypes.SPLASHING.find(SPLASHING_WRAPPER, level);
+			if (recipe.isPresent())
+				return RecipeApplier.applyRecipeOn(level, stack, recipe.get());
+			return null;
 		}
 
 		@Override

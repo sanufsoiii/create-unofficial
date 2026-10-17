@@ -1,0 +1,13 @@
+loom {
+    accessWidenerPath = file("src/main/resources/flywheel.accesswidener")
+}
+
+dependencies {
+    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+
+    // Optional graphics mod compatibility (Sodium & Iris)
+    modCompileOnly "maven.modrinth:sodium:mc1.21-0.6.0-beta.1-fabric"
+    modCompileOnly "maven.modrinth:iris:1.8.0-beta.3+1.21-fabric"
+}

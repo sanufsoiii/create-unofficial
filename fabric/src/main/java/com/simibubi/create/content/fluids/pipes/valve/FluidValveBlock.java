@@ -1,6 +1,6 @@
 package com.simibubi.create.content.fluids.pipes.valve;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllShapes;
@@ -10,7 +10,7 @@ import com.simibubi.create.content.fluids.pipes.IAxisPipe;
 import com.simibubi.create.content.kinetics.base.DirectionalAxisKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
-import net.createmod.catnip.data.Iterate;
+import com.simibubi.create.foundation.utility.Iterate;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -65,7 +65,7 @@ public class FluidValveBlock extends DirectionalAxisKineticBlock
 		return super.prefersConnectionTo(reader, pos, facing, shaftAxis);
 	}
 
-	@NotNull
+	@Nonnull
 	public static Axis getPipeAxis(BlockState state) {
 		if (!(state.getBlock() instanceof FluidValveBlock))
 			throw new IllegalStateException("Provided BlockState is for a different block.");
@@ -130,7 +130,7 @@ public class FluidValveBlock extends DirectionalAxisKineticBlock
 	public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource r) {
 		FluidPropagator.propagateChangedPipe(world, pos, state);
 	}
-
+	
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;

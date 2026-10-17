@@ -1,65 +1,90 @@
 package com.simibubi.create.content.logistics.depot;
 
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.AllPackets;
-import net.createmod.catnip.net.base.ClientboundPacketPayload;
-import net.createmod.catnip.net.base.ServerboundPacketPayload;
+import com.simibubi.create.foundation.networking.SimplePacketBase;
+import com.tterrag.registrate.fabric.EnvExecutor;
 
-import io.netty.buffer.ByteBuf;
-import net.minecraft.client.player.LocalPlayer;
+import net.fabricmc.api.EnvType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 
-public record EjectorPlacementPacket(int h, int v, BlockPos pos, Direction facing) implements ServerboundPacketPayload {
-	public static final StreamCodec<ByteBuf, EjectorPlacementPacket> STREAM_CODEC = StreamCodec.composite(
-			ByteBufCodecs.INT, EjectorPlacementPacket::h,
-			ByteBufCodecs.INT, EjectorPlacementPacket::v,
-			BlockPos.STREAM_CODEC, EjectorPlacementPacket::pos,
-			Direction.STREAM_CODEC, EjectorPlacementPacket::facing,
-	        EjectorPlacementPacket::new
-	);
+public class EjectorPlacementPacket extends SimplePacketBase {
 
-	@Override
-	public PacketTypeProvider getTypeProvider() {
-		return AllPackets.PLACE_EJECTOR;
+	private int h, v;
+	private BlockPos pos;
+	private Direction facing;
+
+	public EjectorPlacementPacket(int h, int v, BlockPos pos, Direction facing) {
+		this.h = h;
+		this.v = v;
+		this.pos = pos;
+		this.facing = facing;
+	}
+
+	public EjectorPlacementPacket(RegistryFriendlyByteBuf buffer) {
+		h = buffer.readInt();
+		v = buffer.readInt();
+		pos = buffer.readBlockPos();
+		facing = Direction.from3DDataValue(buffer.readVarInt());
 	}
 
 	@Override
-	public void handle(ServerPlayer player) {
-		Level world = player.level();
-		if (!world.isLoaded(pos))
-			return;
-		BlockEntity blockEntity = world.getBlockEntity(pos);
-		BlockState state = world.getBlockState(pos);
-		if (blockEntity instanceof EjectorBlockEntity)
-			((EjectorBlockEntity) blockEntity).setTarget(h, v);
-		if (AllBlocks.WEIGHTED_EJECTOR.has(state))
-			world.setBlockAndUpdate(pos, state.setValue(EjectorBlock.HORIZONTAL_FACING, facing));
+	public void write(RegistryFriendlyByteBuf buffer) {
+		buffer.writeInt(h);
+		buffer.writeInt(v);
+		buffer.writeBlockPos(pos);
+		buffer.writeVarInt(facing.get3DDataValue());
 	}
 
-	public record ClientBoundRequest(BlockPos pos) implements ClientboundPacketPayload {
-		public static final StreamCodec<ByteBuf, ClientBoundRequest> STREAM_CODEC = BlockPos.STREAM_CODEC.map(
-				ClientBoundRequest::new, ClientBoundRequest::pos
-		);
+	@Override
+	public boolean handle(Context context) {
+		context.enqueueWork(() -> {
+			ServerPlayer player = context.getSender();
+			if (player == null)
+				return;
+			Level world = player.level();
+			if (world == null || !world.isLoaded(pos))
+				return;
+			BlockEntity blockEntity = world.getBlockEntity(pos);
+			BlockState state = world.getBlockState(pos);
+			if (blockEntity instanceof EjectorBlockEntity)
+				((EjectorBlockEntity) blockEntity).setTarget(h, v);
+			if (AllBlocks.WEIGHTED_EJECTOR.has(state))
+				world.setBlockAndUpdate(pos, state.setValue(EjectorBlock.HORIZONTAL_FACING, facing));
+		});
+		return true;
+	}
 
-		@Override
-		public PacketTypeProvider getTypeProvider() {
-			return AllPackets.S_PLACE_EJECTOR;
+	public static class ClientBoundRequest extends SimplePacketBase {
+
+		BlockPos pos;
+
+		public ClientBoundRequest(BlockPos pos) {
+			this.pos = pos;
+		}
+
+		public ClientBoundRequest(RegistryFriendlyByteBuf buffer) {
+			this.pos = buffer.readBlockPos();
 		}
 
 		@Override
-		@Environment(EnvType.CLIENT)
-		public void handle(LocalPlayer player) {
-			// EjectorTargetHandler.flushSettings(pos);
+		public void write(RegistryFriendlyByteBuf buffer) {
+			buffer.writeBlockPos(pos);
 		}
+
+		@Override
+		public boolean handle(Context context) {
+			context.enqueueWork(
+				() -> EnvExecutor.runWhenOn(EnvType.CLIENT,
+						() -> () -> EjectorTargetHandler.flushSettings(pos)));
+			return true;
+		}
+
 	}
 
 }

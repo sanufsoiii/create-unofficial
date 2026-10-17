@@ -5,20 +5,23 @@ import java.util.Optional;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
+import com.simibubi.create.AllPackets;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
 import com.simibubi.create.content.logistics.depot.EjectorBlockEntity.State;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
-import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.block.CustomFrictionBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -37,7 +40,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-public class EjectorBlock extends HorizontalKineticBlock implements IBE<EjectorBlockEntity>, ProperWaterloggedBlock {
+public class EjectorBlock extends HorizontalKineticBlock implements IBE<EjectorBlockEntity>, ProperWaterloggedBlock, CustomFrictionBlock {
 
 	public EjectorBlock(Properties properties) {
 		super(properties);
@@ -73,6 +76,13 @@ public class EjectorBlock extends HorizontalKineticBlock implements IBE<EjectorB
 	}
 
 	@Override
+	public float getFriction(BlockState state, LevelReader world, BlockPos pos, Entity entity) {
+		return getBlockEntityOptional(world, pos).filter(ete -> ete.state == State.LAUNCHING)
+				.map($ -> 1f)
+				.orElse(getFriction());
+	}
+
+	@Override
 	public void neighborChanged(BlockState state, Level world, BlockPos pos, Block p_220069_4_, BlockPos p_220069_5_,
 		boolean p_220069_6_) {
 		withBlockEntityDo(world, pos, EjectorBlockEntity::updateSignal);
@@ -99,7 +109,7 @@ public class EjectorBlock extends HorizontalKineticBlock implements IBE<EjectorB
 			return;
 		if (entityIn.isSuppressingBounce())
 			return;
-		if (!ItemHelper.fromItemEntity(entityIn).isEmpty()) {
+		if (entityIn instanceof ItemEntity) {
 			SharedDepotBlockMethods.onLanded(worldIn, entityIn);
 			return;
 		}
@@ -133,13 +143,29 @@ public class EjectorBlock extends HorizontalKineticBlock implements IBE<EjectorB
 
 		ejectorBlockEntity.activate();
 		ejectorBlockEntity.notifyUpdate();
+		if (entityIn.level().isClientSide)
+			AllPackets.getChannel().sendToServer(new EjectorTriggerPacket(ejectorBlockEntity.getBlockPos()));
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		if (AllItems.WRENCH.isIn(stack))
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult ray) {
+		
+		if(stack.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		return SharedDepotBlockMethods.onUse(stack, state, level, pos, player, hand, hitResult);
+		
+		if (AllItems.WRENCH.isIn(player.getItemInHand(hand)))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		return SharedDepotBlockMethods.onUse(stack, state, world, pos, player, hand, ray);
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
+			BlockHitResult ray) {
+
+		return SharedDepotBlockMethods.onUse(ItemStack.EMPTY, state, world, pos, player, InteractionHand.MAIN_HAND, ray).result();
+		
 	}
 
 	@Override

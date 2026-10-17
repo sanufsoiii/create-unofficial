@@ -41,16 +41,11 @@ public class SmartChuteBlockEntity extends ChuteBlockEntity {
 		BlockState blockState = getBlockState();
 		return blockState.hasProperty(SmartChuteBlock.POWERED) && !blockState.getValue(SmartChuteBlock.POWERED);
 	}
-
+	
 	@Override
 	protected boolean canOutputItems() {
-		return canActivate();
-	}
-
-	@Override
-	protected boolean canActivate() {
 		BlockState blockState = getBlockState();
-		return !blockState.hasProperty(SmartChuteBlock.POWERED) || !blockState.getValue(SmartChuteBlock.POWERED);
+		return blockState.hasProperty(SmartChuteBlock.POWERED) && !blockState.getValue(SmartChuteBlock.POWERED);
 	}
 
 	@Override

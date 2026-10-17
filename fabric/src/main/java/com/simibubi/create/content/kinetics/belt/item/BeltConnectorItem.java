@@ -3,7 +3,7 @@ package com.simibubi.create.content.kinetics.belt.item;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllDataComponents;
@@ -13,21 +13,24 @@ import com.simibubi.create.content.kinetics.belt.BeltPart;
 import com.simibubi.create.content.kinetics.belt.BeltSlope;
 import com.simibubi.create.content.kinetics.simpleRelays.AbstractSimpleShaftBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.ShaftBlock;
-// import com.simibubi.create.foundation.advancement.AllAdvancements;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.block.ProperWaterloggedBlock;
+import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.utility.VecHelper;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -45,14 +48,13 @@ public class BeltConnectorItem extends BlockItem {
 		return getOrCreateDescriptionId();
 	}
 
-	@NotNull
+
+	@Nonnull
 	@Override
 	public InteractionResult useOn(UseOnContext context) {
 		Player playerEntity = context.getPlayer();
-		ItemStack heldStack = context.getItemInHand();
-
 		if (playerEntity != null && playerEntity.isShiftKeyDown()) {
-			heldStack.remove(AllDataComponents.BELT_FIRST_SHAFT);
+			ItemHelper.clearComponents(context.getItemInHand());
 			return InteractionResult.SUCCESS;
 		}
 
@@ -63,50 +65,55 @@ public class BeltConnectorItem extends BlockItem {
 		if (world.isClientSide)
 			return validAxis ? InteractionResult.SUCCESS : InteractionResult.FAIL;
 
+		//CompoundTag tag = context.getItemInHand()
+				//.getOrCreateTag();
 		BlockPos firstPulley = null;
 
 		// Remove first if no longer existant or valid
-		if (heldStack.has(AllDataComponents.BELT_FIRST_SHAFT)) {
-			firstPulley = heldStack.get(AllDataComponents.BELT_FIRST_SHAFT);
+		if (context.getItemInHand().has(AllDataComponents.FIRST_PULLEY)) {
+			firstPulley = context.getItemInHand().get(AllDataComponents.FIRST_PULLEY);
 			if (!validateAxis(world, firstPulley) || !firstPulley.closerThan(pos, maxLength() * 2)) {
-				heldStack.remove(AllDataComponents.BELT_FIRST_SHAFT);
+				context.getItemInHand().remove(AllDataComponents.FIRST_PULLEY);
+//				tag.remove("FirstPulley");
+//				context.getItemInHand()
+//						.setTag(tag);
 			}
 		}
 
 		if (!validAxis || playerEntity == null)
 			return InteractionResult.FAIL;
 
-		if (heldStack.has(AllDataComponents.BELT_FIRST_SHAFT)) {
+		if (context.getItemInHand().has(AllDataComponents.FIRST_PULLEY)) {
 
 			if (!canConnect(world, firstPulley, pos))
 				return InteractionResult.FAIL;
 
 			if (firstPulley != null && !firstPulley.equals(pos)) {
 				createBelts(world, firstPulley, pos);
-				// AllAdvancements.BELT.awardTo(playerEntity);
+				AllAdvancements.BELT.awardTo(playerEntity);
 				if (!playerEntity.isCreative())
 					context.getItemInHand()
-						.shrink(1);
+							.shrink(1);
 			}
 
 			if (!context.getItemInHand()
-				.isEmpty()) {
-				heldStack.remove(AllDataComponents.BELT_FIRST_SHAFT);
+					.isEmpty()) {
+				ItemHelper.clearComponents(context.getItemInHand());
 				playerEntity.getCooldowns()
-					.addCooldown(this, 5);
+						.addCooldown(this, 5);
 			}
 			return InteractionResult.SUCCESS;
 		}
-
-		heldStack.set(AllDataComponents.BELT_FIRST_SHAFT, pos);
+		
+		context.getItemInHand().set(AllDataComponents.FIRST_PULLEY, pos);
 		playerEntity.getCooldowns()
-			.addCooldown(this, 5);
+				.addCooldown(this, 5);
 		return InteractionResult.SUCCESS;
 	}
 
 	public static void createBelts(Level world, BlockPos start, BlockPos end) {
 		world.playSound(null, BlockPos.containing(VecHelper.getCenterOf(start.offset(end))
-			.scale(.5f)), SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.5F, 1F);
+				.scale(.5f)), SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.5F, 1F);
 
 		BeltSlope slope = getSlopeBetween(start, end);
 		Direction facing = getFacingFromTo(start, end);
@@ -114,7 +121,7 @@ public class BeltConnectorItem extends BlockItem {
 		BlockPos diff = end.subtract(start);
 		if (diff.getX() == diff.getZ())
 			facing = Direction.get(facing.getAxisDirection(), world.getBlockState(start)
-				.getValue(BlockStateProperties.AXIS) == Axis.X ? Axis.Z : Axis.X);
+					.getValue(BlockStateProperties.AXIS) == Axis.X ? Axis.Z : Axis.X);
 
 		List<BlockPos> beltsToCreate = getBeltChainBetween(start, end, slope, facing);
 		BlockState beltBlock = AllBlocks.BELT.getDefaultState();
@@ -161,7 +168,7 @@ public class BeltConnectorItem extends BlockItem {
 			axisDirection = diff.getY() > 0 ? AxisDirection.POSITIVE : AxisDirection.NEGATIVE;
 		else
 			axisDirection =
-				beltAxis.choose(diff.getX(), 0, diff.getZ()) > 0 ? AxisDirection.POSITIVE : AxisDirection.NEGATIVE;
+					beltAxis.choose(diff.getX(), 0, diff.getZ()) > 0 ? AxisDirection.POSITIVE : AxisDirection.NEGATIVE;
 
 		return Direction.get(axisDirection, beltAxis);
 	}
@@ -178,7 +185,7 @@ public class BeltConnectorItem extends BlockItem {
 	}
 
 	private static List<BlockPos> getBeltChainBetween(BlockPos start, BlockPos end, BeltSlope slope,
-		Direction direction) {
+													  Direction direction) {
 		List<BlockPos> positions = new LinkedList<>();
 		int limit = 1000;
 		BlockPos current = start;
@@ -209,20 +216,20 @@ public class BeltConnectorItem extends BlockItem {
 
 		BlockPos diff = second.subtract(first);
 		Axis shaftAxis = world.getBlockState(first)
-			.getValue(BlockStateProperties.AXIS);
+				.getValue(BlockStateProperties.AXIS);
 
 		int x = diff.getX();
 		int y = diff.getY();
 		int z = diff.getZ();
 		int sames = ((Math.abs(x) == Math.abs(y)) ? 1 : 0) + ((Math.abs(y) == Math.abs(z)) ? 1 : 0)
-			+ ((Math.abs(z) == Math.abs(x)) ? 1 : 0);
+				+ ((Math.abs(z) == Math.abs(x)) ? 1 : 0);
 
 		if (shaftAxis.choose(x, y, z) != 0)
 			return false;
 		if (sames != 1)
 			return false;
 		if (shaftAxis != world.getBlockState(second)
-			.getValue(BlockStateProperties.AXIS))
+				.getValue(BlockStateProperties.AXIS))
 			return false;
 		if (shaftAxis == Axis.Y && x != 0 && z != 0)
 			return false;
@@ -243,7 +250,7 @@ public class BeltConnectorItem extends BlockItem {
 		BlockPos step = BlockPos.containing(Math.signum(diff.getX()), Math.signum(diff.getY()), Math.signum(diff.getZ()));
 		int limit = 1000;
 		for (BlockPos currentPos = first.offset(step); !currentPos.equals(second) && limit-- > 0; currentPos =
-			currentPos.offset(step)) {
+				currentPos.offset(step)) {
 			BlockState blockState = world.getBlockState(currentPos);
 			if (ShaftBlock.isShaft(blockState) && blockState.getValue(AbstractSimpleShaftBlock.AXIS) == shaftAxis)
 				continue;

@@ -2,24 +2,26 @@ package com.simibubi.create.foundation.blockEntity.behaviour.inventory;
 
 import java.util.function.Predicate;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.google.common.base.Predicates;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 
-import dev.architectury.fluid.FluidStack;
-import dev.architectury.hooks.fluid.fabric.FluidStackHooksFabric;
-import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.util.StorageProvider;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 
-public class TankManipulationBehaviour extends CapManipulationBehaviourBase<Storage<FluidVariant>, TankManipulationBehaviour> {
+public class TankManipulationBehaviour extends CapManipulationBehaviourBase<FluidVariant, TankManipulationBehaviour> {
 
 	public static final BehaviourType<TankManipulationBehaviour> OBSERVE = new BehaviourType<>();
 	private BehaviourType<TankManipulationBehaviour> behaviourType;
@@ -29,50 +31,48 @@ public class TankManipulationBehaviour extends CapManipulationBehaviourBase<Stor
 	}
 
 	private TankManipulationBehaviour(BehaviourType<TankManipulationBehaviour> type, SmartBlockEntity be,
-		InterfaceProvider target) {
+			InterfaceProvider target) {
 		super(be, target);
 		behaviourType = type;
 	}
 
 	public FluidStack extractAny() {
 		if (!hasInventory())
-			return FluidStack.empty();
+			return FluidStack.EMPTY;
 		Storage<FluidVariant> inventory = getInventory();
-		if (inventory == null || !inventory.supportsExtraction())
-			return FluidStack.empty();
-		Predicate<FluidVariant> filterTest = getFilterTest(Predicates.alwaysTrue());
-		try (Transaction tx = Transaction.openOuter()) {
+		Predicate<FluidStack> filterTest = getFilterTest(Predicates.alwaysTrue());
+
+		try (Transaction t = TransferUtil.getTransaction()) {
 			for (StorageView<FluidVariant> view : inventory) {
-				if (view.isResourceBlank() || view.getAmount() <= 0)
-					continue;
-				FluidVariant variant = view.getResource();
-				if (!filterTest.test(variant))
-					continue;
-				long extracted = view.extract(variant, Math.min(view.getAmount(), FluidConstants.BUCKET), tx);
-				if (extracted > 0) {
-					if (!simulateNext) {
-						tx.commit();
+				if (!view.isResourceBlank()) {
+					FluidStack stack = new FluidStack(view);
+					if (!filterTest.test(stack))
+						continue;
+					long extracted = view.extract(view.getResource(), view.getAmount(), t);
+					if (extracted != 0) {
+						if (!simulateNext)
+							t.commit();
+						return stack.setAmount(extracted);
 					}
-					simulateNext = false;
-					return FluidStackHooksFabric.fromFabric(variant, extracted);
 				}
 			}
 		}
-		simulateNext = false;
-		return FluidStack.empty();
+
+		return FluidStack.EMPTY;
 	}
 
-	protected Predicate<FluidVariant> getFilterTest(Predicate<FluidVariant> customFilter) {
-		Predicate<FluidVariant> test = customFilter;
+	protected Predicate<FluidStack> getFilterTest(Predicate<FluidStack> customFilter) {
+		Predicate<FluidStack> test = customFilter;
 		FilteringBehaviour filter = blockEntity.getBehaviour(FilteringBehaviour.TYPE);
 		if (filter != null)
-			test = customFilter.and(fv -> filter.test(FluidStackHooksFabric.fromFabric(fv, FluidConstants.BUCKET)));
+			test = customFilter.and(filter::test);
 		return test;
 	}
 
 	@Override
-	protected Storage<FluidVariant> findCapability(Level world, BlockPos pos, Direction side) {
-		return FluidStorage.SIDED.find(world, pos, side);
+	protected StorageProvider<FluidVariant> getProvider(BlockPos pos, boolean bypassSided) {
+		return bypassSided ? new UnsidedFluidStorageProvider(getWorld(), pos)
+				: StorageProvider.createForFluids(getWorld(), pos);
 	}
 
 	@Override
@@ -80,4 +80,15 @@ public class TankManipulationBehaviour extends CapManipulationBehaviourBase<Stor
 		return behaviourType;
 	}
 
+	public static class UnsidedFluidStorageProvider extends UnsidedStorageProvider<FluidVariant> {
+		protected UnsidedFluidStorageProvider(Level level, BlockPos pos) {
+			super(FluidStorage.SIDED, level, pos);
+		}
+
+		@Nullable
+		@Override
+		public Storage<FluidVariant> get() {
+			return TransferUtil.getFluidStorage(level, pos);
+		}
+	}
 }

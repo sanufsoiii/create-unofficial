@@ -4,20 +4,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.gson.JsonElement;
 import com.simibubi.create.AllSoundEvents;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.Components;
 import com.simibubi.create.foundation.utility.DyeHelper;
 import com.simibubi.create.foundation.utility.DynamicComponent;
+import com.simibubi.create.foundation.utility.NBTHelper;
 
-import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -107,16 +109,14 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 	@Override
 	public void tick() {
 		super.tick();
-		isRunning = Math.abs(getSpeed()) > 0;
+		isRunning = super.isSpeedRequirementFulfilled();
 		if ((!level.isClientSide || !isRunning) && !isVirtual())
 			return;
 		int activeFlaps = 0;
-		boolean instant = Math.abs(getSpeed()) > 128;
-		if (lines != null) {
-			for (FlapDisplayLayout line : lines)
-				for (FlapDisplaySection section : line.getSections())
-					activeFlaps += section.tick(instant, level.random);
-		}
+		boolean instant = getSpeed() > 128;
+		for (FlapDisplayLayout line : lines)
+			for (FlapDisplaySection section : line.getSections())
+				activeFlaps += section.tick(instant);
 		if (activeFlaps == 0)
 			return;
 
@@ -129,35 +129,41 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 			.35f * bgVolume, 1.95f, false);
 	}
 
+	@Override
 	protected boolean isNoisy() {
 		return false;
 	}
 
+	@Override
 	public boolean isSpeedRequirementFulfilled() {
 		return isRunning;
 	}
 
-	public void applyTextManually(int lineIndex, Component componentText) {
+	public void applyTextManually(int lineIndex, String rawComponentText) {
 		List<FlapDisplayLayout> lines = getLines();
 		if (lineIndex >= lines.size())
 			return;
-
+		
 		FlapDisplayLayout layout = lines.get(lineIndex);
 		if (!layout.isLayout("Default"))
 			layout.loadDefault(getMaxCharCount());
 		List<FlapDisplaySection> sections = layout.getSections();
 
 		FlapDisplaySection flapDisplaySection = sections.get(0);
-		if (componentText == null) {
+		if (rawComponentText == null) {
 			manualLines[lineIndex] = false;
-			flapDisplaySection.setText(CommonComponents.EMPTY);
+			flapDisplaySection.setText(Components.immutableEmpty());
 			notifyUpdate();
 			return;
 		}
 
+		JsonElement json = DynamicComponent.getJsonFromString(rawComponentText);
+		if (json == null)
+			return;
+
 		manualLines[lineIndex] = true;
-		Component text = isVirtual() ? componentText
-			: DynamicComponent.parseCustomText(level, worldPosition, componentText);
+		Component text = isVirtual() ? Component.Serializer.fromJson(rawComponentText, Create.getRegistryAccess())
+			: DynamicComponent.parseCustomText(level, worldPosition, json);
 		flapDisplaySection.setText(text);
 		if (isVirtual())
 			flapDisplaySection.refresh(true);
@@ -169,7 +175,7 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 		colour[lineIndex] = color == DyeColor.WHITE ? null : color;
 		notifyUpdate();
 	}
-
+	
 	public void setGlowing(int lineIndex) {
 		glowingLines[lineIndex] = true;
 		notifyUpdate();
@@ -196,8 +202,8 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 	}
 
 	@Override
-	protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(tag, registries, clientPacket);
+	protected void write(CompoundTag tag, boolean clientPacket) {
+		super.write(tag, clientPacket);
 
 		tag.putBoolean("Controller", isController);
 		tag.putInt("XSize", xSize);
@@ -206,7 +212,7 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 		for (int j = 0; j < manualLines.length; j++)
 			if (manualLines[j])
 				NBTHelper.putMarker(tag, "CustomLine" + j);
-
+		
 		for (int j = 0; j < glowingLines.length; j++)
 			if (glowingLines[j])
 				NBTHelper.putMarker(tag, "GlowingLine" + j);
@@ -217,12 +223,13 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 
 		List<FlapDisplayLayout> lines = getLines();
 		for (int i = 0; i < lines.size(); i++)
-			tag.put("Display" + i, lines.get(i).write(registries));
+			tag.put("Display" + i, lines.get(i)
+				.write());
 	}
 
 	@Override
-	protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(tag, registries, clientPacket);
+	protected void read(CompoundTag tag, Provider reg, boolean clientPacket) {
+		super.read(tag, reg, clientPacket);
 		boolean wasActive = isController;
 		int prevX = xSize;
 		int prevY = ySize;
@@ -234,7 +241,7 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 		manualLines = new boolean[ySize * 2];
 		for (int i = 0; i < ySize * 2; i++)
 			manualLines[i] = tag.contains("CustomLine" + i);
-
+		
 		glowingLines = new boolean[ySize * 2];
 		for (int i = 0; i < ySize * 2; i++)
 			glowingLines[i] = tag.contains("GlowingLine" + i);
@@ -251,7 +258,7 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 		List<FlapDisplayLayout> lines = getLines();
 		for (int i = 0; i < lines.size(); i++)
 			lines.get(i)
-				.read(tag.getCompound("Display" + i), registries);
+				.read(tag.getCompound("Display" + i));
 	}
 
 	public int getLineIndexAt(double yCoord) {
@@ -313,18 +320,17 @@ public class FlapDisplayBlockEntity extends KineticBlockEntity {
 	}
 
 	@Override
-	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
-	}
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
 
 	public int getLineColor(int line) {
 		DyeColor color = colour[line];
 		return color == null ? 0xFF_D3C6BA
-			: DyeHelper.getDyeColors(color)
-			.getFirst() | 0xFF_000000;
+			: DyeHelper.DYE_TABLE.get(color)
+				.getFirst() | 0xFF_000000;
 	}
-
+	
 	public boolean isLineGlowing(int line) {
 		return glowingLines[line];
 	}
-
+	
 }

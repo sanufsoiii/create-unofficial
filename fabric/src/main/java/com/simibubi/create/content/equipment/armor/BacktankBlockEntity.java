@@ -2,21 +2,24 @@ package com.simibubi.create.content.equipment.armor;
 
 import java.util.List;
 
+import com.mojang.logging.LogUtils;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllDataComponents;
+import com.simibubi.create.AllItems;
 import com.simibubi.create.AllSoundEvents;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.blockEntity.ComparatorUtil;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.particle.AirParticleData;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import net.createmod.catnip.codecs.CatnipCodecUtils;
-import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap.Builder;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -36,30 +39,33 @@ public class BacktankBlockEntity extends KineticBlockEntity implements Nameable 
 	private Component customName;
 
 	private int capacityEnchantLevel;
-
-	private DataComponentPatch componentPatch;
+	private CompoundTag enchantmentTag;
 
 	public BacktankBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
 		defaultName = getDefaultName(state);
-		componentPatch = DataComponentPatch.EMPTY;
+		enchantmentTag = new CompoundTag();
 	}
 
 	public static Component getDefaultName(BlockState state) {
-		return state.getBlock().getName();
+		if (AllBlocks.NETHERITE_BACKTANK.has(state)) {
+			AllItems.NETHERITE_BACKTANK.get().getDescription();
+		}
+
+		return AllItems.COPPER_BACKTANK.get().getDescription();
 	}
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
 		super.addBehaviours(behaviours);
-		// TODO: registerAwardables(behaviours, AllAdvancements.BACKTANK);
+		registerAwardables(behaviours, AllAdvancements.BACKTANK);
 	}
 
 	@Override
 	public void onSpeedChanged(float previousSpeed) {
 		super.onSpeedChanged(previousSpeed);
-		// if (getSpeed() != 0)
-		// 	award(AllAdvancements.BACKTANK);
+		if (getSpeed() != 0)
+			award(AllAdvancements.BACKTANK);
 	}
 
 	@Override
@@ -108,43 +114,29 @@ public class BacktankBlockEntity extends KineticBlockEntity implements Nameable 
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(compound, registries, clientPacket);
+	protected void write(CompoundTag compound, boolean clientPacket) {
+		//LogUtils.getLogger().info("save: "+super.components()+"");
+		super.write(compound, clientPacket);
 		compound.putInt("Air", airLevel);
 		compound.putInt("Timer", airLevelTimer);
 		compound.putInt("CapacityEnchantment", capacityEnchantLevel);
-
 		if (this.customName != null)
-			compound.putString("CustomName", Component.Serializer.toJson(this.customName, registries));
-
-		compound.put("Components", CatnipCodecUtils.encode(DataComponentPatch.CODEC, registries, componentPatch)
-			.orElse(new CompoundTag()));
+			compound.putString("CustomName", Component.Serializer.toJson(this.customName, Create.getRegistryAccess()));
+		compound.put("Enchantments", enchantmentTag);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		super.read(compound, reg, clientPacket);
 		int prev = airLevel;
+		capacityEnchantLevel = compound.getInt("CapacityEnchantment");
 		airLevel = compound.getInt("Air");
 		airLevelTimer = compound.getInt("Timer");
-		capacityEnchantLevel = compound.getInt("CapacityEnchantment");
-
+		enchantmentTag = compound.getCompound("Enchantments");
 		if (compound.contains("CustomName", 8))
-			this.customName = Component.Serializer.fromJson(compound.getString("CustomName"), registries);
-
-		componentPatch = CatnipCodecUtils.decode(DataComponentPatch.CODEC, registries, compound.getCompound("Components")).orElse(DataComponentPatch.EMPTY);
+			this.customName = Component.Serializer.fromJson(compound.getString("CustomName"), Create.getRegistryAccess());
 		if (prev != 0 && prev != airLevel && airLevel == BacktankUtil.maxAir(capacityEnchantLevel) && clientPacket)
 			playFilledEffect();
-	}
-
-	@Override
-	protected void applyImplicitComponents(DataComponentInput componentInput) {
-		setAirLevel(componentInput.getOrDefault(AllDataComponents.BACKTANK_AIR, 0));
-	}
-
-	@Override
-	protected void collectImplicitComponents(Builder components) {
-		components.set(AllDataComponents.BACKTANK_AIR, airLevel);
 	}
 
 	protected void playFilledEffect() {
@@ -162,11 +154,16 @@ public class BacktankBlockEntity extends KineticBlockEntity implements Nameable 
 
 	@Override
 	public Component getName() {
-		return this.customName != null ? this.customName : defaultName;
+		return this.customName != null ? this.customName
+			: defaultName;
 	}
 
 	public int getAirLevel() {
 		return airLevel;
+	}
+	
+	private void changeAirLevel(int airLevel) {
+		
 	}
 
 	public void setAirLevel(int airLevel) {
@@ -178,16 +175,28 @@ public class BacktankBlockEntity extends KineticBlockEntity implements Nameable 
 		this.customName = customName;
 	}
 
+	public Component getCustomName() {
+		return customName;
+	}
+
+	public CompoundTag getEnchantmentTag() {
+		return enchantmentTag;
+	}
+
+	public void setEnchantmentTag(CompoundTag enchantmentTag) {
+		this.enchantmentTag = enchantmentTag;
+	}
+
 	public void setCapacityEnchantLevel(int capacityEnchantLevel) {
 		this.capacityEnchantLevel = capacityEnchantLevel;
 	}
-
-	public void setComponentPatch(DataComponentPatch componentPatch) {
-		this.componentPatch = componentPatch;
-	}
-
-	public DataComponentPatch getComponentPatch() {
-		return componentPatch;
+	
+	@Override
+	public void syncComponents() {
+		DataComponentPatch.Builder builder = DataComponentPatch.builder();
+		super.components().forEach(type -> builder.set((DataComponentType)type.type(), type.value()));
+		builder.set(AllDataComponents.AIR_TANK, airLevel);
+		super.applyComponents(super.components(), builder.build());
 	}
 
 }

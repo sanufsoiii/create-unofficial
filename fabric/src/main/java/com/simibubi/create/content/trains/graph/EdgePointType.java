@@ -10,9 +10,11 @@ import com.simibubi.create.content.trains.signal.SignalBoundary;
 import com.simibubi.create.content.trains.signal.TrackEdgePoint;
 import com.simibubi.create.content.trains.station.GlobalStation;
 
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 
 public class EdgePointType<T extends TrackEdgePoint> {
+
 	public static final Map<ResourceLocation, EdgePointType<?>> TYPES = new HashMap<>();
 	private ResourceLocation id;
 	private Supplier<T> factory;
@@ -44,4 +46,13 @@ public class EdgePointType<T extends TrackEdgePoint> {
 	public ResourceLocation getId() {
 		return id;
 	}
+	
+	public static TrackEdgePoint read(FriendlyByteBuf buffer, DimensionPalette dimensions) {
+		ResourceLocation type = buffer.readResourceLocation();
+		EdgePointType<?> edgePointType = TYPES.get(type);
+		TrackEdgePoint point = edgePointType.create();
+		point.read(buffer, dimensions);
+		return point;
+	}
+
 }

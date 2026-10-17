@@ -1,6 +1,7 @@
 package com.simibubi.create.content.kinetics.mixer;
 
 import com.simibubi.create.AllBlockEntityTypes;
+import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.KineticBlock;
 import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
@@ -27,7 +28,7 @@ public class MechanicalMixerBlock extends KineticBlock implements IBE<Mechanical
 
 	@Override
 	public boolean canSurvive(BlockState state, LevelReader worldIn, BlockPos pos) {
-		return true;
+		return !AllBlocks.BASIN.has(worldIn.getBlockState(pos.below()));
 	}
 
 	@Override
@@ -78,4 +79,5 @@ public class MechanicalMixerBlock extends KineticBlock implements IBE<Mechanical
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;
 	}
+
 }

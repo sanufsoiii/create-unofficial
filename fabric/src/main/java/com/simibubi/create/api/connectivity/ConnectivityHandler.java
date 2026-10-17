@@ -9,22 +9,36 @@ import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.tuple.Pair;
-import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.content.fluids.tank.CreativeFluidTankBlockEntity;
 import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
-import io.github.fabricators_of_create.porting_lib.transfer.TransferUtil;
-import io.github.fabricators_of_create.porting_lib.transfer.fluid.FluidTank;
-import net.createmod.catnip.data.Iterate;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.fluid.FluidTank;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+
+import org.apache.commons.lang3.tuple.Pair;
+
+import javax.annotation.Nullable;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.PriorityQueue;
+import java.util.Set;
 
 public class ConnectivityHandler {
 
@@ -42,6 +56,9 @@ public class ConnectivityHandler {
 		Direction.Axis mainAxis = frontier.get(0)
 			.getMainConnectionAxis();
 
+		// essentially, if it's a vertical multi then the search won't be restricted by
+		// Y
+		// alternately, a horizontal multi search shouldn't be restricted by X or Z
 		int minX = (mainAxis == Direction.Axis.Y ? Integer.MAX_VALUE : Integer.MIN_VALUE);
 		int minY = (mainAxis != Direction.Axis.Y ? Integer.MAX_VALUE : Integer.MIN_VALUE);
 		int minZ = (mainAxis == Direction.Axis.Y ? Integer.MAX_VALUE : Integer.MIN_VALUE);
@@ -129,10 +146,11 @@ public class ConnectivityHandler {
 			
 			if (be instanceof IMultiBlockEntityContainer.Fluid) {
 				IMultiBlockEntityContainer.Fluid ifluid = (IMultiBlockEntityContainer.Fluid) be;
-				if (ifluid.hasTank()) {
+				if(ifluid.hasTank()) {
 					ifluid.setTankSize(0, bestAmount);
 				}
 			}
+				
 
 			tryToFormNewMultiOfWidth(be, bestWidth, cache, false);
 
@@ -158,8 +176,8 @@ public class ConnectivityHandler {
 		FluidTank beTank = null;
 		FluidStack fluid = FluidStack.EMPTY;
 		if (be instanceof IMultiBlockEntityContainer.Fluid) {
-			IMultiBlockEntityContainer.Fluid ifluid = (IMultiBlockEntityContainer.Fluid) be;
-			if (ifluid.hasTank()) {
+			IMultiBlockEntityContainer.Fluid ifluid = (IMultiBlockEntityContainer.Fluid)be;
+			if(ifluid.hasTank()) {
 				beTank = ifluid.getTank(0);
 				fluid = beTank.getFluid();
 			}
@@ -218,9 +236,9 @@ public class ConnectivityHandler {
 					
 					if (controller instanceof IMultiBlockEntityContainer.Fluid) {
 						IMultiBlockEntityContainer.Fluid ifluidCon = (IMultiBlockEntityContainer.Fluid) controller;
-						if (ifluidCon.hasTank()) {
+						if(ifluidCon.hasTank()) {
 							FluidStack otherFluid = ifluidCon.getFluid(0);
-							if (!fluid.isEmpty() && !otherFluid.isEmpty() && !FluidStack.isSameFluidSameComponents(fluid, otherFluid))
+							if (!fluid.isEmpty() && !otherFluid.isEmpty() && !fluid.isFluidEqual(otherFluid))
 								break Search;
 						}
 					}
@@ -253,10 +271,11 @@ public class ConnectivityHandler {
 
 					if (part instanceof IMultiBlockEntityContainer.Fluid) {
 						IMultiBlockEntityContainer.Fluid ifluidPart = (IMultiBlockEntityContainer.Fluid) part;
-						if (ifluidPart.hasTank()) {
+						if(ifluidPart.hasTank()) {
 							FluidTank tankAt = ifluidPart.getTank(0);
 							FluidStack fluidAt = tankAt.getFluid();
 							if (!fluidAt.isEmpty()) {
+								// making this generic would be a rather large mess, unfortunately
 								if (beTank != null && fluid.isEmpty()
 									&& beTank instanceof CreativeFluidTankBlockEntity.CreativeSmartFluidTank) {
 									((CreativeFluidTankBlockEntity.CreativeSmartFluidTank) beTank)
@@ -264,13 +283,14 @@ public class ConnectivityHandler {
 								}
 								if (be instanceof IMultiBlockEntityContainer.Fluid) {
 									IMultiBlockEntityContainer.Fluid ifluidBE = (IMultiBlockEntityContainer.Fluid) be;
-									if (ifluidBE.hasTank() && beTank != null) {
+									if(ifluidBE.hasTank() && beTank != null) {
 										TransferUtil.insertFluid(beTank, fluidAt);
 									}
 								}
 							}
 							TransferUtil.clearStorage(tankAt);
 						}
+						
 					}
 
 					splitMultiAndInvalidate(part, cache, false);
@@ -292,6 +312,7 @@ public class ConnectivityHandler {
 		splitMultiAndInvalidate(be, null, false);
 	}
 
+	// tryReconnect helps whenever only a few tanks have been removed
 	private static <T extends BlockEntity & IMultiBlockEntityContainer> void splitMultiAndInvalidate(T be,
 		@Nullable SearchCache<T> cache, boolean tryReconnect) {
 		Level level = be.getLevel();
@@ -311,11 +332,12 @@ public class ConnectivityHandler {
 		List<T> frontier = new ArrayList<>();
 		Direction.Axis axis = be.getMainConnectionAxis();
 
+		// fluid handling, if present
 		FluidStack toDistribute = FluidStack.EMPTY;
 		long maxCapacity = 0;
 		if (be instanceof IMultiBlockEntityContainer.Fluid) {
 			IMultiBlockEntityContainer.Fluid ifluidBE = (IMultiBlockEntityContainer.Fluid) be;
-			if (ifluidBE.hasTank()) {
+			if(ifluidBE.hasTank()) {
 				toDistribute = ifluidBE.getFluid(0);
 				maxCapacity = ifluidBE.getTankSize(0);
 				if (!toDistribute.isEmpty() && !be.isRemoved())
@@ -349,7 +371,8 @@ public class ConnectivityHandler {
 						FluidStack copy = toDistribute.copy();
 						FluidTank tank =
 							(partAt instanceof IMultiBlockEntityContainer.Fluid ? 
-									((IMultiBlockEntityContainer.Fluid) partAt).getTank(0) : null);
+									((IMultiBlockEntityContainer.Fluid)partAt).getTank(0) : null);
+						// making this generic would be a rather large mess, unfortunately
 						if (tank instanceof CreativeFluidTankBlockEntity.CreativeSmartFluidTank) {
 							CreativeFluidTankBlockEntity.CreativeSmartFluidTank creativeTank = 
 									(CreativeFluidTankBlockEntity.CreativeSmartFluidTank) tank;

@@ -2,14 +2,14 @@ package com.simibubi.create.content.kinetics.steamEngine;
 
 import java.util.List;
 
-import com.simibubi.create.api.stress.BlockStressValues;
+import com.simibubi.create.content.kinetics.BlockStressValues;
 import com.simibubi.create.content.kinetics.base.GeneratingKineticBlockEntity;
+import com.simibubi.create.foundation.utility.NbtFixer;
+import com.simibubi.create.foundation.utility.RegisteredObjects;
 
-import net.createmod.catnip.nbt.NBTHelper;
-import net.createmod.catnip.registry.RegisteredObjectsHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -51,7 +51,7 @@ public class PoweredShaftBlockEntity extends GeneratingKineticBlockEntity {
 			return;
 
 		capacityKey = level.getBlockState(sourcePos)
-			.getBlock();
+				.getBlock();
 		this.movementDirection = direction;
 		updateGeneratedRotation();
 	}
@@ -77,29 +77,28 @@ public class PoweredShaftBlockEntity extends GeneratingKineticBlockEntity {
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("Direction", movementDirection);
 		if (initialTicks > 0)
 			compound.putInt("Warmup", initialTicks);
 		if (enginePos != null && capacityKey != null) {
 			compound.put("EnginePos", NbtUtils.writeBlockPos(enginePos));
 			compound.putFloat("EnginePower", engineEfficiency);
-			compound.putString("EngineType", RegisteredObjectsHelper.getKeyOrThrow(capacityKey)
-				.toString());
+			compound.putString("EngineType", RegisteredObjects.getKeyOrThrow(capacityKey)
+					.toString());
 		}
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(compound, registries, clientPacket);
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
+		super.read(compound, reg, clientPacket);
 		movementDirection = compound.getInt("Direction");
 		initialTicks = compound.getInt("Warmup");
 		enginePos = null;
 		engineEfficiency = 0;
-
 		if (compound.contains("EnginePos")) {
-			enginePos = NBTHelper.readBlockPos(compound, "EnginePos");
+			enginePos = NbtFixer.readBlockPos(compound, "EnginePos");
 			engineEfficiency = compound.getFloat("EnginePower");
 			capacityKey = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(compound.getString("EngineType")));
 		}

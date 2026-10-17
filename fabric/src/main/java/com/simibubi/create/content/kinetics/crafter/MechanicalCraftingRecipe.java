@@ -1,17 +1,21 @@
 package com.simibubi.create.content.kinetics.crafter;
 
-import org.jetbrains.annotations.NotNull;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.simibubi.create.AllRecipeTypes;
-import com.simibubi.create.foundation.mixin.accessor.ShapedRecipeAccessor;
 
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
@@ -20,49 +24,53 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapedRecipePattern;
+import net.minecraft.world.item.crafting.ShapedRecipePattern.Data;
 import net.minecraft.world.level.Level;
 
 public class MechanicalCraftingRecipe extends ShapedRecipe {
-	private final boolean acceptMirrored;
 
-	public MechanicalCraftingRecipe(String groupIn, CraftingBookCategory category,
-									ShapedRecipePattern pattern, ItemStack recipeOutputIn, boolean acceptMirrored) {
-		super(groupIn, category, pattern, recipeOutputIn, acceptMirrored);
+	private boolean acceptMirrored;
+
+	public MechanicalCraftingRecipe(ResourceLocation idIn, String groupIn, int recipeWidthIn, int recipeHeightIn,
+		NonNullList<Ingredient> recipeItemsIn, Optional<Data> data, ItemStack recipeOutputIn, boolean acceptMirrored) {
+		super(groupIn, CraftingBookCategory.MISC, new ShapedRecipePattern(recipeWidthIn, recipeHeightIn, recipeItemsIn, data), recipeOutputIn);
+		//super(groupIn, CraftingBookCategory.MISC, null, recipeOutputIn);
 		this.acceptMirrored = acceptMirrored;
 	}
 
-	private static MechanicalCraftingRecipe fromShaped(ShapedRecipe recipe, boolean acceptMirrored) {
-		return new MechanicalCraftingRecipe(recipe.getGroup(), recipe.category(), ((ShapedRecipeAccessor) recipe).create$getPattern(), recipe.getResultItem(null), acceptMirrored);
+	public static MechanicalCraftingRecipe fromShaped(ShapedRecipe recipe, boolean acceptMirrored) {
+		return new MechanicalCraftingRecipe(ResourceLocation.parse(""), recipe.getGroup(), recipe.getWidth(), recipe.getHeight(),
+			recipe.getIngredients(), recipe.pattern.data, recipe.getResultItem(null), acceptMirrored);
 	}
 
 	@Override
-	public boolean matches(CraftingInput input, Level worldIn) {
-		if (!(input instanceof MechanicalCraftingInput))
-			return false;
+	public boolean matches(CraftingInput inv, Level worldIn) {
+		//if (!(inv instanceof MechanicalCraftingInventory))
+			//return false;
 		if (acceptsMirrored())
-			return super.matches(input, worldIn);
+			return super.matches(inv, worldIn);
 
 		// From ShapedRecipe except the symmetry
-		for (int i = 0; i <= input.width() - this.getWidth(); ++i)
-			for (int j = 0; j <= input.height() - this.getHeight(); ++j)
-				if (this.matchesSpecific(input, i, j))
+		for (int i = 0; i <= inv.width() - this.getWidth(); ++i)
+			for (int j = 0; j <= inv.height() - this.getHeight(); ++j)
+				if (this.matchesSpecific(inv, i, j))
 					return true;
 		return false;
 	}
 
 	// From ShapedRecipe
-	private boolean matchesSpecific(CraftingInput input, int p_77573_2_, int p_77573_3_) {
+	private boolean matchesSpecific(CraftingInput inv, int p_77573_2_, int p_77573_3_) {
 		NonNullList<Ingredient> ingredients = getIngredients();
 		int width = getWidth();
 		int height = getHeight();
-		for (int i = 0; i < input.width(); ++i) {
-			for (int j = 0; j < input.height(); ++j) {
+		for (int i = 0; i < inv.width(); ++i) {
+			for (int j = 0; j < inv.height(); ++j) {
 				int k = i - p_77573_2_;
 				int l = j - p_77573_3_;
 				Ingredient ingredient = Ingredient.EMPTY;
 				if (k >= 0 && l >= 0 && k < width && l < height)
 					ingredient = ingredients.get(k + l * width);
-				if (!ingredient.test(input.getItem(i + j * input.width())))
+				if (!ingredient.test(inv.getItem(i + j * inv.width())))
 					return false;
 			}
 		}
@@ -80,7 +88,7 @@ public class MechanicalCraftingRecipe extends ShapedRecipe {
 	}
 
 	@Override
-	public @NotNull RecipeSerializer<?> getSerializer() {
+	public RecipeSerializer<?> getSerializer() {
 		return AllRecipeTypes.MECHANICAL_CRAFTING.getSerializer();
 	}
 
@@ -88,26 +96,107 @@ public class MechanicalCraftingRecipe extends ShapedRecipe {
 		return acceptMirrored;
 	}
 
-	public static class Serializer implements RecipeSerializer<MechanicalCraftingRecipe> {
-		public static final MapCodec<MechanicalCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-			RecipeSerializer.SHAPED_RECIPE.codec().forGetter(t -> t),
-			Codec.BOOL.fieldOf("accept_mirrored").forGetter(MechanicalCraftingRecipe::acceptsMirrored)
-		).apply(instance, MechanicalCraftingRecipe::fromShaped));
-
-		public static final StreamCodec<RegistryFriendlyByteBuf, MechanicalCraftingRecipe> STREAM_CODEC = StreamCodec.composite(
-			ShapedRecipe.Serializer.STREAM_CODEC, i -> i,
-			ByteBufCodecs.BOOL, i -> i.acceptMirrored,
-			MechanicalCraftingRecipe::fromShaped
+	public static class Serializer extends ShapedRecipe.Serializer {
+		
+		private static final Codec<List<String>> PATTERN_CODEC = Codec.STRING.listOf().comapFlatMap(list -> {
+            if (list.size() > 5) {
+                return DataResult.error(() -> "Invalid pattern: too many rows, 5 is maximum");
+            }
+            if (list.isEmpty()) {
+                return DataResult.error(() -> "Invalid pattern: empty pattern not allowed");
+            }
+            int i = ((String)list.get(0)).length();
+            for (String string : list) {
+                if (string.length() > 5) {
+                    return DataResult.error(() -> "Invalid pattern: too many columns, 5 is maximum");
+                }
+                if (i == string.length()) continue;
+                return DataResult.error(() -> "Invalid pattern: each row must be the same width");
+            }
+            return DataResult.success(list);
+        }, Function.identity());
+		
+        private static final Codec<Character> SYMBOL_CODEC = Codec.STRING.comapFlatMap(string -> {
+            if (string.length() != 1) {
+                return DataResult.error(() -> "Invalid key entry: '" + string + "' is an invalid symbol (must be 1 character only).");
+            }
+            if (" ".equals(string)) {
+                return DataResult.error(() -> "Invalid key entry: ' ' is a reserved symbol.");
+            }
+            return DataResult.success(Character.valueOf(string.charAt(0)));
+        }, String::valueOf);
+        
+        public static final MapCodec<Data> MAP_CODEC = RecordCodecBuilder.mapCodec(
+        		instance -> instance.group(
+        				(ExtraCodecs.strictUnboundedMap(SYMBOL_CODEC, Ingredient.CODEC_NONEMPTY).fieldOf("key")).forGetter(data -> data.key()), 
+        				(PATTERN_CODEC.fieldOf("pattern")).forGetter(data -> data.pattern())
+        		).apply(instance, Data::new)
+        );
+   
+        public static final MapCodec<ShapedRecipePattern> RESULT_CODEC = MAP_CODEC.flatXmap(ShapedRecipePattern::unpack, 
+				shapedRecipePattern -> shapedRecipePattern.data.map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Cannot encode unpacked recipe"))
 		);
+        
+		
+		public static final MapCodec<ShapedRecipe> CODEC = RecordCodecBuilder.mapCodec(
+				instance -> instance.group(
+						Codec.optionalField("group", Codec.STRING, false).forGetter(shapedRecipe -> Optional.of(shapedRecipe.getGroup())), 
+						(CraftingBookCategory.CODEC.fieldOf("category")).orElse(CraftingBookCategory.MISC).forGetter(shapedRecipe -> shapedRecipe.category()), 
+						RESULT_CODEC.forGetter(shapedRecipe -> shapedRecipe.pattern), 
+						(ItemStack.CODEC.fieldOf("result")).forGetter(shapedRecipe -> shapedRecipe.getResultItem(null)), 
+						Codec.optionalField("show_notification", Codec.BOOL, false).forGetter(shapedRecipe -> Optional.of(shapedRecipe.showNotification())),
+						Codec.BOOL.fieldOf("acceptMirrored").forGetter(shapedRecipe -> false)
+				).apply(instance, (group, cate, pat, stack, show, mirror) -> {
+						ShapedRecipe rec = new ShapedRecipe(group.isEmpty() ? "undefined" : group.get(), cate, pat, stack, show.isEmpty() ? true : show.get());
+						return fromShaped(rec, mirror);
+				})
+		);
+		
+		public static final StreamCodec<RegistryFriendlyByteBuf, ShapedRecipe> STREAM_CODEC = new StreamCodec<RegistryFriendlyByteBuf, ShapedRecipe>(){
+
+			@Override
+			public ShapedRecipe decode(RegistryFriendlyByteBuf buffer) {
+				return fromShaped(ShapedRecipe.Serializer.STREAM_CODEC.decode(buffer), buffer.readBoolean() && buffer.readBoolean());
+			}
+
+			@Override
+			public void encode(RegistryFriendlyByteBuf buffer, ShapedRecipe recipe) {
+				ShapedRecipe.Serializer.STREAM_CODEC.encode(buffer, recipe);
+				if (recipe instanceof MechanicalCraftingRecipe) {
+					buffer.writeBoolean(true);
+					buffer.writeBoolean(((MechanicalCraftingRecipe) recipe).acceptsMirrored());
+				} else {
+					buffer.writeBoolean(false);
+				}
+			}
+			
+		};
 
 		@Override
-		public @NotNull MapCodec<MechanicalCraftingRecipe> codec() {
+		public MapCodec<ShapedRecipe> codec() {
 			return CODEC;
 		}
-
+		
 		@Override
-		public @NotNull StreamCodec<RegistryFriendlyByteBuf, MechanicalCraftingRecipe> streamCodec() {
+		public StreamCodec<RegistryFriendlyByteBuf, ShapedRecipe> streamCodec() {
 			return STREAM_CODEC;
 		}
+
+//		@Override
+//		public ShapedRecipe fromNetwork(FriendlyByteBuf buffer) {
+//			return fromShaped(super.fromNetwork(buffer), buffer.readBoolean() && buffer.readBoolean());
+//		}
+//
+//		@Override
+//		public void toNetwork(FriendlyByteBuf p_199427_1_, ShapedRecipe p_199427_2_) {
+//			super.toNetwork(p_199427_1_, p_199427_2_);
+//			if (p_199427_2_ instanceof MechanicalCraftingRecipe) {
+//				p_199427_1_.writeBoolean(true);
+//				p_199427_1_.writeBoolean(((MechanicalCraftingRecipe) p_199427_2_).acceptsMirrored());
+//			} else
+//				p_199427_1_.writeBoolean(false);
+//		}
+
 	}
+
 }

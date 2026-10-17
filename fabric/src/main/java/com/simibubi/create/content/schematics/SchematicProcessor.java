@@ -2,11 +2,14 @@ package com.simibubi.create.content.schematics;
 
 import java.util.Optional;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import com.simibubi.create.AllStructureProcessorTypes;
+import com.simibubi.create.foundation.utility.NBTProcessors;
 
-import net.createmod.catnip.nbt.NBTProcessors;
+import io.github.fabricators_of_create.porting_lib_ufo.extensions.extensions.StructureProcessorExtensions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
@@ -20,12 +23,12 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProc
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
-public class SchematicProcessor extends StructureProcessor {
+public class SchematicProcessor extends StructureProcessor implements StructureProcessorExtensions {
 	public static final SchematicProcessor INSTANCE = new SchematicProcessor();
-	public static final MapCodec<SchematicProcessor> CODEC = MapCodec.unit(() -> INSTANCE);
+	public static final MapCodec<SchematicProcessor> CODEC = MapCodec.unit(() -> {
+		return INSTANCE;
+	});
 
-	private SchematicProcessor() {
-	}
 
 	@Nullable
 	@Override
@@ -34,7 +37,7 @@ public class SchematicProcessor extends StructureProcessor {
 		if (info.nbt() != null && info.state().hasBlockEntity()) {
 			BlockEntity be = ((EntityBlock) info.state().getBlock()).newBlockEntity(info.pos(), info.state());
 			if (be != null) {
-				CompoundTag nbt = NBTProcessors.process(info.state(), be, info.nbt(), false);
+				CompoundTag nbt = NBTProcessors.process(be, info.nbt(), false);
 				if (nbt != info.nbt())
 					return new StructureTemplate.StructureBlockInfo(info.pos(), info.state(), nbt);
 			}
@@ -59,6 +62,7 @@ public class SchematicProcessor extends StructureProcessor {
 
 	@Override
 	protected StructureProcessorType<?> getType() {
-		return StructureProcessorType.BLOCK_ROT;
+		return AllStructureProcessorTypes.SCHEMATIC.get();
 	}
+
 }

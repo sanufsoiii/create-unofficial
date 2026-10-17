@@ -41,20 +41,20 @@ public class ItemDrainBlock extends Block implements IWrenchable, IBE<ItemDrainB
 	public ItemDrainBlock(Properties p_i48440_1_) {
 		super(p_i48440_1_);
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
 			Player player, InteractionHand handIn, BlockHitResult hitResult) {
-
+		
 		ItemStack heldItem = player.getItemInHand(handIn);
-		if (heldItem.isEmpty())
+		if(heldItem.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 
 		if (heldItem.getItem() instanceof BlockItem
 			&& ContainerItemContext.withConstant(heldItem).find(FluidStorage.ITEM) == null)
 			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 
-		return onBlockEntityUseItemOn(worldIn, pos, be -> {
+		return onBlockEntityUse(worldIn, pos, be -> {
 			if (!heldItem.isEmpty()) {
 				be.internalTank.allowInsertion();
 				ItemInteractionResult tryExchange = tryExchange(worldIn, player, handIn, heldItem, be, Direction.DOWN); // up prohibits insertion
@@ -72,12 +72,17 @@ public class ItemDrainBlock extends Block implements IWrenchable, IBE<ItemDrainB
 			}
 			return ItemInteractionResult.SUCCESS;
 		});
+		
 	}
-
+	
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
 			BlockHitResult hitResult) {
+		
+		ItemStack heldItem = ItemStack.EMPTY;
+
 		return onBlockEntityUse(worldIn, pos, be -> {
+
 			ItemStack heldItemStack = be.getHeldItemStack();
 			if (!worldIn.isClientSide && !heldItemStack.isEmpty()) {
 				player.getInventory()
@@ -85,8 +90,9 @@ public class ItemDrainBlock extends Block implements IWrenchable, IBE<ItemDrainB
 				be.heldItem = null;
 				be.notifyUpdate();
 			}
-			return InteractionResult.SUCCESS;
-		});
+			return ItemInteractionResult.SUCCESS;
+		}).result();
+		
 	}
 
 	@Override
@@ -111,7 +117,7 @@ public class ItemDrainBlock extends Block implements IWrenchable, IBE<ItemDrainB
 		ItemStack remainder = inputBehaviour.handleInsertion(itemEntity.getItem(), nearest, false);
 		itemEntity.setItem(remainder);
 		if (remainder.isEmpty())
-			entityIn.discard();
+			itemEntity.discard();
 	}
 
 	protected ItemInteractionResult tryExchange(Level worldIn, Player player, InteractionHand handIn, ItemStack heldItem,

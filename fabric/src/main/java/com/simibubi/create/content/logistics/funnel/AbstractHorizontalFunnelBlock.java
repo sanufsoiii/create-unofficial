@@ -12,11 +12,11 @@ import net.minecraft.world.level.block.state.properties.DirectionProperty;
 public abstract class AbstractHorizontalFunnelBlock extends AbstractFunnelBlock {
 
 	public static final DirectionProperty HORIZONTAL_FACING = BlockStateProperties.HORIZONTAL_FACING;
-
+	
 	protected AbstractHorizontalFunnelBlock(Properties p_i48377_1_) {
 		super(p_i48377_1_);
 	}
-
+	
 	@Override
 	protected void createBlockStateDefinition(Builder<Block, BlockState> builder) {
 		super.createBlockStateDefinition(builder.add(HORIZONTAL_FACING));
@@ -26,7 +26,7 @@ public abstract class AbstractHorizontalFunnelBlock extends AbstractFunnelBlock 
 	protected Direction getFacing(BlockState state) {
 		return state.getValue(HORIZONTAL_FACING);
 	}
-
+	
 	@Override
 	public BlockState rotate(BlockState p_185499_1_, Rotation p_185499_2_) {
 		return p_185499_1_.setValue(HORIZONTAL_FACING, p_185499_2_.rotate(p_185499_1_.getValue(HORIZONTAL_FACING)));

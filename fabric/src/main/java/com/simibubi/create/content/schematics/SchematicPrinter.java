@@ -7,18 +7,18 @@ import java.util.stream.Collectors;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.Create;
-import com.simibubi.create.api.contraption.BlockMovementChecks;
+import com.simibubi.create.content.contraptions.BlockMovementChecks;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.schematics.cannon.MaterialChecklist;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.foundation.blockEntity.IMergeableBE;
+import com.simibubi.create.foundation.utility.BBHelper;
 import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.NbtFixer;
 
-import net.createmod.catnip.levelWrappers.SchematicLevel;
-import net.createmod.catnip.math.BBHelper;
-import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -26,7 +26,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
@@ -35,7 +34,6 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.level.material.Fluids;
 
 public class SchematicPrinter {
 
@@ -45,7 +43,7 @@ public class SchematicPrinter {
 
 	private boolean schematicLoaded;
 	private boolean isErrored;
-	private SchematicLevel blockReader;
+	private SchematicWorld blockReader;
 	private BlockPos schematicAnchor;
 
 	private BlockPos currentPos;
@@ -61,20 +59,21 @@ public class SchematicPrinter {
 
 	public void fromTag(CompoundTag compound, boolean clientPacket) {
 		if (compound.contains("CurrentPos"))
-			currentPos = NBTHelper.readBlockPos(compound, "CurrentPos");
+			currentPos = NbtFixer.readBlockPos(compound, "CurrentPos");
 		if (clientPacket) {
 			schematicLoaded = false;
 			if (compound.contains("Anchor")) {
-				schematicAnchor = NBTHelper.readBlockPos(compound, "Anchor");
+				schematicAnchor = NbtFixer.readBlockPos(compound, "Anchor");
 				schematicLoaded = true;
 			}
 		}
 
 		printingEntityIndex = compound.getInt("EntityProgress");
 		printStage = PrintStage.valueOf(compound.getString("PrintStage"));
-		compound.getList("DeferredBlocks", 10).stream()
-			.map(p -> NBTHelper.readBlockPos((CompoundTag) p, "Pos"))
-			.collect(Collectors.toCollection(() -> deferredBlocks));
+//		compound.getList("DeferredBlocks", 10).stream()
+//				.map(p -> NbtUtils.readBlockPos((CompoundTag) p))
+//				.collect(Collectors.toCollection(() -> deferredBlocks));
+		deferredBlocks = NbtFixer.readBlockPosList(compound, "DeferredBlocks");
 	}
 
 	public void write(CompoundTag compound) {
@@ -82,27 +81,25 @@ public class SchematicPrinter {
 			compound.put("CurrentPos", NbtUtils.writeBlockPos(currentPos));
 		if (schematicAnchor != null)
 			compound.put("Anchor", NbtUtils.writeBlockPos(schematicAnchor));
+
 		compound.putInt("EntityProgress", printingEntityIndex);
 		compound.putString("PrintStage", printStage.name());
 		ListTag tagDeferredBlocks = new ListTag();
-		for (BlockPos p : deferredBlocks) {
-			CompoundTag tag = new CompoundTag();
-			tag.put("Pos", NbtUtils.writeBlockPos(p));
-			tagDeferredBlocks.add(tag);
-		}
+		for (BlockPos p : deferredBlocks)
+			tagDeferredBlocks.add(NbtUtils.writeBlockPos(p));
 		compound.put("DeferredBlocks", tagDeferredBlocks);
 	}
 
 	public void loadSchematic(ItemStack blueprint, Level originalWorld, boolean processNBT) {
-		if (!blueprint.has(AllDataComponents.SCHEMATIC_ANCHOR) || !blueprint.has(AllDataComponents.SCHEMATIC_DEPLOYED))
+		if (!blueprint.has(AllDataComponents.SCHEMATIC_DATA) || !blueprint.get(AllDataComponents.SCHEMATIC_DATA).getBoolean("Deployed"))
 			return;
 
 		StructureTemplate activeTemplate =
-			SchematicItem.loadSchematic(originalWorld, blueprint);
+			SchematicItem.loadSchematic(originalWorld.holderLookup(Registries.BLOCK), blueprint);
 		StructurePlaceSettings settings = SchematicItem.getSettings(blueprint, processNBT);
 
-		schematicAnchor = blueprint.get(AllDataComponents.SCHEMATIC_ANCHOR);
-		blockReader = new SchematicLevel(schematicAnchor, originalWorld);
+		schematicAnchor = NbtFixer.readBlockPos(blueprint.get(AllDataComponents.SCHEMATIC_DATA), "Anchor");
+		blockReader = new SchematicWorld(schematicAnchor, originalWorld);
 
 		try {
 			activeTemplate.placeInWorld(blockReader, schematicAnchor, schematicAnchor, settings,
@@ -115,11 +112,11 @@ public class SchematicPrinter {
 		}
 
 		BlockPos extraBounds = StructureTemplate.calculateRelativePosition(settings, new BlockPos(activeTemplate.getSize())
-			.offset(-1, -1, -1));
-		blockReader.setBounds(BBHelper.encapsulate(blockReader.getBounds(), extraBounds));
+				.offset(-1, -1, -1));
+		blockReader.bounds = BBHelper.encapsulate(blockReader.bounds, extraBounds);
 
 		StructureTransform transform = new StructureTransform(settings.getRotationPivot(), Direction.Axis.Y,
-			settings.getRotation(), settings.getMirror());
+				settings.getRotation(), settings.getMirror());
 		for (BlockEntity be : blockReader.getBlockEntities())
 			transform.apply(be);
 
@@ -166,6 +163,7 @@ public class SchematicPrinter {
 
 	public boolean isWorldEmpty() {
 		return blockReader.getAllPositions().isEmpty();
+		//return blockReader.getBounds().getLength().equals(new Vector3i(0,0,0));
 	}
 
 	@FunctionalInterface
@@ -182,7 +180,9 @@ public class SchematicPrinter {
 		BlockPos target = getCurrentTarget();
 
 		if (printStage == PrintStage.ENTITIES) {
-			Entity entity = blockReader.getEntityList().get(printingEntityIndex);
+			Entity entity = blockReader.getEntityStream()
+					.collect(Collectors.toList())
+					.get(printingEntityIndex);
 			entityHandler.handle(target, entity);
 		} else {
 			BlockState blockState = BlockHelper.setZeroAge(blockReader.getBlockState(target));
@@ -220,14 +220,14 @@ public class SchematicPrinter {
 		BlockState toReplaceOther = null;
 
 		if (state.hasProperty(BlockStateProperties.BED_PART) && state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)
-			&& state.getValue(BlockStateProperties.BED_PART) == BedPart.FOOT)
+				&& state.getValue(BlockStateProperties.BED_PART) == BedPart.FOOT)
 			toReplaceOther = world.getBlockState(pos.relative(state.getValue(BlockStateProperties.HORIZONTAL_FACING)));
 		if (state.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
-			&& state.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER)
+				&& state.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER)
 			toReplaceOther = world.getBlockState(pos.above());
 
-		boolean mergeTEs = blockEntity != null && toReplaceBE instanceof IMergeableBE && toReplaceBE.getType()
-			.equals(blockEntity.getType());
+		boolean mergeTEs = blockEntity != null && toReplaceBE instanceof IMergeableBE mergeBE && toReplaceBE.getType()
+				.equals(blockEntity.getType());
 
 		if (!world.isLoaded(pos))
 			return false;
@@ -236,7 +236,7 @@ public class SchematicPrinter {
 		if (toReplace == state && !mergeTEs)
 			return false;
 		if (toReplace.getDestroySpeed(world, pos) == -1
-			|| (toReplaceOther != null && toReplaceOther.getDestroySpeed(world, pos) == -1))
+				|| (toReplaceOther != null && toReplaceOther.getDestroySpeed(world, pos) == -1))
 			return false;
 
 		boolean isNormalCube = state.isRedstoneConductor(blockReader, currentPos);
@@ -245,17 +245,13 @@ public class SchematicPrinter {
 
 	public ItemRequirement getCurrentRequirement() {
 		if (printStage == PrintStage.ENTITIES)
-			return ItemRequirement.of(blockReader.getEntityList().get(printingEntityIndex));
+			return ItemRequirement.of(blockReader.getEntityStream()
+					.collect(Collectors.toList())
+					.get(printingEntityIndex));
 
 		BlockPos target = getCurrentTarget();
 		BlockState blockState = BlockHelper.setZeroAge(blockReader.getBlockState(target));
-		BlockEntity blockEntity = null;
-		if (blockState.hasBlockEntity()) {
-			blockEntity = ((EntityBlock) blockState.getBlock()).newBlockEntity(target, blockState);
-			CompoundTag data = BlockHelper.prepareBlockEntityData(blockReader, blockState, blockReader.getBlockEntity(target));
-			if (blockEntity != null && data != null)
-				blockEntity.loadWithComponents(data, blockReader.registryAccess());
-		}
+		BlockEntity blockEntity = blockReader.getBlockEntity(target);
 		return ItemRequirement.of(blockState, blockEntity);
 	}
 
@@ -284,18 +280,19 @@ public class SchematicPrinter {
 	}
 
 	public void markAllEntityRequirements(MaterialChecklist checklist) {
-		for (Entity entity : blockReader.getEntityList()) {
-			ItemRequirement requirement = ItemRequirement.of(entity);
-			if (requirement.isEmpty())
-				return;
-			if (requirement.isInvalid())
-				return;
-			checklist.require(requirement);
-		}
+		blockReader.getEntityStream()
+				.forEach(entity -> {
+					ItemRequirement requirement = ItemRequirement.of(entity);
+					if (requirement.isEmpty())
+						return;
+					if (requirement.isInvalid())
+						return;
+					checklist.require(requirement);
+				});
 	}
 
 	public boolean advanceCurrentPos() {
-		List<Entity> entities = blockReader.getEntityList();
+		List<Entity> entities = blockReader.getEntityStream().collect(Collectors.toList());
 
 		do {
 			if (printStage == PrintStage.BLOCKS) {
@@ -348,18 +345,7 @@ public class SchematicPrinter {
 
 	public static boolean shouldDeferBlock(BlockState state) {
 		return AllBlocks.GANTRY_CARRIAGE.has(state) || AllBlocks.MECHANICAL_ARM.has(state)
-			|| BlockMovementChecks.isBrittle(state);
-	}
-
-	public void sendBlockUpdates(Level level) {
-		BoundingBox bounds = blockReader.getBounds();
-		BlockPos.betweenClosedStream(bounds.inflatedBy(1))
-			.filter(pos -> !bounds.isInside(pos))
-			.filter(
-				pos -> level.isLoaded(pos.offset(schematicAnchor)) && level.getFluidState(pos.offset(schematicAnchor))
-					.is(Fluids.WATER))
-			.forEach(
-				pos -> level.scheduleTick(pos.offset(schematicAnchor), Fluids.WATER, Fluids.WATER.getTickDelay(level)));
+				|| BlockMovementChecks.isBrittle(state);
 	}
 
 }

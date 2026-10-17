@@ -1,12 +1,17 @@
 package com.simibubi.create.content.kinetics.crank;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.foundation.utility.BlockHelper;
-import net.createmod.catnip.data.Couple;
+import com.simibubi.create.foundation.utility.Couple;
 
+import io.github.fabricators_of_create.porting_lib_ufo.util.TagUtil;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -22,21 +27,24 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+@ParametersAreNonnullByDefault
 public class ValveHandleBlock extends HandCrankBlock {
 
-	public final DyeColor color;
+	private final DyeColor color;
+	private final boolean inCreativeTab;
 
 	public static ValveHandleBlock copper(Properties properties) {
-		return new ValveHandleBlock(properties, null);
+		return new ValveHandleBlock(properties, null, true);
 	}
 
 	public static ValveHandleBlock dyed(Properties properties, DyeColor color) {
-		return new ValveHandleBlock(properties, color);
+		return new ValveHandleBlock(properties, color, false);
 	}
 
-	private ValveHandleBlock(Properties properties, DyeColor color) {
+	private ValveHandleBlock(Properties properties, DyeColor color, boolean inCreativeTab) {
 		super(properties);
 		this.color = color;
+		this.inCreativeTab = inCreativeTab;
 	}
 
 	@Override
@@ -70,29 +78,27 @@ public class ValveHandleBlock extends HandCrankBlock {
 
 	public boolean clicked(Level level, BlockPos pos, BlockState blockState, Player player, InteractionHand hand) {
 		ItemStack heldItem = player.getItemInHand(hand);
-		if (heldItem.getItem() instanceof net.minecraft.world.item.DyeItem dyeItem) {
-			DyeColor color = dyeItem.getDyeColor();
-			if (color != this.color) {
-				if (!level.isClientSide)
-					level.setBlockAndUpdate(pos, BlockHelper.copyProperties(blockState,
-							AllBlocks.DYED_VALVE_HANDLES.get(color).getDefaultState()));
-				return true;
-			}
+		DyeColor color = TagUtil.getColorFromStack(heldItem);
+		if (color != null && color != this.color) {
+			if (!level.isClientSide)
+				level.setBlockAndUpdate(pos, BlockHelper.copyProperties(blockState,
+						AllBlocks.DYED_VALVE_HANDLES.get(color).getDefaultState()));
+			return true;
 		}
 
-		withBlockEntityDo(level, pos, hcbe -> {
-			if (hcbe instanceof ValveHandleBlockEntity vhbe)
-				vhbe.activate(player.isShiftKeyDown());
-		});
+		onBlockEntityUse(level, pos,
+				hcbe -> (hcbe instanceof ValveHandleBlockEntity vhbe) && vhbe.activate(player.isShiftKeyDown())
+						? ItemInteractionResult.SUCCESS
+						: ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION);
 		return true;
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
 			Player player, InteractionHand handIn, BlockHitResult hitResult) {
 		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 	}
-
+	
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
 			BlockHitResult hitResult) {

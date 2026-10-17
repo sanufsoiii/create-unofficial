@@ -5,17 +5,17 @@ import java.util.List;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllTags.AllItemTags;
-import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.fluids.tank.FluidTankBlock;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock.HeatLevel;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.utility.AngleHelper;
+import com.simibubi.create.foundation.utility.Lang;
+import com.simibubi.create.foundation.utility.VecHelper;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 
-import io.github.fabricators_of_create.porting_lib.transfer.callbacks.TransactionCallback;
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
-import net.createmod.catnip.math.AngleHelper;
-import net.createmod.catnip.math.VecHelper;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.callbacks.TransactionCallback;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
@@ -25,7 +25,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -38,7 +38,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-public class BlazeBurnerBlockEntity extends SmartBlockEntity implements IHaveGoggleInformation {
+public class BlazeBurnerBlockEntity extends SmartBlockEntity {
 
 	public static final int MAX_HEAT_CAPACITY = 10000;
 	public static final int INSERTION_THRESHOLD = 500;
@@ -147,7 +147,7 @@ public class BlazeBurnerBlockEntity extends SmartBlockEntity implements IHaveGog
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		if (!isCreative) {
 			compound.putInt("fuelLevel", activeFuel.ordinal());
 			compound.putInt("burnTimeRemaining", remainingBurnTime);
@@ -157,17 +157,17 @@ public class BlazeBurnerBlockEntity extends SmartBlockEntity implements IHaveGog
 			compound.putBoolean("Goggles", true);
 		if (hat)
 			compound.putBoolean("TrainHat", true);
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		activeFuel = FuelType.values()[compound.getInt("fuelLevel")];
 		remainingBurnTime = compound.getInt("burnTimeRemaining");
 		isCreative = compound.getBoolean("isCreative");
 		goggles = compound.contains("Goggles");
 		hat = compound.contains("TrainHat");
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
 	public BlazeBurnerBlock.HeatLevel getHeatLevelFromBlock() {
@@ -252,50 +252,6 @@ public class BlazeBurnerBlockEntity extends SmartBlockEntity implements IHaveGog
 		return true;
 	}
 
-	@Override
-	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
-		HeatLevel heatLevel = getHeatLevelFromBlock();
-		if (isCreative) {
-			CreateLang.translate("block.create.blaze_burner")
-				.forGoggles(tooltip);
-			CreateLang.builder()
-				.text(heatLevel.name())
-				.style(heatLevel == HeatLevel.SEETHING ? ChatFormatting.AQUA : ChatFormatting.GOLD)
-				.forGoggles(tooltip, 1);
-			return true;
-		}
-
-		if (activeFuel == FuelType.NONE || remainingBurnTime <= 0)
-			return false;
-
-		CreateLang.translate("block.create.blaze_burner")
-			.forGoggles(tooltip);
-
-		int totalSeconds = remainingBurnTime / 20;
-		int minutes = totalSeconds / 60;
-		int seconds = totalSeconds % 60;
-
-		CreateLang.translate("generic.duration")
-			.style(ChatFormatting.GRAY)
-			.forGoggles(tooltip);
-
-		if (minutes > 0) {
-			CreateLang.builder()
-				.add(CreateLang.number(minutes).style(ChatFormatting.AQUA))
-				.add(CreateLang.text("m ").style(ChatFormatting.DARK_GRAY))
-				.add(CreateLang.number(seconds).style(ChatFormatting.AQUA))
-				.add(CreateLang.text("s").style(ChatFormatting.DARK_GRAY))
-				.forGoggles(tooltip, 1);
-		} else {
-			CreateLang.builder()
-				.add(CreateLang.number(seconds).style(ChatFormatting.AQUA))
-				.add(CreateLang.text("s").style(ChatFormatting.DARK_GRAY))
-				.forGoggles(tooltip, 1);
-		}
-
-		return true;
-	}
-
 	protected void applyCreativeFuel() {
 		activeFuel = FuelType.NONE;
 		remainingBurnTime = 0;
@@ -322,7 +278,7 @@ public class BlazeBurnerBlockEntity extends SmartBlockEntity implements IHaveGog
 		if (isVirtual())
 			return false;
 		BlockState blockState = level.getBlockState(worldPosition.above());
-		return AllBlocks.BASIN.has(blockState) || blockState.getBlock().getClass().getSimpleName().equals("FluidTankBlock");
+		return AllBlocks.BASIN.has(blockState) || blockState.getBlock() instanceof FluidTankBlock;
 	}
 
 	protected void playSound() {

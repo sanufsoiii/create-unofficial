@@ -4,8 +4,8 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.contraptions.gantry.GantryCarriageBlock;
 import com.simibubi.create.content.contraptions.gantry.GantryCarriageBlockEntity;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.foundation.utility.Iterate;
 
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
@@ -19,10 +19,11 @@ public class GantryShaftBlockEntity extends KineticBlockEntity {
 		super(typeIn, pos, state);
 	}
 
+	@Override
 	protected boolean syncSequenceContext() {
 		return true;
 	}
-
+	
 	public void checkAttachedCarriageBlocks() {
 		if (!canAssembleOn())
 			return;
@@ -48,9 +49,11 @@ public class GantryShaftBlockEntity extends KineticBlockEntity {
 		checkAttachedCarriageBlocks();
 	}
 
+	@Override
 	public float propagateRotationTo(KineticBlockEntity target, BlockState stateFrom, BlockState stateTo, BlockPos diff,
 		boolean connectedViaAxes, boolean connectedViaCogs) {
-		float defaultModifier = 1.0f;
+		float defaultModifier =
+			super.propagateRotationTo(target, stateFrom, stateTo, diff, connectedViaAxes, connectedViaCogs);
 
 		if (connectedViaAxes)
 			return defaultModifier;
@@ -66,6 +69,7 @@ public class GantryShaftBlockEntity extends KineticBlockEntity {
 			stateTo.getValue(GantryCarriageBlock.FACING));
 	}
 
+	@Override
 	public boolean isCustomConnection(KineticBlockEntity other, BlockState state, BlockState otherState) {
 		if (!AllBlocks.GANTRY_CARRIAGE.has(otherState))
 			return false;
@@ -103,7 +107,9 @@ public class GantryShaftBlockEntity extends KineticBlockEntity {
 		return Mth.clamp(convertToLinear(-getSpeed()), -.49f, .49f);
 	}
 
+	@Override
 	protected boolean isNoisy() {
 		return false;
 	}
+
 }

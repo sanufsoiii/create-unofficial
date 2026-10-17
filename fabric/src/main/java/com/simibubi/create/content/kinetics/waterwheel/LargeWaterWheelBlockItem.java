@@ -1,10 +1,12 @@
 package com.simibubi.create.content.kinetics.waterwheel;
 
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.CreateClient;
+import com.simibubi.create.foundation.utility.Lang;
+import com.simibubi.create.foundation.utility.Pair;
 
-import net.createmod.catnip.data.Pair;
-import net.createmod.catnip.outliner.Outliner;
-import net.createmod.catnip.platform.CatnipServices;
+import io.github.fabricators_of_create.porting_lib_ufo.util.EnvExecutor;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -34,22 +36,22 @@ public class LargeWaterWheelBlockItem extends BlockItem {
 				.relative(clickedFace), clickedFace));
 		if (result == InteractionResult.FAIL && ctx.getLevel()
 			.isClientSide())
-			CatnipServices.PLATFORM.executeOnClientOnly(() -> () -> showBounds(ctx));
+			EnvExecutor.runWhenOn(EnvType.CLIENT, () -> () -> showBounds(ctx));
 		return result;
 	}
 
-	@net.fabricmc.api.Environment(net.fabricmc.api.EnvType.CLIENT)
+	@Environment(EnvType.CLIENT)
 	public void showBounds(BlockPlaceContext context) {
 		BlockPos pos = context.getClickedPos();
 		Axis axis = ((LargeWaterWheelBlock) getBlock()).getAxisForPlacement(context);
 		Vec3 contract = Vec3.atLowerCornerOf(Direction.get(AxisDirection.POSITIVE, axis)
 			.getNormal());
-		if (!(context.getPlayer() instanceof LocalPlayer localPlayer))
+		if (!(context.getPlayer()instanceof LocalPlayer localPlayer))
 			return;
-		Outliner.getInstance().showAABB(Pair.of("waterwheel", pos), new AABB(pos).inflate(1)
+		CreateClient.OUTLINER.showAABB(Pair.of("waterwheel", pos), new AABB(pos).inflate(1)
 			.deflate(contract.x, contract.y, contract.z))
 			.colored(0xFF_ff5d6c);
-		CreateLang.translate("large_water_wheel.not_enough_space")
+		Lang.translate("large_water_wheel.not_enough_space")
 			.color(0xFF_ff5d6c)
 			.sendStatus(localPlayer);
 	}

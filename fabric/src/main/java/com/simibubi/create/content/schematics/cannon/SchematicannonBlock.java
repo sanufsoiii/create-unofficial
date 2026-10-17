@@ -1,17 +1,19 @@
 package com.simibubi.create.content.schematics.cannon;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.item.ItemHelper;
 
-import dev.architectury.registry.menu.MenuRegistry;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NetworkHooks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -43,15 +45,25 @@ public class SchematicannonBlock extends Block implements IBE<SchematicannonBloc
 			});
 		}
 	}
-
+	
 	@Override
-	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-		if (level.isClientSide)
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult hitResult) {
+		
+		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
+		if (worldIn.isClientSide)
 			return InteractionResult.SUCCESS;
-		if (player instanceof ServerPlayer serverPlayer) {
-			withBlockEntityDo(level, pos, be -> MenuRegistry.openExtendedMenu(serverPlayer, be, buf -> buf.writeBlockPos(pos)));
-		}
+		withBlockEntityDo(worldIn, pos,
+				be -> NetworkHooks.openScreen((ServerPlayer) player, be, be::sendToMenu));
 		return InteractionResult.SUCCESS;
+		
 	}
 
 	@Override

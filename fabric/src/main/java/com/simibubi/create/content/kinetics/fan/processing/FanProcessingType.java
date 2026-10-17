@@ -4,8 +4,6 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.simibubi.create.api.registry.CreateBuiltInRegistries;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.ResourceLocation;
@@ -31,19 +29,25 @@ public interface FanProcessingType {
 
 	void affectEntity(Entity entity, Level level);
 
-	@Nullable
 	static FanProcessingType parse(String str) {
-		return CreateBuiltInRegistries.FAN_PROCESSING_TYPE.get(ResourceLocation.tryParse(str));
+		ResourceLocation id = ResourceLocation.tryParse(str);
+		if (id == null) {
+			return AllFanProcessingTypes.NONE;
+		}
+		FanProcessingType type = FanProcessingTypeRegistry.getType(id);
+		if (type == null) {
+			return AllFanProcessingTypes.NONE;
+		}
+		return type;
 	}
 
-	@Nullable
 	static FanProcessingType getAt(Level level, BlockPos pos) {
-		for (FanProcessingType type : FanProcessingTypeRegistry.SORTED_TYPES_VIEW) {
+		for (FanProcessingType type : FanProcessingTypeRegistry.getSortedTypesView()) {
 			if (type.isValidAt(level, pos)) {
 				return type;
 			}
 		}
-		return null;
+		return AllFanProcessingTypes.NONE;
 	}
 
 	interface AirFlowParticleAccess {

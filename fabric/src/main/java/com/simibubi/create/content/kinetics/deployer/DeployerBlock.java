@@ -3,6 +3,8 @@ package com.simibubi.create.content.kinetics.deployer;
 import java.util.List;
 import java.util.function.Predicate;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
@@ -10,11 +12,12 @@ import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.kinetics.base.DirectionalAxisKineticBlock;
 import com.simibubi.create.content.processing.AssemblyOperatorUseContext;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 import com.simibubi.create.foundation.utility.AdventureUtil;
 
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -33,12 +36,14 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
+@ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<DeployerBlockEntity> {
 
@@ -60,9 +65,11 @@ public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<De
 
 	@Override
 	public InteractionResult onWrenched(BlockState state, UseOnContext context) {
-		Vec3 normal = Vec3.atLowerCornerOf(state.getValue(FACING).getNormal());
+		Vec3 normal = Vec3.atLowerCornerOf(state.getValue(FACING)
+			.getNormal());
 		Vec3 location = context.getClickLocation()
-			.subtract(Vec3.atCenterOf(context.getClickedPos()).subtract(normal.scale(.5)))
+			.subtract(Vec3.atCenterOf(context.getClickedPos())
+				.subtract(normal.scale(.5)))
 			.multiply(normal);
 		if (location.length() > .75f) {
 			if (!context.getLevel().isClientSide)
@@ -85,16 +92,17 @@ public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<De
 			withBlockEntityDo(worldIn, pos, DeployerBlockEntity::discardPlayer);
 		super.onRemove(state, worldIn, pos, newState, isMoving);
 	}
-
+	
 	@Override
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
 			Player player, InteractionHand handIn, BlockHitResult hit) {
-
+		
 		if (AdventureUtil.isAdventure(player))
 			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
-		ItemStack heldByPlayer = player.getItemInHand(handIn).copy();
-
-		if (heldByPlayer.isEmpty())
+		ItemStack heldByPlayer = player.getItemInHand(handIn)
+			.copy();
+		
+		if(heldByPlayer.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 
 		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
@@ -108,9 +116,11 @@ public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<De
 		if (AllItems.WRENCH.isIn(heldByPlayer))
 			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 
-		Vec3 normal = Vec3.atLowerCornerOf(state.getValue(FACING).getNormal());
+		Vec3 normal = Vec3.atLowerCornerOf(state.getValue(FACING)
+			.getNormal());
 		Vec3 location = hit.getLocation()
-			.subtract(Vec3.atCenterOf(pos).subtract(normal.scale(.5)))
+			.subtract(Vec3.atCenterOf(pos)
+				.subtract(normal.scale(.5)))
 			.multiply(normal);
 		if (location.length() < .75f)
 			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
@@ -118,23 +128,24 @@ public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<De
 			return ItemInteractionResult.SUCCESS;
 
 		withBlockEntityDo(worldIn, pos, be -> {
-			ItemStack heldByDeployer = be.getPlayer() == null ? ItemStack.EMPTY : be.getPlayer().getMainHandItem().copy();
+			ItemStack heldByDeployer = be.player.getMainHandItem()
+				.copy();
 			if (heldByDeployer.isEmpty() && heldByPlayer.isEmpty())
 				return;
 
 			player.setItemInHand(handIn, heldByDeployer);
-			if (be.getPlayer() != null)
-				be.getPlayer().setItemInHand(InteractionHand.MAIN_HAND, heldByPlayer);
+			be.player.setItemInHand(InteractionHand.MAIN_HAND, heldByPlayer);
 			be.sendData();
 		});
 
 		return ItemInteractionResult.SUCCESS;
+		
 	}
-
+	
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
 			BlockHitResult hit) {
-
+		
 		if (AdventureUtil.isAdventure(player))
 			return InteractionResult.PASS;
 		ItemStack heldByPlayer = ItemStack.EMPTY;
@@ -147,9 +158,11 @@ public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<De
 				return InteractionResult.SUCCESS;
 		}
 
-		Vec3 normal = Vec3.atLowerCornerOf(state.getValue(FACING).getNormal());
+		Vec3 normal = Vec3.atLowerCornerOf(state.getValue(FACING)
+			.getNormal());
 		Vec3 location = hit.getLocation()
-			.subtract(Vec3.atCenterOf(pos).subtract(normal.scale(.5)))
+			.subtract(Vec3.atCenterOf(pos)
+				.subtract(normal.scale(.5)))
 			.multiply(normal);
 		if (location.length() < .75f)
 			return InteractionResult.PASS;
@@ -157,17 +170,18 @@ public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<De
 			return InteractionResult.SUCCESS;
 
 		withBlockEntityDo(worldIn, pos, be -> {
-			ItemStack heldByDeployer = be.getPlayer() == null ? ItemStack.EMPTY : be.getPlayer().getMainHandItem().copy();
+			ItemStack heldByDeployer = be.player.getMainHandItem()
+				.copy();
 			if (heldByDeployer.isEmpty() && heldByPlayer.isEmpty())
 				return;
 
 			player.setItemInHand(InteractionHand.MAIN_HAND, heldByDeployer);
-			if (be.getPlayer() != null)
-				be.getPlayer().setItemInHand(InteractionHand.MAIN_HAND, heldByPlayer);
+			be.player.setItemInHand(InteractionHand.MAIN_HAND, heldByPlayer);
 			be.sendData();
 		});
 
 		return InteractionResult.SUCCESS;
+		
 	}
 
 	@Override
@@ -219,11 +233,13 @@ public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<De
 		}
 
 		@Override
-		public PlacementOffset getOffset(Player player, Level level, BlockState state, BlockPos pos,
+		public PlacementOffset getOffset(Player player, Level world, BlockState state, BlockPos pos,
 			BlockHitResult ray) {
 			List<Direction> directions = IPlacementHelper.orderedByDistanceExceptAxis(pos, ray.getLocation(),
-				state.getValue(FACING).getAxis(),
-				dir -> level.getBlockState(pos.relative(dir)).canBeReplaced());
+				state.getValue(FACING)
+					.getAxis(),
+				dir -> world.getBlockState(pos.relative(dir))
+					.canBeReplaced());
 
 			if (directions.isEmpty())
 				return PlacementOffset.fail();
@@ -233,5 +249,7 @@ public class DeployerBlock extends DirectionalAxisKineticBlock implements IBE<De
 						.setValue(AXIS_ALONG_FIRST_COORDINATE, state.getValue(AXIS_ALONG_FIRST_COORDINATE)));
 			}
 		}
+
 	}
+
 }

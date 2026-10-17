@@ -2,36 +2,30 @@ package com.simibubi.create.content.decoration;
 
 import java.util.function.Predicate;
 
-import com.simibubi.create.AllShapes;
-import com.simibubi.create.Create;
+import com.simibubi.create.content.equipment.extendoGrip.ExtendoGripItem;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
+import com.simibubi.create.foundation.placement.IPlacementHelper;
+import com.simibubi.create.foundation.placement.PlacementHelpers;
+import com.simibubi.create.foundation.placement.PlacementOffset;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.placement.IPlacementHelper;
-import net.createmod.catnip.placement.PlacementHelpers;
-import net.createmod.catnip.placement.PlacementOffset;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Direction.Axis;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LadderBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class MetalLadderBlock extends LadderBlock implements IWrenchable {
 
@@ -41,46 +35,49 @@ public class MetalLadderBlock extends LadderBlock implements IWrenchable {
 		super(p_54345_);
 	}
 
+//	@Override // fabric: difficult to implement with little to gain
+//	@Environment(EnvType.CLIENT)
+//	public boolean supportsExternalFaceHiding(BlockState state) {
+//		return false;
+//	}
+
 	@Override
 	@Environment(EnvType.CLIENT)
-	@SuppressWarnings("deprecation")
 	public boolean skipRendering(BlockState pState, BlockState pAdjacentBlockState, Direction pDirection) {
-		if (pDirection != null && pDirection.getAxis().isHorizontal())
-			return pAdjacentBlockState.isAir() || !pAdjacentBlockState.blocksMotion();
 		return pDirection == Direction.UP && pAdjacentBlockState.getBlock() instanceof LadderBlock;
 	}
-
+	
 	@Override
-	public VoxelShape getOcclusionShape(BlockState pState, BlockGetter pLevel, BlockPos pPos) {
-		return AllShapes.SIX_VOXEL_POLE.get(Axis.Y);
-	}
-
-	@Override
-	public BlockState updateShape(BlockState pState, Direction pFacing, BlockState pFacingState, LevelAccessor pLevel,
-								  BlockPos pCurrentPos, BlockPos pFacingPos) {
-		if (!pState.canSurvive(pLevel, pCurrentPos))
-			return Blocks.AIR.defaultBlockState();
-		return super.updateShape(pState, pFacing, pFacingState, pLevel, pCurrentPos, pFacingPos);
-	}
-
-	@Override
-	public boolean canSurvive(BlockState pState, LevelReader pLevel, BlockPos pPos) {
-		BlockState otherState = pLevel.getBlockState(pPos.relative(Direction.UP));
-		return super.canSurvive(pState, pLevel, pPos) ||
-			(otherState.is(this) && pState.getValue(FACING).equals(otherState.getValue(FACING)));
-	}
-
-	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult ray) {
+		
 		if (player.isShiftKeyDown() || !player.mayBuild())
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		ItemStack heldItem = player.getItemInHand(hand);
+		if(heldItem.isEmpty()) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
 		IPlacementHelper helper = PlacementHelpers.get(placementHelperId);
-		if (helper.matchesItem(stack))
-			return helper.getOffset(player, level, state, pos, hitResult)
-				.placeInWorld(level, (BlockItem) stack.getItem(), player, hand, hitResult);
-		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		if (helper.matchesItem(heldItem))
+			return helper.getOffset(player, world, state, pos, ray)
+				.placeInWorld(world, (BlockItem) heldItem.getItem(), player, hand, ray);
+		return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
 	}
-
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player,
+			BlockHitResult ray) {
+		
+		if (player.isShiftKeyDown() || !player.mayBuild())
+			return InteractionResult.PASS;
+		ItemStack heldItem = ItemStack.EMPTY;
+		IPlacementHelper helper = PlacementHelpers.get(placementHelperId);
+		if (helper.matchesItem(heldItem))
+			return helper.getOffset(player, world, state, pos, ray)
+				.placeInWorld(world, (BlockItem) heldItem.getItem(), player, InteractionHand.MAIN_HAND, ray).result();
+		return InteractionResult.PASS;
+		
+	}
 	@MethodsReturnNonnullByDefault
 	private static class PlacementHelper implements IPlacementHelper {
 
@@ -109,13 +106,13 @@ public class MetalLadderBlock extends LadderBlock implements IWrenchable {
 
 		@Override
 		public PlacementOffset getOffset(Player player, Level world, BlockState state, BlockPos pos,
-										 BlockHitResult ray) {
+			BlockHitResult ray) {
 			Direction dir = player.getXRot() < 0 ? Direction.UP : Direction.DOWN;
 
 			int range = AllConfigs.server().equipment.placementAssistRange.get();
 			if (player != null) {
 				AttributeInstance reach = player.getAttribute(Attributes.BLOCK_INTERACTION_RANGE);
-				if (reach != null && reach.hasModifier(Create.asResource("single_range_attribute_modifier")))
+				if (reach != null && reach.hasModifier(ExtendoGripItem.singleRangeAttributeModifier.id()))
 					range += 4;
 			}
 

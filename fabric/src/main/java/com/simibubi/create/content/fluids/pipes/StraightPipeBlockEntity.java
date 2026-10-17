@@ -8,6 +8,7 @@ import com.simibubi.create.content.decoration.bracket.BracketedBlockEntityBehavi
 import com.simibubi.create.content.fluids.FluidPropagator;
 import com.simibubi.create.content.fluids.FluidTransportBehaviour;
 import com.simibubi.create.content.fluids.PipeAttachmentBlockEntity;
+import com.simibubi.create.content.fluids.pipes.valve.FluidValveBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 
@@ -57,15 +58,15 @@ public class StraightPipeBlockEntity extends SmartBlockEntity implements PipeAtt
 			Axis axis = IAxisPipe.getAxisOf(state);
 			Axis otherAxis = IAxisPipe.getAxisOf(otherState);
 
-			if (attachment == AttachmentTypes.RIM && state.getBlock().getClass().getSimpleName().equals("FluidValveBlock"))
+			if (attachment == AttachmentTypes.RIM && state.getBlock() instanceof FluidValveBlock)
 				return AttachmentTypes.NONE;
 			if (attachment == AttachmentTypes.RIM && FluidPipeBlock.isPipe(otherState))
 				return AttachmentTypes.PARTIAL_RIM;
 			if (axis == otherAxis && axis != null)
 				return AttachmentTypes.NONE;
 
-			if (otherState.getBlock().getClass().getSimpleName().equals("FluidValveBlock")
-				&& IAxisPipe.getAxisOf(otherState) == direction.getAxis())
+			if (otherState.getBlock() instanceof FluidValveBlock
+				&& FluidValveBlock.getPipeAxis(otherState) == direction.getAxis())
 				return AttachmentTypes.NONE;
 
 			return attachment.withoutConnector();

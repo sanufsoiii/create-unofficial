@@ -1,38 +1,40 @@
 package com.simibubi.create.content.fluids.transfer;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllRecipeTypes;
-import com.simibubi.create.compat.jei.category.sequencedAssembly.SequencedAssemblySubCategory;
-import com.simibubi.create.content.processing.recipe.ProcessingRecipeParams;
-import com.simibubi.create.content.processing.recipe.StandardProcessingRecipe;
+import com.simibubi.create.compat.recipeViewerCommon.SequencedAssemblySubCategoryType;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipe;
+import com.simibubi.create.content.processing.recipe.ProcessingRecipeBuilder.ProcessingRecipeParams;
 import com.simibubi.create.content.processing.sequenced.IAssemblyRecipe;
-import com.simibubi.create.foundation.fluid.SizedFluidIngredient;
-import com.simibubi.create.foundation.utility.CreateLang;
+import com.simibubi.create.foundation.fluid.FluidIngredient;
+import com.simibubi.create.foundation.utility.Components;
+import com.simibubi.create.foundation.utility.Lang;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.util.FluidUtil;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.Fluid;
 
-public class FillingRecipe extends StandardProcessingRecipe<SingleRecipeInput> implements IAssemblyRecipe {
+public class FillingRecipe extends ProcessingRecipe<RecipeInput> implements IAssemblyRecipe {
 
 	public FillingRecipe(ProcessingRecipeParams params) {
 		super(AllRecipeTypes.FILLING, params);
 	}
 
 	@Override
-	public boolean matches(SingleRecipeInput inv, Level p_77569_2_) {
+	public boolean matches(RecipeInput inv, Level p_77569_2_) {
 		return ingredients.get(0)
-			.test(inv.getItem(0));
+				.test(inv.getItem(0));
 	}
 
 	@Override
@@ -50,30 +52,32 @@ public class FillingRecipe extends StandardProcessingRecipe<SingleRecipeInput> i
 		return 1;
 	}
 
-	public SizedFluidIngredient getRequiredFluid() {
+	public FluidIngredient getRequiredFluid() {
 		if (fluidIngredients.isEmpty())
-			throw new IllegalStateException("Filling Recipe has no fluid ingredient!");
+			throw new IllegalStateException("Filling Recipe: " + id.toString() + " has no fluid ingredient!");
 		return fluidIngredients.get(0);
 	}
 
 	@Override
-	public void addAssemblyIngredients(List<Ingredient> list) {}
+	public void addAssemblyIngredients(List<Ingredient> list) {
+	}
 
 	@Override
-	public void addAssemblyFluidIngredients(List<SizedFluidIngredient> list) {
+	public void addAssemblyFluidIngredients(List<FluidIngredient> list) {
 		list.add(getRequiredFluid());
 	}
 
 	@Override
 	@Environment(EnvType.CLIENT)
 	public Component getDescriptionForAssembly() {
-		List<FluidStack> matchingFluidStacks = Arrays.asList(fluidIngredients.get(0)
-			.getFluids());
-		if (matchingFluidStacks.size() == 0) {
-			return Component.literal("Invalid");
-		}
-		return CreateLang.translateDirect("recipe.assembly.spout_filling_fluid",
-			matchingFluidStacks.get(0).getHoverName().getString());
+		List<FluidStack> matchingFluidStacks = fluidIngredients.get(0).getMatchingFluidStacks();
+
+		if (matchingFluidStacks.size() == 0)
+			return Components.literal("Invalid");
+
+		Fluid fluid = matchingFluidStacks.get(0).getFluid();
+		String translationKey = FluidUtil.getTranslationKey(fluid);
+		return Lang.translateDirect("recipe.assembly.spout_filling_fluid", Component.translatable(translationKey).getString());
 	}
 
 	@Override
@@ -82,7 +86,8 @@ public class FillingRecipe extends StandardProcessingRecipe<SingleRecipeInput> i
 	}
 
 	@Override
-	public Supplier<Supplier<SequencedAssemblySubCategory>> getJEISubCategory() {
-		return () -> SequencedAssemblySubCategory.AssemblySpouting::new;
+	public SequencedAssemblySubCategoryType getJEISubCategory() {
+		return SequencedAssemblySubCategoryType.SPOUTING;
 	}
+
 }

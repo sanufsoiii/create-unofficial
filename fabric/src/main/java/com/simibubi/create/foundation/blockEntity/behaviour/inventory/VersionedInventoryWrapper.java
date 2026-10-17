@@ -3,18 +3,23 @@ package com.simibubi.create.foundation.blockEntity.behaviour.inventory;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jetbrains.annotations.NotNull;
-
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
+import net.minecraft.world.item.ItemStack;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemHandlerHelper;
 
 public class VersionedInventoryWrapper implements Storage<ItemVariant> {
 
 	public static final AtomicInteger idGenerator = new AtomicInteger();
 
 	private Storage<ItemVariant> inventory;
+	//private int version;
 	private int id;
 
 	public VersionedInventoryWrapper(Storage<ItemVariant> inventory) {
@@ -30,6 +35,8 @@ public class VersionedInventoryWrapper implements Storage<ItemVariant> {
 	public long getVersion() {
 		return inventory.getVersion();
 	}
+
+	//
 
 	@Override
 	public long insert(ItemVariant resource, long maxAmount, TransactionContext transaction) {

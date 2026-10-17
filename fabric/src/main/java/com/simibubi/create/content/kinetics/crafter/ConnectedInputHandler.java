@@ -13,11 +13,13 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.kinetics.crafter.MechanicalCrafterBlockEntity.Inventory;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.NbtFixer;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.nbt.NBTHelper;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage;
@@ -27,9 +29,9 @@ import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -106,7 +108,7 @@ public class ConnectedInputHandler {
 
 		connectControllers(world, crafter1, crafter2);
 
-		world.setBlock(crafter1.getBlockPos(), crafter1.getBlockState(), Block.UPDATE_ALL);
+		world.setBlock(crafter1.getBlockPos(), crafter1.getBlockState(), 3);
 
 		crafter1.setChanged();
 		crafter1.connectivityChanged();
@@ -125,7 +127,7 @@ public class ConnectedInputHandler {
 	}
 
 	public static void connectControllers(Level world, MechanicalCrafterBlockEntity crafter1,
-										  MechanicalCrafterBlockEntity crafter2) {
+		MechanicalCrafterBlockEntity crafter2) {
 
 		crafter1.input.data.forEach(offset -> {
 			BlockPos connectedPos = crafter1.getBlockPos()
@@ -151,9 +153,10 @@ public class ConnectedInputHandler {
 
 	private static void modifyAndUpdate(Level world, BlockPos pos, Consumer<ConnectedInput> callback) {
 		BlockEntity blockEntity = world.getBlockEntity(pos);
-		if (!(blockEntity instanceof MechanicalCrafterBlockEntity crafter))
+		if (!(blockEntity instanceof MechanicalCrafterBlockEntity))
 			return;
 
+		MechanicalCrafterBlockEntity crafter = (MechanicalCrafterBlockEntity) blockEntity;
 		callback.accept(crafter.input);
 		crafter.setChanged();
 		crafter.connectivityChanged();
@@ -174,18 +177,14 @@ public class ConnectedInputHandler {
 			data.add(controllerPos.subtract(myPos));
 		}
 
-		public Storage<ItemVariant> getItemStorage(Level world, BlockPos pos) {
-			List<Inventory> inventories = this.getInventories(world, pos);
-			return new CombinedStorage<>(inventories);
-		}
-
-		public List<Inventory> getInventories(Level world, BlockPos pos) {
+		@Nullable // fabric: don't create useless ItemStackHandlers
+		public Storage<ItemVariant> getItemHandler(Level world, BlockPos pos) {
 			if (!isController) {
 				BlockPos controllerPos = pos.offset(data.get(0));
 				ConnectedInput input = CrafterHelper.getInput(world, controllerPos);
 				if (input == this || input == null || !input.isController)
-					return List.of();
-				return input.getInventories(world, controllerPos);
+					return null;
+				return input.getItemHandler(world, controllerPos);
 			}
 
 			Direction facing = Direction.SOUTH;
@@ -204,31 +203,26 @@ public class ConnectedInputHandler {
 				return compareY != 0 ? compareY : modifier * Integer.compare(c1, c2);
 			};
 
-			return data.stream()
+			List<Inventory> list = data.stream()
 				.sorted(invOrdering)
 				.map(l -> CrafterHelper.getCrafter(world, pos.offset(l)))
 				.filter(Objects::nonNull)
-				.map(MechanicalCrafterBlockEntity::getInventory)
+				.map(crafter -> crafter.getInventory())
 				.collect(Collectors.toList());
+			return new CombinedStorage<>(list);
 		}
 
 		public void write(CompoundTag nbt) {
 			nbt.putBoolean("Controller", isController);
 			ListTag list = new ListTag();
-			data.forEach(pos -> {
-				CompoundTag data = new CompoundTag();
-				data.putInt("X", pos.getX());
-				data.putInt("Y", pos.getY());
-				data.putInt("Z", pos.getZ());
-				list.add(data);
-			});
+			data.forEach(pos -> list.add(NbtUtils.writeBlockPos(pos)));
 			nbt.put("Data", list);
 		}
 
 		public void read(CompoundTag nbt) {
 			isController = nbt.getBoolean("Controller");
-			data = NBTHelper.readCompoundList(nbt.getList("Data", Tag.TAG_COMPOUND),
-				c -> new BlockPos(c.getInt("X"), c.getInt("Y"), c.getInt("Z")));
+			data.clear();
+			data.addAll(NbtFixer.readBlockPosList(nbt, "Data"));
 
 			// nbt got wiped -> reset
 			if (data.isEmpty()) {

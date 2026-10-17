@@ -3,11 +3,14 @@ package com.simibubi.create.content.kinetics.gearbox;
 import java.util.Arrays;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.content.kinetics.base.RotatedPillarKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
 
+import net.fabricmc.fabric.api.block.BlockPickInteractionAware;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -20,15 +23,12 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.phys.HitResult;
 
-public class GearboxBlock extends RotatedPillarKineticBlock implements IBE<GearboxBlockEntity> {
+public class GearboxBlock extends RotatedPillarKineticBlock implements IBE<GearboxBlockEntity>, BlockPickInteractionAware {
 
 	public GearboxBlock(Properties properties) {
 		super(properties);
-	}
-
-	public PushReaction getPistonPushReaction(BlockState state) {
-		return PushReaction.PUSH_ONLY;
 	}
 
 	@SuppressWarnings("deprecation")
@@ -40,9 +40,9 @@ public class GearboxBlock extends RotatedPillarKineticBlock implements IBE<Gearb
 	}
 
 	@Override
-	public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+	public ItemStack getPickedStack(BlockState state, BlockGetter view, BlockPos pos, @Nullable Player player, @Nullable HitResult result) {
 		if (state.getValue(AXIS).isVertical())
-			return super.getCloneItemStack(level, pos, state);
+			return super.getCloneItemStack(null, pos, state);
 		return new ItemStack(AllItems.VERTICAL_GEARBOX.get());
 	}
 
@@ -50,6 +50,8 @@ public class GearboxBlock extends RotatedPillarKineticBlock implements IBE<Gearb
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
 		return defaultBlockState().setValue(AXIS, Axis.Y);
 	}
+
+	// IRotate:
 
 	@Override
 	public boolean hasShaftTowards(LevelReader world, BlockPos pos, BlockState state, Direction face) {

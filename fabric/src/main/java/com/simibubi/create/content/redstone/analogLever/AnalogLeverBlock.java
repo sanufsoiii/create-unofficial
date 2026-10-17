@@ -1,12 +1,11 @@
 package com.simibubi.create.content.redstone.analogLever;
 
-import org.jetbrains.annotations.NotNull;
+
 import org.joml.Vector3f;
 
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.foundation.block.IBE;
-import com.simibubi.create.foundation.mixin.accessor.BlockBehaviourAccessor;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -16,8 +15,11 @@ import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -34,14 +36,35 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class AnalogLeverBlock extends FaceAttachedHorizontalDirectionalBlock implements IBE<AnalogLeverBlockEntity> {
 
-	public static final MapCodec<AnalogLeverBlock> CODEC = simpleCodec(AnalogLeverBlock::new);
-
 	public AnalogLeverBlock(Properties p_i48402_1_) {
 		super(p_i48402_1_);
 	}
-
+	
 	@Override
-	public InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player, BlockHitResult hit) {
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level worldIn, BlockPos pos,
+			Player player, InteractionHand hand, BlockHitResult hitResult) {
+		
+		if(stack.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+		if (worldIn.isClientSide) {
+			addParticles(state, worldIn, pos, 1.0F);
+			return ItemInteractionResult.SUCCESS;
+		}
+
+		return onBlockEntityUse(worldIn, pos, be -> {
+			boolean sneak = player.isShiftKeyDown();
+			be.changeState(sneak);
+			float f = .25f + ((be.state + 5) / 15f) * .5f;
+			worldIn.playSound(null, pos, SoundEvents.LEVER_CLICK, SoundSource.BLOCKS, 0.2F, f);
+			return ItemInteractionResult.SUCCESS;
+		});
+		
+	}
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level worldIn, BlockPos pos, Player player,
+			BlockHitResult hitResult) {
+		
 		if (worldIn.isClientSide) {
 			addParticles(state, worldIn, pos, 1.0F);
 			return InteractionResult.SUCCESS;
@@ -52,8 +75,9 @@ public class AnalogLeverBlock extends FaceAttachedHorizontalDirectionalBlock imp
 			be.changeState(sneak);
 			float f = .25f + ((be.state + 5) / 15f) * .5f;
 			worldIn.playSound(null, pos, SoundEvents.LEVER_CLICK, SoundSource.BLOCKS, 0.2F, f);
-			return InteractionResult.SUCCESS;
-		});
+			return ItemInteractionResult.SUCCESS;
+		}).result();
+		
 	}
 
 	@Override
@@ -111,9 +135,10 @@ public class AnalogLeverBlock extends FaceAttachedHorizontalDirectionalBlock imp
 		world.updateNeighborsAt(pos.relative(getConnectedDirection(state).getOpposite()), state.getBlock());
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
-	public @NotNull VoxelShape getShape(@NotNull BlockState state, @NotNull BlockGetter worldIn, @NotNull BlockPos pos, @NotNull CollisionContext context) {
-		return ((BlockBehaviourAccessor) Blocks.LEVER).create$getShape(state, worldIn, pos, context);
+	public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
+		return Blocks.LEVER.getShape(state, worldIn, pos, context);
 	}
 
 	@Override
@@ -137,7 +162,9 @@ public class AnalogLeverBlock extends FaceAttachedHorizontalDirectionalBlock imp
 	}
 
 	@Override
-	protected @NotNull MapCodec<? extends FaceAttachedHorizontalDirectionalBlock> codec() {
-		return CODEC;
+	protected MapCodec<? extends FaceAttachedHorizontalDirectionalBlock> codec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
+
 }

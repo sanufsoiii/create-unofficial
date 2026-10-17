@@ -4,13 +4,12 @@ import java.util.List;
 
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 
-import net.createmod.catnip.animation.LerpedFloat;
-import net.createmod.catnip.animation.LerpedFloat.Chaser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -70,7 +69,7 @@ public class SlidingDoorBlockEntity extends SmartBlockEntity {
 	}
 
 	protected void showBlockModel() {
-		level.setBlock(worldPosition, getBlockState().setValue(SlidingDoorBlock.VISIBLE, true), Block.UPDATE_ALL);
+		level.setBlock(worldPosition, getBlockState().setValue(SlidingDoorBlock.VISIBLE, true), 3);
 		level.playSound(null, worldPosition, SoundEvents.IRON_DOOR_CLOSE, SoundSource.BLOCKS, .5f, 1);
 	}
 

@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 
 import com.simibubi.create.foundation.fluid.SmartFluidTank;
 
-import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
+import io.github.fabricators_of_create.porting_lib_ufo.fluids.FluidStack;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.BlockPos;
@@ -43,7 +43,7 @@ public class CreativeFluidTankBlockEntity extends FluidTankBlockEntity {
 		public void setContainedFluid(FluidStack fluidStack) {
 			FluidStack fluid = fluidStack.copy();
 			if (!fluidStack.isEmpty())
-				fluid.setAmount(getCapacity(fluid.getVariant()));
+				fluid.setAmount(getCapacity(fluid.getType()));
 			setFluid(fluid);
 			onContentsChanged();
 		}

@@ -6,11 +6,11 @@ import java.util.Vector;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.transmission.SplitShaftBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.NBTHelper;
 
-import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -98,7 +98,6 @@ public class SequencedGearshiftBlockEntity extends SplitShaftBlockEntity {
 		Instruction instruction = getInstruction(currentInstruction);
 		if (instruction == null)
 			return;
-
 		if (getSpeed() == 0)
 			run(-1);
 
@@ -181,25 +180,25 @@ public class SequencedGearshiftBlockEntity extends SplitShaftBlockEntity {
 	protected void copySequenceContextFrom(KineticBlockEntity sourceBE) {}
 
 	@Override
-	public void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("InstructionIndex", currentInstruction);
 		compound.putInt("InstructionDuration", currentInstructionDuration);
 		compound.putFloat("InstructionProgress", currentInstructionProgress);
 		compound.putInt("Timer", timer);
 		compound.putBoolean("PrevPowered", poweredPreviously);
 		compound.put("Instructions", Instruction.serializeAll(instructions));
-		super.write(compound, registries, clientPacket);
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		currentInstruction = compound.getInt("InstructionIndex");
 		currentInstructionDuration = compound.getInt("InstructionDuration");
 		currentInstructionProgress = compound.getFloat("InstructionProgress");
 		poweredPreviously = compound.getBoolean("PrevPowered");
 		timer = compound.getInt("Timer");
 		instructions = Instruction.deserializeAll(compound.getList("Instructions", Tag.TAG_COMPOUND));
-		super.read(compound, registries, clientPacket);
+		super.read(compound, reg, clientPacket);
 	}
 
 	@Override

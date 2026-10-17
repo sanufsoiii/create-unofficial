@@ -2,41 +2,55 @@ package com.simibubi.create.content.kinetics.millstone;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.simibubi.create.AllRecipeTypes;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
-import net.createmod.catnip.math.VecHelper;
+import com.simibubi.create.content.kinetics.belt.behaviour.DirectBeltInputBehaviour;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.item.ItemHelper;
+import com.simibubi.create.foundation.sound.SoundScapes;
+import com.simibubi.create.foundation.sound.SoundScapes.AmbienceGroup;
+import com.simibubi.create.foundation.utility.VecHelper;
 
-import io.github.fabricators_of_create.porting_lib.transfer.ViewOnlyWrappedStorageView;
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandler;
-import io.github.fabricators_of_create.porting_lib.transfer.item.ItemStackHandlerContainer;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.TransferUtil;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.ViewOnlyWrappedStorageView;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandler;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandlerContainer;
+import io.github.fabricators_of_create.porting_lib_ufo.transfer.item.ItemStackHandlerSlot;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SidedStorageBlockEntity;
+import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
-import net.minecraft.world.Clearable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-public class MillstoneBlockEntity extends KineticBlockEntity implements SidedStorageBlockEntity, Clearable {
+public class MillstoneBlockEntity extends KineticBlockEntity implements SidedStorageBlockEntity {
 
 	public ItemStackHandlerContainer inputInv;
 	public ItemStackHandler outputInv;
 	public MillstoneInventoryHandler capability;
 	public int timer;
+	private MillingRecipe lastRecipe;
 
 	public MillstoneBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -46,11 +60,25 @@ public class MillstoneBlockEntity extends KineticBlockEntity implements SidedSto
 	}
 
 	@Override
-	public void clearContent() {
-		for (int i = 0; i < inputInv.getSlotCount(); i++)
-			inputInv.setStackInSlot(i, ItemStack.EMPTY);
-		for (int i = 0; i < outputInv.getSlotCount(); i++)
-			outputInv.setStackInSlot(i, ItemStack.EMPTY);
+	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
+		behaviours.add(new DirectBeltInputBehaviour(this));
+		super.addBehaviours(behaviours);
+		registerAwardables(behaviours, AllAdvancements.MILLSTONE);
+	}
+
+	@Override
+	@Environment(EnvType.CLIENT)
+	public void tickAudio() {
+		super.tickAudio();
+
+		if (getSpeed() == 0)
+			return;
+		if (inputInv.getStackInSlot(0)
+			.isEmpty())
+			return;
+
+		float pitch = Mth.clamp((Math.abs(getSpeed()) / 256f) + .45f, .85f, 1f);
+		SoundScapes.play(AmbienceGroup.MILLING, worldPosition, pitch);
 	}
 
 	@Override
@@ -60,22 +88,73 @@ public class MillstoneBlockEntity extends KineticBlockEntity implements SidedSto
 		if (getSpeed() == 0)
 			return;
 		for (int i = 0; i < outputInv.getSlotCount(); i++)
-			if (outputInv.getStackInSlot(i).getCount() == outputInv.getSlotLimit(i))
+			if (outputInv.getStackInSlot(i)
+				.getCount() == outputInv.getSlotLimit(i))
 				return;
-
-		if (inputInv.getStackInSlot(0).isEmpty())
-			return;
 
 		if (timer > 0) {
 			timer -= getProcessingSpeed();
+
 			if (level.isClientSide) {
 				spawnParticles();
 				return;
 			}
+			if (timer <= 0)
+				process();
 			return;
 		}
 
-		timer = 100;
+		if (inputInv.getStackInSlot(0)
+			.isEmpty())
+			return;
+
+		if (lastRecipe == null || !lastRecipe.matches(inputInv, level)) {
+			Optional<MillingRecipe> recipe = AllRecipeTypes.MILLING.find(inputInv, level);
+			if (!recipe.isPresent()) {
+				timer = 100;
+				sendData();
+			} else {
+				lastRecipe = recipe.get();
+				timer = lastRecipe.getProcessingDuration();
+				sendData();
+			}
+			return;
+		}
+
+		timer = lastRecipe.getProcessingDuration();
+		sendData();
+	}
+
+	@Override
+	public void invalidate() {
+		super.invalidate();
+	}
+
+	@Override
+	public void destroy() {
+		super.destroy();
+		ItemHelper.dropContents(level, worldPosition, inputInv);
+		ItemHelper.dropContents(level, worldPosition, outputInv);
+	}
+
+	private void process() {
+		if (lastRecipe == null || !lastRecipe.matches(inputInv, level)) {
+			Optional<MillingRecipe> recipe = AllRecipeTypes.MILLING.find(inputInv, level);
+			if (!recipe.isPresent())
+				return;
+			lastRecipe = recipe.get();
+		}
+
+		try (Transaction t = TransferUtil.getTransaction()) {
+			ItemStackHandlerSlot slot = inputInv.getSlot(0);
+			slot.extract(slot.getResource(), 1, t);
+			lastRecipe.rollResults().forEach(stack -> outputInv.insert(ItemVariant.of(stack), stack.getCount(), t));
+			t.commit();
+		}
+		award(AllAdvancements.MILLSTONE);
+
+		sendData();
+		setChanged();
 	}
 
 	public void spawnParticles() {
@@ -86,8 +165,8 @@ public class MillstoneBlockEntity extends KineticBlockEntity implements SidedSto
 		ItemParticleOption data = new ItemParticleOption(ParticleTypes.ITEM, stackInSlot);
 		float angle = level.random.nextFloat() * 360;
 		Vec3 offset = new Vec3(0, 0, 0.5f);
-		offset = VecHelper.rotate(offset, angle, Direction.Axis.Y);
-		Vec3 target = VecHelper.rotate(offset, getSpeed() > 0 ? 25 : -25, Direction.Axis.Y).add(0, .25f, 0);
+		offset = VecHelper.rotate(offset, angle, Axis.Y);
+		Vec3 target = VecHelper.rotate(offset, getSpeed() > 0 ? 25 : -25, Axis.Y);
 
 		Vec3 center = offset.add(VecHelper.getCenterOf(worldPosition));
 		target = VecHelper.offsetRandomly(target.subtract(offset), level.random, 1 / 128f);
@@ -95,19 +174,19 @@ public class MillstoneBlockEntity extends KineticBlockEntity implements SidedSto
 	}
 
 	@Override
-	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	public void write(CompoundTag compound, boolean clientPacket) {
 		compound.putInt("Timer", timer);
-		compound.put("InputInventory", inputInv.serializeNBT(registries));
-		compound.put("OutputInventory", outputInv.serializeNBT(registries));
-		super.write(compound, registries, clientPacket);
+		compound.put("InputInventory", inputInv.serializeNBT());
+		compound.put("OutputInventory", outputInv.serializeNBT());
+		super.write(compound, clientPacket);
 	}
 
 	@Override
-	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
+	protected void read(CompoundTag compound, Provider reg, boolean clientPacket) {
 		timer = compound.getInt("Timer");
-		inputInv.deserializeNBT(registries, compound.getCompound("InputInventory"));
-		outputInv.deserializeNBT(registries, compound.getCompound("OutputInventory"));
-		super.read(compound, registries, clientPacket);
+		inputInv.deserializeNBT(compound.getCompound("InputInventory"));
+		outputInv.deserializeNBT(compound.getCompound("OutputInventory"));
+		super.read(compound, reg, clientPacket);
 	}
 
 	public int getProcessingSpeed() {
@@ -121,10 +200,16 @@ public class MillstoneBlockEntity extends KineticBlockEntity implements SidedSto
 	}
 
 	private boolean canProcess(ItemStack stack) {
-		return !stack.isEmpty();
+		ItemStackHandlerContainer tester = new ItemStackHandlerContainer(1);
+		tester.setStackInSlot(0, stack);
+
+		if (lastRecipe != null && lastRecipe.matches(tester, level))
+			return true;
+		return AllRecipeTypes.MILLING.find(tester, level)
+			.isPresent();
 	}
 
-	public class MillstoneInventoryHandler extends CombinedStorage<ItemVariant, ItemStackHandler> {
+	private class MillstoneInventoryHandler extends CombinedStorage<ItemVariant, ItemStackHandler> {
 
 		public MillstoneInventoryHandler() {
 			super(List.of(inputInv, outputInv));
@@ -172,4 +257,5 @@ public class MillstoneBlockEntity extends KineticBlockEntity implements SidedSto
 			}
 		}
 	}
+
 }

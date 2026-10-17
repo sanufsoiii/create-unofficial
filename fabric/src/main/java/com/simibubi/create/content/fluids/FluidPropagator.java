@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllTags.AllBlockTags;
@@ -15,13 +15,14 @@ import com.simibubi.create.content.fluids.pipes.FluidPipeBlock;
 import com.simibubi.create.content.fluids.pipes.VanillaFluidTargets;
 import com.simibubi.create.content.fluids.pump.PumpBlock;
 import com.simibubi.create.content.fluids.pump.PumpBlockEntity;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
 import com.simibubi.create.foundation.advancement.CreateAdvancement;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.utility.BlockHelper;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Pair;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.data.Pair;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -39,7 +40,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 public class FluidPropagator {
 
 	public static CreateAdvancement[] getSharedTriggers() {
-		return new CreateAdvancement[0];
+		return new CreateAdvancement[]{AllAdvancements.WATER_SUPPLY, AllAdvancements.CROSS_STREAMS,
+				AllAdvancements.HONEY_DRAIN};
 	}
 
 	public static void propagateChangedPipe(LevelAccessor world, BlockPos pipePos, BlockState pipeState) {

@@ -54,7 +54,7 @@ public class CreativeMotorBlock extends DirectionalKineticBlock implements IBE<C
 	public boolean hideStressImpact() {
 		return true;
 	}
-
+	
 	@Override
 	protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
 		return false;
@@ -69,5 +69,5 @@ public class CreativeMotorBlock extends DirectionalKineticBlock implements IBE<C
 	public BlockEntityType<? extends CreativeMotorBlockEntity> getBlockEntityType() {
 		return AllBlockEntityTypes.MOTOR.get();
 	}
-
+	
 }

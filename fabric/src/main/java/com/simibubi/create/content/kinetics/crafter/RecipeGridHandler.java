@@ -15,13 +15,14 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.google.common.base.Predicates;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllRecipeTypes;
+import com.simibubi.create.Create;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.Pointing;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
-import net.createmod.catnip.data.Iterate;
-import net.createmod.catnip.math.Pointing;
+import io.github.fabricators_of_create.porting_lib_ufo.util.NBTSerializer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -30,7 +31,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.FireworkRocketRecipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -53,6 +53,7 @@ public class RecipeGridHandler {
 		Set<MechanicalCrafterBlockEntity> visited = new HashSet<>();
 		frontier.add(Pair.of(root, null));
 
+		boolean powered = false;
 		boolean empty = false;
 		boolean allEmpty = true;
 
@@ -67,6 +68,9 @@ public class RecipeGridHandler {
 				empty = true;
 			else
 				allEmpty = false;
+			if (poweredStart && current.getLevel()
+				.hasNeighborSignal(current.getBlockPos()))
+				powered = true;
 
 			crafters.add(current);
 			visited.add(current);
@@ -79,7 +83,7 @@ public class RecipeGridHandler {
 					frontier.add(Pair.of(preceding, current));
 		}
 
-		return empty && !poweredStart || allEmpty ? null : crafters;
+		return empty && !powered || allEmpty ? null : crafters;
 	}
 
 	public static MechanicalCrafterBlockEntity getTargetingCrafter(MechanicalCrafterBlockEntity crafter) {
@@ -98,7 +102,6 @@ public class RecipeGridHandler {
 			return null;
 		if (state.getValue(HORIZONTAL_FACING) != targetState.getValue(HORIZONTAL_FACING))
 			return null;
-
 		return targetBE;
 	}
 
@@ -142,27 +145,27 @@ public class RecipeGridHandler {
 
 	public static ItemStack tryToApplyRecipe(Level world, GroupedItems items) {
 		items.calcStats();
-		CraftingInput craftingInput = MechanicalCraftingInput.of(items);
+		MechanicalCraftingInventory craftinginventory = new MechanicalCraftingInventory(items);
 		ItemStack result = null;
 		RegistryAccess registryAccess = world.registryAccess();
 		if (AllConfigs.server().recipes.allowRegularCraftingInCrafter.get())
 			result = world.getRecipeManager()
-				.getRecipeFor(RecipeType.CRAFTING, craftingInput, world)
-				.filter(r -> isRecipeAllowed(r, craftingInput))
-				.map(r -> r.value().assemble(craftingInput, registryAccess))
+				.getRecipeFor(RecipeType.CRAFTING, craftinginventory.asCraftInput(), world)
+				.filter(r -> isRecipeAllowed(r.value(), craftinginventory.asCraftInput()))
+				.map(r -> r.value().assemble(craftinginventory.asCraftInput(), registryAccess))
 				.orElse(null);
 		if (result == null)
-			result = AllRecipeTypes.MECHANICAL_CRAFTING.find(craftingInput, world)
-				.map(r -> r.value().assemble(craftingInput, registryAccess))
+			result = AllRecipeTypes.MECHANICAL_CRAFTING.find(craftinginventory.asCraftInput(), world)
+				.map(r -> r.assemble(craftinginventory.asCraftInput(), registryAccess))
 				.orElse(null);
 		return result;
 	}
 
-	public static boolean isRecipeAllowed(RecipeHolder<CraftingRecipe> recipe, CraftingInput craftingInput) {
-		if (recipe.value() instanceof FireworkRocketRecipe) {
+	public static boolean isRecipeAllowed(CraftingRecipe recipe, CraftingInput inventory) {
+		if (recipe instanceof FireworkRocketRecipe) {
 			int numItems = 0;
-			for (int i = 0; i < craftingInput.size(); i++) {
-				if (!craftingInput.getItem(i).isEmpty()) {
+			for (int i = 0; i < inventory.size(); i++) {
+				if (!inventory.getItem(i).isEmpty()) {
 					numItems++;
 				}
 			}
@@ -194,26 +197,26 @@ public class RecipeGridHandler {
 			other.statsReady = false;
 		}
 
-		public void write(CompoundTag nbt, HolderLookup.Provider registries) {
+		public void write(CompoundTag nbt) {
 			ListTag gridNBT = new ListTag();
 			grid.forEach((pair, stack) -> {
 				CompoundTag entry = new CompoundTag();
 				entry.putInt("x", pair.getKey());
 				entry.putInt("y", pair.getValue());
-				entry.put("item", stack.saveOptional(registries));
+				entry.put("item", NBTSerializer.serializeNBT(stack));
 				gridNBT.add(entry);
 			});
 			nbt.put("Grid", gridNBT);
 		}
 
-		public static GroupedItems read(CompoundTag nbt, HolderLookup.Provider registries) {
+		public static GroupedItems read(CompoundTag nbt) {
 			GroupedItems items = new GroupedItems();
 			ListTag gridNBT = nbt.getList("Grid", Tag.TAG_COMPOUND);
 			gridNBT.forEach(inbt -> {
 				CompoundTag entry = (CompoundTag) inbt;
 				int x = entry.getInt("x");
 				int y = entry.getInt("y");
-				ItemStack stack = ItemStack.parseOptional(registries, entry.getCompound("item"));
+				ItemStack stack = ItemStack.parseOptional(Create.getRegistryAccess(), entry.getCompound("item"));
 				items.grid.put(Pair.of(x, y), stack);
 			});
 			return items;
@@ -240,13 +243,6 @@ public class RecipeGridHandler {
 
 			width = maxX - minX + 1;
 			height = maxY - minY + 1;
-		}
-
-		public boolean onlyEmptyItems() {
-			for (ItemStack stack : grid.values())
-				if (!stack.isEmpty())
-					return false;
-			return true;
 		}
 
 	}

@@ -4,8 +4,11 @@ import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.kinetics.base.DirectionalKineticBlock;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.utility.AdventureUtil;
+import com.simibubi.create.foundation.utility.Couple;
+import com.simibubi.create.foundation.utility.Iterate;
+import com.simibubi.create.foundation.utility.worldWrappers.WrappedWorld;
 
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -13,11 +16,11 @@ import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -38,27 +41,45 @@ public class WaterWheelBlock extends DirectionalKineticBlock implements IBE<Wate
 			BlockState neighbourState = worldIn.getBlockState(neighbourPos);
 			if (!AllBlocks.WATER_WHEEL.has(neighbourState))
 				continue;
-			Axis axis = state.getValue(FACING)
-				.getAxis();
-			if (neighbourState.getValue(FACING)
-				.getAxis() != axis || axis != direction.getAxis())
+			Axis axis = state.getValue(FACING).getAxis();
+			if (neighbourState.getValue(FACING).getAxis() != axis || axis != direction.getAxis())
 				return false;
 		}
 		return true;
 	}
-
+	
 	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult) {
-		return onBlockEntityUseItemOn(level, pos, wwt -> wwt.applyMaterialIfValid(stack));
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level pLevel, BlockPos pPos,
+			Player pPlayer, InteractionHand pHand, BlockHitResult hitResult) {
+		
+		if (AdventureUtil.isAdventure(pPlayer))
+			return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+		
+		if(stack.isEmpty())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		
+		return onBlockEntityUse(pLevel, pPos, wwt -> wwt.applyMaterialIfValid(pPlayer.getItemInHand(pHand)));
+		
+	}
+	
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level pLevel, BlockPos pPos, Player pPlayer,
+			BlockHitResult hitResult) {
+		
+		if (AdventureUtil.isAdventure(pPlayer))
+			return InteractionResult.PASS;
+		return onBlockEntityUse(pLevel, pPos, wwt -> wwt.applyMaterialIfValid(ItemStack.EMPTY)).result();
+		
 	}
 
 	@Override
 	public BlockState updateShape(BlockState stateIn, Direction facing, BlockState facingState, LevelAccessor worldIn,
-		BlockPos currentPos, BlockPos facingPos) {
+			BlockPos currentPos, BlockPos facingPos) {
+		if (worldIn instanceof WrappedWorld)
+			return stateIn;
 		if (worldIn.isClientSide())
 			return stateIn;
-		if (!worldIn.getBlockTicks()
-			.hasScheduledTick(currentPos, this))
+		if (!worldIn.getBlockTicks().hasScheduledTick(currentPos, this))
 			worldIn.scheduleTick(currentPos, this, 1);
 		return stateIn;
 	}
@@ -68,8 +89,7 @@ public class WaterWheelBlock extends DirectionalKineticBlock implements IBE<Wate
 		super.onPlace(state, worldIn, pos, oldState, isMoving);
 		if (worldIn.isClientSide())
 			return;
-		if (!worldIn.getBlockTicks()
-			.hasScheduledTick(pos, this))
+		if (!worldIn.getBlockTicks().hasScheduledTick(pos, this))
 			worldIn.scheduleTick(pos, this, 1);
 	}
 
@@ -81,21 +101,18 @@ public class WaterWheelBlock extends DirectionalKineticBlock implements IBE<Wate
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
 		BlockState state = super.getStateForPlacement(context);
-		state.setValue(FACING, Direction.get(AxisDirection.POSITIVE, state.getValue(FACING)
-			.getAxis()));
+		state.setValue(FACING, Direction.get(AxisDirection.POSITIVE, state.getValue(FACING).getAxis()));
 		return state;
 	}
 
 	@Override
 	public boolean hasShaftTowards(LevelReader world, BlockPos pos, BlockState state, Direction face) {
-		return state.getValue(FACING)
-			.getAxis() == face.getAxis();
+		return state.getValue(FACING).getAxis() == face.getAxis();
 	}
 
 	@Override
 	public Axis getRotationAxis(BlockState state) {
-		return state.getValue(FACING)
-			.getAxis();
+		return state.getValue(FACING).getAxis();
 	}
 
 	@Override
@@ -123,8 +140,8 @@ public class WaterWheelBlock extends DirectionalKineticBlock implements IBE<Wate
 		return AllBlockEntityTypes.WATER_WHEEL.get();
 	}
 
-	public boolean isFlammable(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
-		return false;
+	public static Couple<Integer> getSpeedRange() {
+		return Couple.create(8, 8);
 	}
 
 }

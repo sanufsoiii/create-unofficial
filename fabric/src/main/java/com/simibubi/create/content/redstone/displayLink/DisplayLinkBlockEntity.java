@@ -2,68 +2,89 @@ package com.simibubi.create.content.redstone.displayLink;
 
 import java.util.List;
 
-import com.simibubi.create.AllBlockEntityTypes;
-import com.simibubi.create.api.contraption.transformable.TransformableBlockEntity;
-import com.simibubi.create.content.contraptions.StructureTransform;
-import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
+import com.simibubi.create.content.redstone.displayLink.source.DisplaySource;
+import com.simibubi.create.content.redstone.displayLink.target.DisplayTarget;
+import com.simibubi.create.foundation.advancement.AllAdvancements;
+import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.utility.NBTHelper;
+import com.simibubi.create.foundation.utility.NbtFixer;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat;
+import com.simibubi.create.foundation.utility.animation.LerpedFloat.Chaser;
 
-import net.createmod.catnip.math.VecHelper;
-import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 
-public class DisplayLinkBlockEntity extends LinkWithBulbBlockEntity implements TransformableBlockEntity {
+public class DisplayLinkBlockEntity extends SmartBlockEntity {
 
 	protected BlockPos targetOffset;
-	public int targetLine;
-	public int refreshTicks;
+
+	public DisplaySource activeSource;
 	private CompoundTag sourceConfig;
+
+	public DisplayTarget activeTarget;
+	public int targetLine;
+
+	public LerpedFloat glow;
+	private boolean sendPulse;
+
+	public int refreshTicks;
 
 	public DisplayLinkBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
 		targetOffset = BlockPos.ZERO;
 		sourceConfig = new CompoundTag();
 		targetLine = 0;
+		glow = LerpedFloat.linear().startWithValue(0);
+		glow.chase(0, 0.5f, Chaser.EXP);
 	}
 
 	@Override
 	public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
-		behaviours.add(new AdvancementBehaviour(this));
+		registerAwardables(behaviours, AllAdvancements.DISPLAY_LINK, AllAdvancements.DISPLAY_BOARD);
 	}
 
 	@Override
 	public void tick() {
 		super.tick();
 
-		if (isVirtual())
+		if (isVirtual()) {
+			glow.tickChaser();
 			return;
-		if (level == null || level.isClientSide)
+		}
+
+		if (activeSource == null)
 			return;
+		if (level.isClientSide) {
+			glow.tickChaser();
+			return;
+		}
 
 		refreshTicks++;
-		if (refreshTicks >= 100) {
-			tickSource();
-		}
+		if (refreshTicks < activeSource.getPassiveRefreshTicks() || !activeSource.shouldPassiveReset())
+			return;
+		tickSource();
 	}
 
 	public void tickSource() {
 		refreshTicks = 0;
 		if (getBlockState().getOptionalValue(DisplayLinkBlock.POWERED).orElse(true))
 			return;
-		if (level != null && !level.isClientSide)
+		if (!level.isClientSide)
 			updateGatheredData();
 	}
 
 	public void onNoLongerPowered() {
+		if (activeSource == null)
+			return;
 		refreshTicks = 0;
+		activeSource.onSignalReset(new DisplayLinkContext(level, this));
 		updateGatheredData();
 	}
 
@@ -71,41 +92,85 @@ public class DisplayLinkBlockEntity extends LinkWithBulbBlockEntity implements T
 		BlockPos sourcePosition = getSourcePosition();
 		BlockPos targetPosition = getTargetPosition();
 
-		if (level == null || !level.isLoaded(targetPosition) || !level.isLoaded(sourcePosition))
+		if (!level.isLoaded(targetPosition) || !level.isLoaded(sourcePosition))
 			return;
 
-		sendPulseNextSync();
+		DisplayTarget target = AllDisplayBehaviours.targetOf(level, targetPosition);
+		List<DisplaySource> sources = AllDisplayBehaviours.sourcesOf(level, sourcePosition);
+		boolean notify = false;
+
+		if (activeTarget != target) {
+			activeTarget = target;
+			notify = true;
+		}
+
+		if (activeSource != null && !sources.contains(activeSource)) {
+			activeSource = null;
+			sourceConfig = new CompoundTag();
+			notify = true;
+		}
+
+		if (notify)
+			notifyUpdate();
+		if (activeSource == null || activeTarget == null)
+			return;
+
+		DisplayLinkContext context = new DisplayLinkContext(level, this);
+		activeSource.transferData(context, activeTarget, targetLine);
+		sendPulse = true;
 		sendData();
+
+		award(AllAdvancements.DISPLAY_LINK);
 	}
 
 	@Override
-	public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
-		super.writeSafe(tag, registries);
+	public void writeSafe(CompoundTag tag) {
+		super.writeSafe(tag);
 		writeGatheredData(tag);
 	}
 
 	@Override
-	protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
-		super.write(tag, registries, clientPacket);
+	protected void write(CompoundTag tag, boolean clientPacket) {
+		super.write(tag, clientPacket);
 		writeGatheredData(tag);
+		if (clientPacket && activeTarget != null)
+			tag.putString("TargetType", activeTarget.id.toString());
+		if (clientPacket && sendPulse) {
+			sendPulse = false;
+			NBTHelper.putMarker(tag, "Pulse");
+		}
 	}
 
 	private void writeGatheredData(CompoundTag tag) {
 		tag.put("TargetOffset", NbtUtils.writeBlockPos(targetOffset));
 		tag.putInt("TargetLine", targetLine);
-		if (!sourceConfig.isEmpty()) {
-			tag.put("Source", sourceConfig.copy());
+
+		if (activeSource != null) {
+			CompoundTag data = sourceConfig.copy();
+			data.putString("Id", activeSource.id.toString());
+			tag.put("Source", data);
 		}
 	}
 
 	@Override
-	protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
-		super.read(tag, registries, clientPacket);
-		targetOffset = NBTHelper.readBlockPos(tag, "TargetOffset");
+	protected void read(CompoundTag tag, Provider reg, boolean clientPacket) {
+		super.read(tag, reg, clientPacket);
+		targetOffset = NbtFixer.readBlockPos(tag, "TargetOffset");
 		targetLine = tag.getInt("TargetLine");
-		if (tag.contains("Source")) {
-			sourceConfig = tag.getCompound("Source").copy();
-		}
+
+		if (clientPacket && tag.contains("TargetType"))
+			activeTarget = AllDisplayBehaviours.getTarget(ResourceLocation.parse(tag.getString("TargetType")));
+		if (clientPacket && tag.contains("Pulse"))
+			glow.setValue(2);
+
+		if (!tag.contains("Source"))
+			return;
+
+		CompoundTag data = tag.getCompound("Source");
+		activeSource = AllDisplayBehaviours.getSource(ResourceLocation.parse(data.getString("Id")));
+		sourceConfig = new CompoundTag();
+		if (activeSource != null)
+			sourceConfig = data.copy();
 	}
 
 	public void target(BlockPos targetPosition) {
@@ -125,29 +190,11 @@ public class DisplayLinkBlockEntity extends LinkWithBulbBlockEntity implements T
 	}
 
 	public Direction getDirection() {
-		return getBlockState().getOptionalValue(DisplayLinkBlock.FACING)
-			.orElse(Direction.UP)
-			.getOpposite();
+		return getBlockState().getOptionalValue(DisplayLinkBlock.FACING).orElse(Direction.UP).getOpposite();
 	}
 
 	public BlockPos getTargetPosition() {
 		return worldPosition.offset(targetOffset);
-	}
-
-	private static final Vec3 bulbOffset = VecHelper.voxelSpace(11, 7, 5);
-	private static final Vec3 bulbOffsetVertical = VecHelper.voxelSpace(5, 7, 11);
-
-	@Override
-	public Vec3 getBulbOffset(BlockState state) {
-		if (state.getOptionalValue(DisplayLinkBlock.FACING).orElse(Direction.UP).getAxis().isVertical())
-			return bulbOffsetVertical;
-		return bulbOffset;
-	}
-
-	@Override
-	public void transform(BlockEntity be, StructureTransform transform) {
-		targetOffset = transform.applyWithoutOffset(targetOffset);
-		notifyUpdate();
 	}
 
 }
