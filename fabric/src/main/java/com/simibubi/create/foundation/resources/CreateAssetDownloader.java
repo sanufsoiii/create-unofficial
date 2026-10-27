@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
+
+
 import io.github.fabricators_of_create.porting_lib_ufo.event.common.AddPackFindersCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
@@ -42,6 +44,7 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 
 	private static File cachedTexturesZip = null;
 	private static boolean initialized = false;
+	private static boolean packFinderRegistered = false;
 
 	public static File getCachedTexturesZip() {
 		return cachedTexturesZip;
@@ -60,6 +63,36 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 		if (initialized)
 			return;
 		initialized = true;
+		prepare(AssetDownloadConsent.isAllowed());
+	}
+
+	/**
+	 * Downloads the official Create jar and prepares the textures pack.
+	 * <p>
+	 * Must only be called after the player explicitly agreed to the download; the
+	 * in-game consent screen does exactly that. Nothing here runs automatically.
+	 */
+	public static synchronized boolean downloadAndPrepare() {
+		if (cachedTexturesZip != null && cachedTexturesZip.exists() && cachedTexturesZip.length() > 0)
+			return true;
+		return prepare(true);
+	}
+
+	/**
+	 * Cheap check used by the consent prompt: true when the textures pack is missing
+	 * and therefore a download would be needed.
+	 */
+	public static boolean needsDownload() {
+		try {
+			Path cacheDir = FabricLoader.getInstance().getGameDir().resolve(".cache").resolve("create");
+			File texturesZip = cacheDir.resolve(TEXTURES_ZIP_NAME).toFile();
+			return !texturesZip.exists() || texturesZip.length() == 0;
+		} catch (Throwable t) {
+			return true;
+		}
+	}
+
+	private static synchronized boolean prepare(boolean allowNetwork) {
 		try {
 			Path cacheDir = FabricLoader.getInstance().getGameDir().resolve(".cache").resolve("create");
 			Files.createDirectories(cacheDir);
@@ -67,11 +100,16 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 			File texturesZip = cacheDir.resolve(TEXTURES_ZIP_NAME).toFile();
 
 			if (!isValidFile(jarFile)) {
-				LOGGER.info("[Create] Original Create assets not found or corrupted in cache. Downloading from {}...", DOWNLOAD_URL);
+				if (!allowNetwork) {
+					LOGGER.info("[Create] Original Create assets are not cached. The download is not started "
+						+ "until the player allows it ({}).", AssetDownloadConsent.configPath());
+					return false;
+				}
+				LOGGER.info("[Create] Downloading original Create assets from {} (approved by the player)...", DOWNLOAD_URL);
 				downloadFile(DOWNLOAD_URL, jarFile);
 				if (!isValidFile(jarFile)) {
 					LOGGER.error("[Create] Downloaded original assets file failed checksum verification!");
-					return;
+					return false;
 				}
 				LOGGER.info("[Create] Successfully downloaded original assets jar ({} bytes).", jarFile.length());
 				// Invalidate textures zip if jar was redownloaded
@@ -91,8 +129,10 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 
 			cachedTexturesZip = texturesZip;
 			registerPackFinder();
+			return true;
 		} catch (Throwable t) {
 			LOGGER.error("[Create] Failed to initialize Create original assets downloader/pack: ", t);
+			return false;
 		}
 	}
 
@@ -135,8 +175,9 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 	}
 
 	private static void registerPackFinder() {
-		if (cachedTexturesZip == null || !cachedTexturesZip.exists())
+		if (packFinderRegistered || cachedTexturesZip == null || !cachedTexturesZip.exists())
 			return;
+		packFinderRegistered = true;
 
 		AddPackFindersCallback.EVENT.register(sources -> {
 			sources.accept(packConsumer -> {

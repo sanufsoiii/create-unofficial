@@ -79,6 +79,12 @@ public class DynamicAssetManager {
 		if (!isClient())
 			return;
 
+		if (!AssetDownloadConsent.isAllowed()) {
+			LOGGER.info("[Create Assets] Download not started: the player has not allowed asset downloads yet ({}).",
+				AssetDownloadConsent.configPath());
+			return;
+		}
+
 		if (downloadStarted.compareAndSet(false, true)) {
 			CompletableFuture.runAsync(() -> {
 				try {
@@ -117,6 +123,11 @@ public class DynamicAssetManager {
 				if (localJar != null) {
 					LOGGER.info("[Create Assets] Found local official Create jar at {}. Extracting assets...", localJar);
 					extractAssetsFromJar(localJar, zipPath);
+				} else if (!AssetDownloadConsent.isAllowed()) {
+					LOGGER.info("[Create Assets] Official assets are not available locally and downloads are not "
+						+ "permitted yet ({}). Set state to ALLOWED there to enable them.",
+						AssetDownloadConsent.configPath());
+					return null;
 				} else {
 					LOGGER.info("[Create Assets] Official assets not found. Downloading Create {} from Modrinth CDN...",
 						OFFICIAL_CREATE_VERSION);
