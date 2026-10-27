@@ -3,6 +3,7 @@ package com.simibubi.create;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.simibubi.create.compat.Mods;
+import com.simibubi.create.compat.consent.AssetDownloadConsentScreen;
 import com.simibubi.create.compat.ftb.FTBIntegration;
 import com.simibubi.create.compat.pojav.PojavChecker;
 import com.simibubi.create.compat.sodium.SodiumCompat;
@@ -90,6 +91,7 @@ public class CreateClient {
 		Mods.FTBLIBRARY.executeIfInstalled(() -> () -> FTBIntegration.init(modEventBus, neoEventBus));
 		Mods.SODIUM.executeIfInstalled(() -> () -> SodiumCompat.init(modEventBus, neoEventBus));
 		PojavChecker.init();
+		AssetDownloadConsentScreen.init();
 	}
 
 	public static void clientInit(final FMLClientSetupEvent event) {

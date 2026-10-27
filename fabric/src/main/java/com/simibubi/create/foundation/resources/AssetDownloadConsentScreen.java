@@ -21,7 +21,7 @@ public final class AssetDownloadConsentScreen {
 	private static final Component TITLE = Component.literal("Download original Create textures?");
 	private static final Component MESSAGE = Component.literal(
 		"Create Reforged does not include Create's original textures, because they are All Rights Reserved."
-			+ "\n\nIf you allow it, Minecraft will download the official Create 6.0.10 file (~70 MB) from "
+			+ "\n\nIf you allow it, Minecraft will download the official Create 6.0.10 file (~19 MB) from "
 			+ "cdn.modrinth.com, verify its checksum and extract the textures from it. Nothing else is "
 			+ "downloaded and no data about you is sent anywhere."
 			+ "\n\nYour choice is saved in config/create-assets-consent.json and can be changed at any time. "

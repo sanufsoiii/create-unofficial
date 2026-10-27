@@ -97,6 +97,18 @@ public class DynamicAssetManager {
 	}
 
 	/**
+	 * Cheap check used by the consent prompt: true when the assets pack is missing and a
+	 * download (or extraction from a locally supplied jar) would be required.
+	 */
+	public static boolean needsDownload() {
+		try {
+			return !isValidAssetZip(getAssetZipPath()) && findLocalOfficialJar() == null;
+		} catch (Throwable t) {
+			return true;
+		}
+	}
+
+	/**
 	 * Ensures the assets zip file exists and is valid. If not, downloads and extracts it.
 	 */
 	public static Path ensureAssetsExist() {
