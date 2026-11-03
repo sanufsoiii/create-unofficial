@@ -83,11 +83,20 @@ public class ObjLoader implements ModelLoadingPlugin, IGeometryLoader<ObjModel> 
 
 	private Either<ModelSettings, RuntimeException> tryReadSettings(JsonObject json) {
 		try {
-			ResourceLocation objLocation = ResourceLocation.parse(GsonHelper.getAsString(json, "model"));
-			return Either.left(new ModelSettings(objLocation, GsonHelper.getAsBoolean(json, "automaticCulling", true),
-					GsonHelper.getAsBoolean(json, "shadeQuads", true), GsonHelper.getAsBoolean(json, "flipV", true),
-					GsonHelper.getAsBoolean(json, "emissiveAmbient", true),
-					GsonHelper.getAsString(json, "mtlOverride", null)));
+			String modelStr = GsonHelper.getAsString(json, "model");
+			if (!modelStr.endsWith(".obj")) {
+				modelStr = modelStr + ".obj";
+			}
+			ResourceLocation objLocation = ResourceLocation.parse(modelStr);
+			boolean automaticCulling = json.has("automatic_culling") ? GsonHelper.getAsBoolean(json, "automatic_culling") : GsonHelper.getAsBoolean(json, "automaticCulling", true);
+			boolean shadeQuads = json.has("shade_quads") ? GsonHelper.getAsBoolean(json, "shade_quads") : GsonHelper.getAsBoolean(json, "shadeQuads", true);
+			boolean flipV = json.has("flip_v") ? GsonHelper.getAsBoolean(json, "flip_v") : GsonHelper.getAsBoolean(json, "flipV", true);
+			boolean emissiveAmbient = json.has("emissive_ambient") ? GsonHelper.getAsBoolean(json, "emissive_ambient") : GsonHelper.getAsBoolean(json, "emissiveAmbient", true);
+			String mtlOverride = json.has("mtl_override") ? GsonHelper.getAsString(json, "mtl_override") : GsonHelper.getAsString(json, "mtlOverride", null);
+			return Either.left(new ModelSettings(objLocation, automaticCulling,
+					shadeQuads, flipV,
+					emissiveAmbient,
+					mtlOverride));
 		} catch (RuntimeException e) { // ID parse fail, json parse fail
 			return Either.right(e);
 		}
@@ -105,8 +114,14 @@ public class ObjLoader implements ModelLoadingPlugin, IGeometryLoader<ObjModel> 
 
 	private ObjModel loadModel(ObjModel.ModelSettings settings) {
 		ResourceLocation id = settings.modelLocation();
-		Resource resource = getResourceManager().getResource(id)
-				.orElseThrow(() -> new NoSuchElementException(id.toString()));
+		var manager = getResourceManager();
+		var resourceOpt = manager.getResource(id);
+		if (resourceOpt.isEmpty() && !id.getPath().startsWith("models/")) {
+			ResourceLocation altId = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), "models/" + id.getPath());
+			resourceOpt = manager.getResource(altId);
+		}
+		Resource resource = resourceOpt
+				.orElseThrow(() -> new NoSuchElementException(settings.modelLocation().toString()));
 		return loadModel(resource, settings);
 	}
 
@@ -124,7 +139,13 @@ public class ObjLoader implements ModelLoadingPlugin, IGeometryLoader<ObjModel> 
 
 	public ObjMaterialLibrary loadMaterialLibrary(ResourceLocation materialLocation) {
 		return materialCache.computeIfAbsent(materialLocation, location -> {
-			Resource resource = getResourceManager().getResource(location).orElseThrow();
+			var manager = getResourceManager();
+			var resourceOpt = manager.getResource(location);
+			if (resourceOpt.isEmpty() && !location.getPath().startsWith("models/")) {
+				ResourceLocation altLocation = ResourceLocation.fromNamespaceAndPath(location.getNamespace(), "models/" + location.getPath());
+				resourceOpt = manager.getResource(altLocation);
+			}
+			Resource resource = resourceOpt.orElseThrow(() -> new NoSuchElementException(location.toString()));
 			try (ObjTokenizer rdr = new ObjTokenizer(resource.open())) {
 				return new ObjMaterialLibrary(rdr);
 			} catch (FileNotFoundException e) {

@@ -65,8 +65,10 @@ public class ObjBakedModel implements BakedModel {
 			ArrayList<BakedQuad> quads = new ArrayList<>();
 			SpriteFinder finder = SpriteFinder.get(atlas);
 			meshes.forEach(mesh -> mesh.forEach(quad -> {
-				TextureAtlasSprite sprite = finder.find(quad);
-				quads.add(quad.toBakedQuad(sprite));
+				if (quad.cullFace() == direction) {
+					TextureAtlasSprite sprite = finder.find(quad);
+					quads.add(quad.toBakedQuad(sprite));
+				}
 			}));
 			return quads;
 		}

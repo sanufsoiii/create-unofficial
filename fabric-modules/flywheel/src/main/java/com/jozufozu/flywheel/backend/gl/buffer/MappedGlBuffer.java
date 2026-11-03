@@ -30,6 +30,9 @@ public class MappedGlBuffer extends GlBuffer implements Mappable {
 	}
 
 	public MappedBuffer getBuffer(long offset, long length) {
+		if (length <= 0) {
+			return new MappedBuffer(this, ByteBuffer.allocateDirect(0), offset, length);
+		}
 		ByteBuffer byteBuffer = GL30.glMapBufferRange(type.glEnum, offset, length, GL30.GL_MAP_WRITE_BIT);
 
 		if (byteBuffer == null) {

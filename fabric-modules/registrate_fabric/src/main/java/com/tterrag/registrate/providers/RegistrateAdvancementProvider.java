@@ -15,8 +15,8 @@ import com.mojang.serialization.JsonOps;
 import com.tterrag.registrate.AbstractRegistrate;
 import net.fabricmc.api.EnvType;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.advancements.Advancement;
@@ -31,8 +31,8 @@ import net.minecraft.resources.ResourceLocation;
 
 public class RegistrateAdvancementProvider implements RegistrateProvider, Consumer<AdvancementHolder> {
 	
-	private static final Log log = 
-		    LogFactory.getLog(RegistrateAdvancementProvider.class);
+	private static final Logger log = 
+		    LoggerFactory.getLogger(RegistrateAdvancementProvider.class);
 
     private static final Gson GSON = (new GsonBuilder()).setPrettyPrinting().create();
 

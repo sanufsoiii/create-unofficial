@@ -19,12 +19,19 @@ public class PortingLibModels implements ClientModInitializer {
 
 		RegisterGeometryLoadersCallback.EVENT.register(loaders -> {
 			loaders.put(PortingLib.id("elements"), ElementsModel.Loader.INSTANCE);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("neoforge", "elements"), ElementsModel.Loader.INSTANCE);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("forge", "elements"), ElementsModel.Loader.INSTANCE);
 
 			loaders.put(PortingLib.id("composite"), CompositeModelLoader.INSTANCE);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("neoforge", "composite"), CompositeModelLoader.INSTANCE);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("forge", "composite"), CompositeModelLoader.INSTANCE);
 
 			loaders.put(PortingLib.id("fluid_container"), DynamicFluidContainerModel.Loader.INSTANCE);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("neoforge", "fluid_container"), DynamicFluidContainerModel.Loader.INSTANCE);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("forge", "fluid_container"), DynamicFluidContainerModel.Loader.INSTANCE);
 
 			loaders.put(ResourceLocation.fromNamespaceAndPath("forge", "bucket"), DynamicFluidContainerModel.Loader.INSTANCE_DEPRECATED);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("neoforge", "bucket"), DynamicFluidContainerModel.Loader.INSTANCE_DEPRECATED);
 		});
 		BlockModel.GSON = BlockModel.GSON.newBuilder()
 				.registerTypeAdapter(Transformation.class, new TransformationHelper.Deserializer())

@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 
 public enum AllSpecialTextures {
 
-	BLANK("blank.png"), CHECKERED("checkerboard.png"), THIN_CHECKERED("thin_checkerboard.png"),
+	BLANK("create_reforged", "blank.png"), CHECKERED("checkerboard.png"), THIN_CHECKERED("thin_checkerboard.png"),
 	CUTOUT_CHECKERED("cutout_checkerboard.png"), HIGHLIGHT_CHECKERED("highlighted_checkerboard.png"),
 	SELECTION("selection.png"), GLUE("glue.png"),
 
@@ -16,7 +16,11 @@ public enum AllSpecialTextures {
 	private ResourceLocation location;
 
 	private AllSpecialTextures(String filename) {
-		location = Create.asResource(ASSET_PATH + filename);
+		this(Create.ID, filename);
+	}
+
+	private AllSpecialTextures(String namespace, String filename) {
+		location = ResourceLocation.fromNamespaceAndPath(namespace, ASSET_PATH + filename);
 	}
 
 	public void bind() {

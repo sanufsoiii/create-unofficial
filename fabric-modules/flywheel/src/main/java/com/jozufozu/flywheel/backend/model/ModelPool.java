@@ -113,6 +113,7 @@ public class ModelPool implements ModelAllocator {
 	}
 
 	private void uploadAll() {
+		if (vertices <= 0 || vbo.getCapacity() <= 0) return;
 		try (MappedBuffer buffer = vbo.getBuffer()) {
 			VertexWriter writer = vertexType.createWriter(buffer.unwrap());
 
@@ -131,6 +132,10 @@ public class ModelPool implements ModelAllocator {
 	}
 
 	private void uploadPending() {
+		if (vertices <= 0 || vbo.getCapacity() <= 0 || pendingUpload.isEmpty()) {
+			pendingUpload.clear();
+			return;
+		}
 		try (MappedBuffer buffer = vbo.getBuffer()) {
 			VertexWriter writer = vertexType.createWriter(buffer.unwrap());
 			for (PooledModel model : pendingUpload) {

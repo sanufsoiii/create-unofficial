@@ -4,12 +4,17 @@ import io.github.fabricators_of_create.porting_lib_ufo.models.geometry.RegisterG
 import io.github.fabricators_of_create.porting_lib_ufo.models.obj.ObjLoader;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
+import net.minecraft.resources.ResourceLocation;
 
 public class PortingLibObjLoader implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		// OBJ loader can be used for either plain models or block model geometry
 		ModelLoadingPlugin.register(ObjLoader.INSTANCE);
-		RegisterGeometryLoadersCallback.EVENT.register(loaders -> loaders.put(ObjLoader.ID, ObjLoader.INSTANCE));
+		RegisterGeometryLoadersCallback.EVENT.register(loaders -> {
+			loaders.put(ObjLoader.ID, ObjLoader.INSTANCE);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("neoforge", "obj"), ObjLoader.INSTANCE);
+			loaders.put(ResourceLocation.fromNamespaceAndPath("forge", "obj"), ObjLoader.INSTANCE);
+		});
 	}
 }

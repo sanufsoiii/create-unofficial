@@ -27,8 +27,8 @@ import net.minecraft.data.DataProvider;
 
 public class RegistrateDataProvider implements DataProvider {
 	
-	private static final org.apache.commons.logging.Log log = 
-		    org.apache.commons.logging.LogFactory.getLog(RegistrateDataProvider.class);
+	private static final org.slf4j.Logger log = 
+		    org.slf4j.LoggerFactory.getLogger(RegistrateDataProvider.class);
 
     @SuppressWarnings("null")
     static final BiMap<String, ProviderType<?>> TYPES = HashBiMap.create();

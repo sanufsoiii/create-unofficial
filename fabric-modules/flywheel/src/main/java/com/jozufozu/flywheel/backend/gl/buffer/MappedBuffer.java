@@ -23,7 +23,7 @@ public class MappedBuffer extends VecBuffer implements AutoCloseable {
 	public void flush() {
 		if (owner.isPersistent()) return;
 
-		if (internal == null) return;
+		if (internal == null || length <= 0) return;
 
 		GL15.glUnmapBuffer(owner.getType().glEnum);
 		internal = null;
