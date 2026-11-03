@@ -13,6 +13,12 @@ import net.minecraft.network.chat.Component;
 
 /**
  * In-game screen directing players to download official Create assets directly from CurseForge.
+ *
+ * TODO (Future): Make this menu customizable via client config / resourcepack:
+ * - Configurable titles, instructions, and color schemes
+ * - Configurable action buttons (custom URLs, button labels, optional download mirrors)
+ * - "Do not show again" persistent checkbox or config flag
+ * - Full localization support via translatable Components (e.g. create.gui.assets_notice.*)
  */
 public class AssetRedirectScreen extends Screen {
 	private static final String CURSEFORGE_URL = "https://www.curseforge.com/minecraft/mc-mods/create/files";
