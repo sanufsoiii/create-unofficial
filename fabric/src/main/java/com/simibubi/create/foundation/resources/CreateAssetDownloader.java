@@ -1,24 +1,14 @@
 package com.simibubi.create.foundation.resources;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
-
 import com.mojang.logging.LogUtils;
-
-
 
 import io.github.fabricators_of_create.porting_lib_ufo.event.common.AddPackFindersCallback;
 import net.fabricmc.loader.api.FabricLoader;
@@ -33,21 +23,23 @@ import net.minecraft.server.packs.repository.PackCompatibility;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.world.flag.FeatureFlagSet;
 
+/**
+ * Discovers and registers local official Create asset archives without bundling ARR files or downloading from network.
+ */
 public class CreateAssetDownloader implements PreLaunchEntrypoint {
 	private static final Logger LOGGER = LogUtils.getLogger();
 
 	public static final String PACK_ID = "create:original_assets";
-	private static final String DOWNLOAD_URL = "https://cdn.modrinth.com/data/LNytGWDc/versions/UjX6dr61/create-1.21.1-6.0.10.jar";
-	private static final String EXPECTED_SHA512 = "11cc8fc049d2f67f6548c7abfada6b82a3adb5c7ca410a742de04bbca76e03862c518721b88d806f6e6d768a4d68531fdb903a85859b25d1484d550cc7bafd4b";
-	private static final String JAR_FILE_NAME = "create-1.21.1-6.0.10.jar";
-	private static final String TEXTURES_ZIP_NAME = "create-textures.zip";
-
-	private static File cachedTexturesZip = null;
+	private static File cachedAssetsJar = null;
 	private static boolean initialized = false;
 	private static boolean packFinderRegistered = false;
 
-	public static File getCachedTexturesZip() {
-		return cachedTexturesZip;
+	public static File getCachedAssetsJar() {
+		return cachedAssetsJar;
+	}
+
+	public static boolean hasAssets() {
+		return cachedAssetsJar != null && cachedAssetsJar.exists() && cachedAssetsJar.length() > 0;
 	}
 
 	@Override
@@ -63,119 +55,87 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 		if (initialized)
 			return;
 		initialized = true;
-		prepare(AssetDownloadConsent.isAllowed());
+		findAndRegisterAssets();
 	}
 
-	/**
-	 * Downloads the official Create jar and prepares the textures pack.
-	 * <p>
-	 * Must only be called after the player explicitly agreed to the download; the
-	 * in-game consent screen does exactly that. Nothing here runs automatically.
-	 */
-	public static synchronized boolean downloadAndPrepare() {
-		if (cachedTexturesZip != null && cachedTexturesZip.exists() && cachedTexturesZip.length() > 0)
-			return true;
-		return prepare(true);
-	}
+	public static synchronized void findAndRegisterAssets() {
+		if (cachedAssetsJar != null && cachedAssetsJar.exists())
+			return;
 
-	/**
-	 * Cheap check used by the consent prompt: true when the textures pack is missing
-	 * and therefore a download would be needed.
-	 */
-	public static boolean needsDownload() {
 		try {
-			Path cacheDir = FabricLoader.getInstance().getGameDir().resolve(".cache").resolve("create");
-			File texturesZip = cacheDir.resolve(TEXTURES_ZIP_NAME).toFile();
-			return !texturesZip.exists() || texturesZip.length() == 0;
+			Path gameDir = FabricLoader.getInstance().getGameDir();
+
+			// 1. Check resourcepacks folder
+			Path rpDir = gameDir.resolve("resourcepacks");
+			File found = scanDirectoryForCreateAssets(rpDir);
+
+			// 2. Check mods folder for official Create jar
+			if (found == null) {
+				Path modsDir = gameDir.resolve("mods");
+				found = scanDirectoryForCreateAssets(modsDir);
+			}
+
+			// 3. Check .cache/create folder (for backwards compatibility)
+			if (found == null) {
+				Path cacheDir = gameDir.resolve(".cache").resolve("create");
+				found = scanDirectoryForCreateAssets(cacheDir);
+			}
+
+			if (found != null) {
+				LOGGER.info("[Create Reforged] Found official Create assets archive: {}", found.getAbsolutePath());
+				cachedAssetsJar = found;
+				registerPackFinder();
+			} else {
+				LOGGER.info("[Create Reforged] No official Create assets found locally. Player will be redirected to official CurseForge page.");
+			}
 		} catch (Throwable t) {
-			return true;
+			LOGGER.warn("[Create Reforged] Error scanning for official Create assets: ", t);
 		}
 	}
 
-	private static synchronized boolean prepare(boolean allowNetwork) {
-		try {
-			Path cacheDir = FabricLoader.getInstance().getGameDir().resolve(".cache").resolve("create");
-			Files.createDirectories(cacheDir);
-			File jarFile = cacheDir.resolve(JAR_FILE_NAME).toFile();
-			File texturesZip = cacheDir.resolve(TEXTURES_ZIP_NAME).toFile();
+	private static File scanDirectoryForCreateAssets(Path dir) {
+		if (!Files.isDirectory(dir))
+			return null;
 
-			if (!isValidFile(jarFile)) {
-				if (!allowNetwork) {
-					LOGGER.info("[Create] Original Create assets are not cached. The download is not started "
-						+ "until the player allows it ({}).", AssetDownloadConsent.configPath());
-					return false;
+		try (var stream = Files.list(dir)) {
+			var files = stream.filter(Files::isRegularFile).map(Path::toFile).toList();
+			for (File file : files) {
+				String name = file.getName().toLowerCase();
+				if ((name.endsWith(".jar") || name.endsWith(".zip")) && isCreateAssetsArchive(file)) {
+					return file;
 				}
-				LOGGER.info("[Create] Downloading original Create assets from {} (approved by the player)...", DOWNLOAD_URL);
-				downloadFile(DOWNLOAD_URL, jarFile);
-				if (!isValidFile(jarFile)) {
-					LOGGER.error("[Create] Downloaded original assets file failed checksum verification!");
-					return false;
-				}
-				LOGGER.info("[Create] Successfully downloaded original assets jar ({} bytes).", jarFile.length());
-				// Invalidate textures zip if jar was redownloaded
-				if (texturesZip.exists()) {
-					texturesZip.delete();
-				}
-			} else {
-				LOGGER.info("[Create] Original Create assets found in cache: {}", jarFile.getAbsolutePath());
 			}
+		} catch (Throwable ignored) {
+		}
+		return null;
+	}
 
-			// Generate textures-only zip if missing or empty
-			if (!texturesZip.exists() || texturesZip.length() == 0) {
-				LOGGER.info("[Create] Preparing textures-only pack from original jar...");
-				extractTexturesZip(jarFile, texturesZip);
-				LOGGER.info("[Create] Textures pack ready ({} bytes).", texturesZip.length());
+	private static boolean isCreateAssetsArchive(File file) {
+		if (!file.exists() || file.length() < 1000)
+			return false;
+
+		Path myModPath = FabricLoader.getInstance().getModContainer("create")
+				.flatMap(c -> c.getOrigin().getPaths().stream().findFirst())
+				.orElse(null);
+		if (myModPath != null) {
+			try {
+				if (Files.isSameFile(file.toPath(), myModPath))
+					return false;
+			} catch (Exception ignored) {
 			}
+		}
 
-			cachedTexturesZip = texturesZip;
-			registerPackFinder();
-			return true;
-		} catch (Throwable t) {
-			LOGGER.error("[Create] Failed to initialize Create original assets downloader/pack: ", t);
+		try (ZipFile zip = new ZipFile(file)) {
+			ZipEntry entry1 = zip.getEntry("assets/create/textures/block/cogwheel.png");
+			ZipEntry entry2 = zip.getEntry("assets/create/models/block/cogwheel.json");
+			return entry1 != null || entry2 != null;
+		} catch (Exception ignored) {
 			return false;
 		}
 	}
 
-	private static void extractTexturesZip(File originalJar, File destinationZip) throws Exception {
-		File tempZip = new File(destinationZip.getParentFile(), destinationZip.getName() + ".tmp");
-		if (tempZip.exists())
-			tempZip.delete();
-
-		try (ZipFile zipIn = new ZipFile(originalJar);
-			 ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(tempZip))) {
-
-			var entries = zipIn.entries();
-			byte[] buffer = new byte[16384];
-
-			while (entries.hasMoreElements()) {
-				ZipEntry entry = entries.nextElement();
-				String name = entry.getName();
-
-				if (name.startsWith("assets/create/textures/") || name.equals("pack.mcmeta")) {
-					ZipEntry newEntry = new ZipEntry(name);
-					newEntry.setTime(entry.getTime());
-					zipOut.putNextEntry(newEntry);
-
-					try (InputStream is = zipIn.getInputStream(entry)) {
-						int len;
-						while ((len = is.read(buffer)) > 0) {
-							zipOut.write(buffer, 0, len);
-						}
-					}
-					zipOut.closeEntry();
-				}
-			}
-		}
-
-		if (destinationZip.exists())
-			destinationZip.delete();
-		if (!tempZip.renameTo(destinationZip)) {
-			Files.move(tempZip.toPath(), destinationZip.toPath());
-		}
-	}
-
 	private static void registerPackFinder() {
-		if (packFinderRegistered || cachedTexturesZip == null || !cachedTexturesZip.exists())
+		if (packFinderRegistered || cachedAssetsJar == null || !cachedAssetsJar.exists())
 			return;
 		packFinderRegistered = true;
 
@@ -183,7 +143,7 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 			sources.accept(packConsumer -> {
 				PackLocationInfo locationInfo = new PackLocationInfo(
 						PACK_ID,
-						Component.literal("Create Textures (Original)"),
+						Component.literal("Create Original Assets"),
 						PackSource.BUILT_IN,
 						Optional.empty()
 				);
@@ -191,17 +151,17 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 				Pack.ResourcesSupplier resourcesSupplier = new Pack.ResourcesSupplier() {
 					@Override
 					public net.minecraft.server.packs.PackResources openPrimary(PackLocationInfo info) {
-						return new FilePackResources(info, new SharedZipFileAccess(cachedTexturesZip), "");
+						return new FilePackResources(info, new SharedZipFileAccess(cachedAssetsJar), "");
 					}
 
 					@Override
 					public net.minecraft.server.packs.PackResources openFull(PackLocationInfo info, Pack.Metadata metadata) {
-						return new FilePackResources(info, new SharedZipFileAccess(cachedTexturesZip), "");
+						return new FilePackResources(info, new SharedZipFileAccess(cachedAssetsJar), "");
 					}
 				};
 
 				Pack.Metadata metadata = new Pack.Metadata(
-						Component.literal("Original textures from Create"),
+						Component.literal("Official assets loaded from " + cachedAssetsJar.getName()),
 						PackCompatibility.COMPATIBLE,
 						FeatureFlagSet.of(),
 						java.util.Collections.emptyList()
@@ -213,69 +173,5 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 				packConsumer.accept(pack);
 			});
 		});
-	}
-
-	private static boolean isValidFile(File file) {
-		if (!file.exists() || file.length() == 0)
-			return false;
-
-		try {
-			MessageDigest digest = MessageDigest.getInstance("SHA-512");
-			try (InputStream is = Files.newInputStream(file.toPath())) {
-				byte[] buf = new byte[8192];
-				int r;
-				while ((r = is.read(buf)) != -1) {
-					digest.update(buf, 0, r);
-				}
-			}
-			byte[] hashBytes = digest.digest();
-			StringBuilder sb = new StringBuilder();
-			for (byte b : hashBytes) {
-				sb.append(String.format("%02x", b));
-			}
-			return sb.toString().equalsIgnoreCase(EXPECTED_SHA512);
-		} catch (Exception e) {
-			LOGGER.warn("[Create] Failed to verify checksum for {}: {}", file.getName(), e.getMessage());
-			return false;
-		}
-	}
-
-	private static void downloadFile(String urlString, File destination) throws Exception {
-		File tempFile = new File(destination.getParentFile(), destination.getName() + ".tmp");
-		if (tempFile.exists())
-			tempFile.delete();
-
-		URI uri = new URI(urlString);
-		HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
-		conn.setRequestProperty("User-Agent", "Create-Fabric-Downloader/1.0");
-		conn.setConnectTimeout(15000);
-		conn.setReadTimeout(30000);
-		conn.setInstanceFollowRedirects(true);
-
-		int responseCode = conn.getResponseCode();
-		if (responseCode >= 300 && responseCode < 400) {
-			String newUrl = conn.getHeaderField("Location");
-			if (newUrl != null) {
-				conn = (HttpURLConnection) new URI(newUrl).toURL().openConnection();
-				conn.setRequestProperty("User-Agent", "Create-Fabric-Downloader/1.0");
-				conn.setConnectTimeout(15000);
-				conn.setReadTimeout(30000);
-			}
-		}
-
-		try (InputStream in = new BufferedInputStream(conn.getInputStream());
-			 FileOutputStream out = new FileOutputStream(tempFile)) {
-			byte[] buf = new byte[16384];
-			int bytesRead;
-			while ((bytesRead = in.read(buf)) != -1) {
-				out.write(buf, 0, bytesRead);
-			}
-		}
-
-		if (destination.exists())
-			destination.delete();
-		if (!tempFile.renameTo(destination)) {
-			Files.move(tempFile.toPath(), destination.toPath());
-		}
 	}
 }

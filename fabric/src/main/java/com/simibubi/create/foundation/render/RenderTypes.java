@@ -21,7 +21,9 @@ import net.minecraft.world.inventory.InventoryMenu;
 // TODO 1.17: use custom shaders instead of vanilla ones
 public class RenderTypes extends RenderStateShard {
 
-	public static final RenderStateShard.ShaderStateShard GLOWING_SHADER = new RenderStateShard.ShaderStateShard(() -> Shaders.glowingShader);
+	public static final RenderStateShard.ShaderStateShard GLOWING_SHADER = new RenderStateShard.ShaderStateShard(
+		() -> Shaders.glowingShader != null ? Shaders.glowingShader : net.minecraft.client.renderer.GameRenderer.getRendertypeEntityCutoutShader()
+	);
 
 	private static final RenderType OUTLINE_SOLID =
 		RenderTypeAccessor.port_lib$create(createLayerName("outline_solid"), DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 256, false,
@@ -154,8 +156,12 @@ public class RenderTypes extends RenderStateShard {
 	private static class Shaders {
 		private static ShaderInstance glowingShader;
 
-		public static void onRegisterShaders(RegistrationContext ctx) throws IOException {
-			ctx.register(Create.asResource("glowing_shader"), DefaultVertexFormat.NEW_ENTITY, shader -> glowingShader = shader);
+		public static void onRegisterShaders(RegistrationContext ctx) {
+			try {
+				ctx.register(Create.asResource("glowing_shader"), DefaultVertexFormat.NEW_ENTITY, shader -> glowingShader = shader);
+			} catch (Throwable t) {
+				Create.LOGGER.warn("Failed to register Create glowing_shader: {}", t.getMessage());
+			}
 		}
 	}
 

@@ -69,9 +69,29 @@ sourceSets {
 
 processResources {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude("assets/create/models/**")
+    exclude("assets/create/textures/**")
+    exclude("assets/create/blockstates/**")
+    exclude("assets/create/sounds/**")
+    exclude("assets/create/sounds.json")
+    exclude("assets/create/lang/**")
+    exclude("assets/create/particles/**")
+    exclude("assets/create/ponder/**")
+    exclude("assets/create/*.png")
+    exclude("data/create/structure/**")
 }
 
 remapJar {
+    exclude("assets/create/models/**")
+    exclude("assets/create/textures/**")
+    exclude("assets/create/blockstates/**")
+    exclude("assets/create/sounds/**")
+    exclude("assets/create/sounds.json")
+    exclude("assets/create/lang/**")
+    exclude("assets/create/particles/**")
+    exclude("assets/create/ponder/**")
+    exclude("assets/create/*.png")
+    exclude("data/create/structure/**")
     nestedJars.from project(":flywheel").tasks.named("remapJar")
     nestedJars.from project(":milk").tasks.named("remapJar")
     nestedJars.from project(":porting_lib_ufo").tasks.named("remapJar")

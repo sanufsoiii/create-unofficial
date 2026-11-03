@@ -65,14 +65,32 @@ subprojects {
         options.release = 21
     }
 
-    // Exclude ARR textures so that compiled mod jars contain ZERO copyrighted textures
+    // Exclude ARR assets so that compiled mod jars contain ZERO copyrighted assets/models/sounds/structures
     tasks.withType(ProcessResources).configureEach {
-        exclude("assets/create/textures/block/**", "assets/create/textures/item/**", "assets/create/textures/entity/**")
+        exclude("assets/create/models/**")
+        exclude("assets/create/textures/**")
+        exclude("assets/create/blockstates/**")
+        exclude("assets/create/sounds/**")
+        exclude("assets/create/sounds.json")
+        exclude("assets/create/lang/**")
+        exclude("assets/create/particles/**")
+        exclude("assets/create/ponder/**")
+        exclude("assets/create/*.png")
+        exclude("data/create/structure/**")
         exclude("**/*.bbmodel", "**/*.lnk")
     }
 
     tasks.withType(Jar).configureEach {
-        exclude("assets/create/textures/block/**", "assets/create/textures/item/**", "assets/create/textures/entity/**")
+        exclude("assets/create/models/**")
+        exclude("assets/create/textures/**")
+        exclude("assets/create/blockstates/**")
+        exclude("assets/create/sounds/**")
+        exclude("assets/create/sounds.json")
+        exclude("assets/create/lang/**")
+        exclude("assets/create/particles/**")
+        exclude("assets/create/ponder/**")
+        exclude("assets/create/*.png")
+        exclude("data/create/structure/**")
         exclude("**/*.bbmodel", "**/*.lnk")
     }
 }

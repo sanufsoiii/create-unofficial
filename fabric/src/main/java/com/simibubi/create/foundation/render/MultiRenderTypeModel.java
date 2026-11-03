@@ -130,8 +130,7 @@ public class MultiRenderTypeModel extends ForwardingBakedModel {
 				if (wrapped instanceof WrapperBakedModel wrapperModel) {
 					wrapped = wrapperModel.getWrappedModel();
 				} else {
-					throw new IllegalArgumentException(
-							"Cannot create a MultiRenderTypeModel for a wrapped model that isn't CompositeModel.Baked");
+					return wrapped;
 				}
 			}
 

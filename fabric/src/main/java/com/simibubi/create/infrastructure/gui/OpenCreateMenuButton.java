@@ -31,7 +31,14 @@ public class OpenCreateMenuButton extends Button {
 
 	@Override
 	public void renderString(GuiGraphics graphics, Font pFont, int pColor) {
-		graphics.renderItem(ICON, getX() + 2, getY() + 2);
+		if (com.simibubi.create.foundation.resources.CreateAssetDownloader.hasAssets()) {
+			try {
+				graphics.renderItem(ICON, getX() + 2, getY() + 2);
+				return;
+			} catch (Throwable ignored) {
+			}
+		}
+		graphics.drawString(pFont, "C", getX() + 7, getY() + 6, 0xFFFFAA00, false);
 	}
 
 	public static void click(Button b) {

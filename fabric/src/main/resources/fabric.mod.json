@@ -2,23 +2,16 @@
   "schemaVersion": 1,
   "id": "create",
   "version": "6.0.10+1.21.1",
-  "name": "Create",
-  "description": "Technology that empowers the player.\nUnofficial Fabric port of Create 6.0.10 for Minecraft 1.21.1.\n\nCreate's textures are All Rights Reserved and are not bundled with this mod. On first launch the mod asks for your explicit permission before downloading the official Create 6.0.10 file from cdn.modrinth.com (checksum-verified, textures only). Nothing is ever downloaded without your consent - see config/create-assets-consent.json.",
+  "name": "Create Reforged",
+  "description": "Technology that empowers the player. Unofficial Fabric port for Minecraft 1.21.1.",
   "authors": [
     "Fabricators of Create",
     "Creators of Create",
-    "Pepper_Bell",
-    "AlphaMode",
-    "Jozufozu",
-    "TexTrue",
-    "DM-Earth",
-    "tterrag1098",
-    "TropheusJ",
-    "Vlad2509"
+    "sanufsoii"
   ],
   "contact": {
-    "issues": "https://github.com/Fabricators-of-Create/Create/issues",
-    "sources": "https://github.com/Fabricators-of-Create/Create"
+    "issues": "https://github.com/sanufsoiii/create-unofficial/issues",
+    "sources": "https://github.com/sanufsoiii/create-unofficial"
   },
   "provides": [
     "simplenetworking"
@@ -28,7 +21,7 @@
   ],
   "accessWidener": "create.accesswidener",
   "license": "MIT",
-  "icon": "assets/create/logo.png",
+  "icon": "assets/create_reforged/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [

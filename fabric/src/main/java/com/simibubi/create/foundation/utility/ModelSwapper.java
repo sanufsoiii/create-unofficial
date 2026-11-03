@@ -51,8 +51,14 @@ public class ModelSwapper implements AfterBake {
 			collectSwaps();
 		ResourceLocation id = context.resourceId() == null ? context.topLevelId().id() : context.resourceId();
 		NonNullFunction<BakedModel, ? extends BakedModel> swap = swaps.get(id);
-		//LogUtils.getLogger().info("Swap: "+id+" -> "+swap);
-		return swap != null ? swap.apply(model) : model;
+		if (swap != null) {
+			try {
+				return swap.apply(model);
+			} catch (Throwable t) {
+				return model;
+			}
+		}
+		return model;
 	}
 
 	private void collectSwaps() {

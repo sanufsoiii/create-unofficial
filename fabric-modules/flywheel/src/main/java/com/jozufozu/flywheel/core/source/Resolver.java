@@ -50,7 +50,7 @@ public class Resolver {
 		}
 
 		if (needsCrash) {
-			throw new ShaderLoadingException("Failed to resolve all source files, see log for details");
+			com.jozufozu.flywheel.backend.Backend.LOGGER.error("Failed to resolve all source files, see log for details");
 		}
 
 		hasRun = true;
