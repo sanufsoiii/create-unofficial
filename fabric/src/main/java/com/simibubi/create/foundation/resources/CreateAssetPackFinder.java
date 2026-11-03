@@ -1,15 +1,24 @@
 package com.simibubi.create.foundation.resources;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
@@ -142,8 +151,90 @@ public class CreateAssetPackFinder implements PreLaunchEntrypoint {
 	}
 
 	private static class FilteredAssetPackResources extends FilePackResources {
+		private static final Map<String, String> FALLBACK_EN = Map.ofEntries(
+			Map.entry("create.ponder.hold_to_ponder", "Hold [%1$s] to Ponder"),
+			Map.entry("create.ponder.subject", "Subject of this scene"),
+			Map.entry("create.ponder.pondering", "Pondering about..."),
+			Map.entry("create.ponder.identify_mode", "Identify mode active.\nUnpause with [%1$s]"),
+			Map.entry("create.ponder.associated", "Associated Entries"),
+			Map.entry("create.ponder.close", "Close"),
+			Map.entry("create.ponder.identify", "Identify"),
+			Map.entry("create.ponder.next", "Next Scene"),
+			Map.entry("create.ponder.next_up", "Up Next:"),
+			Map.entry("create.ponder.previous", "Previous Scene"),
+			Map.entry("create.ponder.replay", "Replay"),
+			Map.entry("create.ponder.think_back", "Think Back"),
+			Map.entry("create.ponder.slow_text", "Comfy Reading"),
+			Map.entry("create.ponder.exit", "Exit"),
+			Map.entry("create.ponder.welcome", "Welcome to Ponder"),
+			Map.entry("create.ponder.categories", "Available Categories in Create"),
+			Map.entry("create.ponder.index_description", "Click one of the icons below to learn about its associated Items and Blocks"),
+			Map.entry("create.ponder.index_title", "Ponder Index")
+		);
+
+		private static final Map<String, String> FALLBACK_RU = Map.ofEntries(
+			Map.entry("create.ponder.hold_to_ponder", "Удерживайте [%1$s] для размышления"),
+			Map.entry("create.ponder.subject", "Тема этой сцены"),
+			Map.entry("create.ponder.pondering", "Размышляем над..."),
+			Map.entry("create.ponder.identify_mode", "Режим идентификации включён.\nСнять паузу: [%1$s]"),
+			Map.entry("create.ponder.associated", "Связанные сцены"),
+			Map.entry("create.ponder.close", "Закрыть"),
+			Map.entry("create.ponder.identify", "Определить"),
+			Map.entry("create.ponder.next", "Следующая сцена"),
+			Map.entry("create.ponder.next_up", "Размышлять дальше над:"),
+			Map.entry("create.ponder.previous", "Предыдущая сцена"),
+			Map.entry("create.ponder.replay", "Повторить сцену"),
+			Map.entry("create.ponder.think_back", "Назад"),
+			Map.entry("create.ponder.slow_text", "Удобное чтение"),
+			Map.entry("create.ponder.exit", "Выйти"),
+			Map.entry("create.ponder.welcome", "Добро пожаловать в размышления!"),
+			Map.entry("create.ponder.categories", "Категории, доступные в Create"),
+			Map.entry("create.ponder.index_description", "Кликните по одной из иконок, чтобы узнать о связанных с ней предметах и блоках"),
+			Map.entry("create.ponder.index_title", "Содержание размышлений")
+		);
+
+		private static final Map<String, byte[]> PONDER_FILE_CACHE = new HashMap<>();
+		private static boolean ponderCacheLoaded = false;
+
+		private static synchronized void ensurePonderCacheLoaded() {
+			if (ponderCacheLoaded)
+				return;
+			ponderCacheLoaded = true;
+			if (cachedAssetsJar == null || !cachedAssetsJar.exists())
+				return;
+
+			try (ZipFile zip = new ZipFile(cachedAssetsJar)) {
+				ZipEntry ponderEntry = null;
+				var entries = zip.entries();
+				while (entries.hasMoreElements()) {
+					ZipEntry e = entries.nextElement();
+					if (e.getName().startsWith("META-INF/jarjar/ponder-") && e.getName().endsWith(".jar")) {
+						ponderEntry = e;
+						break;
+					}
+				}
+				if (ponderEntry == null)
+					return;
+
+				try (InputStream jis = zip.getInputStream(ponderEntry);
+					 ZipInputStream subZip = new ZipInputStream(jis)) {
+					ZipEntry entry;
+					while ((entry = subZip.getNextEntry()) != null) {
+						if (!entry.isDirectory()) {
+							byte[] bytes = subZip.readAllBytes();
+							PONDER_FILE_CACHE.put(entry.getName(), bytes);
+						}
+					}
+				}
+				LOGGER.info("[Create Reforged] Loaded {} resources from embedded ponder jar", PONDER_FILE_CACHE.size());
+			} catch (Throwable t) {
+				LOGGER.warn("[Create Reforged] Error reading embedded ponder jar: ", t);
+			}
+		}
+
 		public FilteredAssetPackResources(PackLocationInfo info, SharedZipFileAccess zip, String prefix) {
 			super(info, zip, prefix);
+			ensurePonderCacheLoaded();
 		}
 
 		@Override
@@ -151,7 +242,9 @@ public class CreateAssetPackFinder implements PreLaunchEntrypoint {
 			if (type == PackType.SERVER_DATA) {
 				return Collections.emptySet();
 			}
-			return super.getNamespaces(type);
+			Set<String> set = new HashSet<>(super.getNamespaces(type));
+			set.add("ponder");
+			return set;
 		}
 
 		@Override
@@ -159,6 +252,62 @@ public class CreateAssetPackFinder implements PreLaunchEntrypoint {
 			if (type == PackType.SERVER_DATA) {
 				return null;
 			}
+
+			// 1. If requesting a ponder namespace resource from embedded ponder jar
+			if (location.getNamespace().equals("ponder")) {
+				String path = "assets/ponder/" + location.getPath();
+				byte[] data = PONDER_FILE_CACHE.get(path);
+				if (data != null) {
+					return () -> new ByteArrayInputStream(data);
+				}
+			}
+
+			// 2. If requesting create lang files, inject ponder UI translations
+			if (location.getNamespace().equals("create") && location.getPath().startsWith("lang/") && location.getPath().endsWith(".json")) {
+				IoSupplier<InputStream> originalSupplier = super.getResource(type, location);
+				if (originalSupplier == null)
+					return null;
+
+				return () -> {
+					InputStream in = originalSupplier.get();
+					try {
+						JsonObject json = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
+						String langFile = location.getPath().substring("lang/".length());
+
+						// Check if ponder jar has this lang file
+						byte[] ponderLangBytes = PONDER_FILE_CACHE.get("assets/ponder/lang/" + langFile);
+						if (ponderLangBytes != null) {
+							try {
+								JsonObject ponderJson = JsonParser.parseString(new String(ponderLangBytes, StandardCharsets.UTF_8)).getAsJsonObject();
+								for (var entry : ponderJson.entrySet()) {
+									String k = entry.getKey();
+									String v = entry.getValue().getAsString();
+									if (k.startsWith("ponder.ui.")) {
+										String legacyKey = "create.ponder." + k.substring("ponder.ui.".length());
+										if (!json.has(legacyKey)) json.addProperty(legacyKey, v);
+									}
+									if (!json.has(k)) json.addProperty(k, v);
+								}
+							} catch (Exception ignored) {
+							}
+						}
+
+						// Fallback defaults if still missing
+						Map<String, String> fallbacks = langFile.startsWith("ru_") ? FALLBACK_RU : FALLBACK_EN;
+						for (var entry : fallbacks.entrySet()) {
+							if (!json.has(entry.getKey())) {
+								json.addProperty(entry.getKey(), entry.getValue());
+							}
+						}
+
+						return new ByteArrayInputStream(json.toString().getBytes(StandardCharsets.UTF_8));
+					} catch (Exception e) {
+						LOGGER.warn("[Create Reforged] Error enriching language file {}: ", location, e);
+						return originalSupplier.get();
+					}
+				};
+			}
+
 			return super.getResource(type, location);
 		}
 	}

@@ -30,6 +30,10 @@ public final class Components {
 		return Component.translatable(key, args);
 	}
 
+	public static MutableComponent translatableWithFallback(String key, String fallback, Object... args) {
+		return Component.translatableWithFallback(key, fallback, args);
+	}
+
 	public static MutableComponent keybind(String name) {
 		return Component.keybind(name);
 	}
