@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:encased_fan_builtin"
+      "trigger": "create:encased_fan_builtin"
     }
   },
   "display": {

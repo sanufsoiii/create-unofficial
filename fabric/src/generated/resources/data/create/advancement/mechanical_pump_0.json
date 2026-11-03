@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:mechanical_pump_0_builtin"
+      "trigger": "create:mechanical_pump_0_builtin"
     }
   },
   "display": {

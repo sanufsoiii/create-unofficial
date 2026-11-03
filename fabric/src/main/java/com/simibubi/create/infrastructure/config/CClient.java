@@ -69,7 +69,7 @@ public class CClient extends ConfigBase {
 	//placement assist group
 	public final ConfigGroup placementAssist = group(1, "placementAssist",
 			Comments.placementAssist);
-	public final ConfigEnum<PlacementIndicatorSetting> placementIndicator = e(PlacementIndicatorSetting.TEXTURE, "indicatorType",
+	public final ConfigEnum<PlacementIndicatorSetting> placementIndicator = e(PlacementIndicatorSetting.TRIANGLE, "indicatorType",
 			Comments.placementIndicator);
 	public final ConfigFloat indicatorScale = f(1.0f, 0f, "indicatorScale",
 			Comments.indicatorScale);

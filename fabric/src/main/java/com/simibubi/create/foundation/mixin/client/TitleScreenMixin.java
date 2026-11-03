@@ -6,7 +6,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.simibubi.create.foundation.resources.AssetRedirectScreen;
-import com.simibubi.create.foundation.resources.CreateAssetDownloader;
+import com.simibubi.create.foundation.resources.CreateAssetPackFinder;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -22,7 +22,7 @@ public abstract class TitleScreenMixin {
 
 	@Inject(method = "render", at = @At("HEAD"))
 	private void create$showAssetRedirectOnRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-		if (create$redirectShown || CreateAssetDownloader.hasAssets())
+		if (create$redirectShown || CreateAssetPackFinder.hasAssets())
 			return;
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.getOverlay() != null)

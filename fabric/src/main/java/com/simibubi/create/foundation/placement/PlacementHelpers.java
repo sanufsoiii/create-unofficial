@@ -204,10 +204,11 @@ public class PlacementHelpers {
 
 		CClient.PlacementIndicatorSetting mode = AllConfigs.client().placementIndicator.get();
 		PoseStack ms = graphics.pose();
-		if (mode == CClient.PlacementIndicatorSetting.TRIANGLE)
-			fadedArrow(ms, centerX, centerY, r, g, b, a, length, snappedAngle);
-		else if (mode == CClient.PlacementIndicatorSetting.TEXTURE)
+		if (mode == CClient.PlacementIndicatorSetting.TEXTURE) {
 			textured(ms, centerX, centerY, a, snappedAngle);
+		} else {
+			fadedArrow(ms, centerX, centerY, r, g, b, a, length, snappedAngle);
+		}
 	}
 
 	private static void fadedArrow(PoseStack ms, float centerX, float centerY, float r, float g, float b, float a,
@@ -266,56 +267,7 @@ public class PlacementHelpers {
 
 	@Environment(EnvType.CLIENT)
 	public static void textured(PoseStack ms, float centerX, float centerY, float alpha, float snappedAngle) {
-//		RenderSystem.enableTexture();
-		AllGuiTextures.PLACEMENT_INDICATOR_SHEET.bind();
-		RenderSystem.enableDepthTest();
-		RenderSystem.enableBlend();
-		RenderSystem.defaultBlendFunc();
-		RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-
-		ms.pushPose();
-		ms.translate(centerX, centerY, 50);
-		float scale = AllConfigs.client().indicatorScale.get()
-			.floatValue() * .75f;
-		ms.scale(scale, scale, 1);
-		ms.scale(12, 12, 1);
-
-		float index = snappedAngle / 22.5f;
-		float tex_size = 16f / 256f;
-
-		float tx = 0;
-		float ty = index * tex_size;
-		float tw = 1f;
-		float th = tex_size;
-
-		Tesselator tessellator = Tesselator.getInstance();
-		BufferBuilder buffer = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-
-		Matrix4f mat = ms.last()
-			.pose();
-		buffer.addVertex(mat, -1, -1, 0)
-			.setColor(1f, 1f, 1f, alpha)
-			.setUv(tx, ty)
-			;
-		buffer.addVertex(mat, -1, 1, 0)
-			.setColor(1f, 1f, 1f, alpha)
-			.setUv(tx, ty + th)
-			;
-		buffer.addVertex(mat, 1, 1, 0)
-			.setColor(1f, 1f, 1f, alpha)
-			.setUv(tx + tw, ty + th)
-			;
-		buffer.addVertex(mat, 1, -1, 0)
-			.setColor(1f, 1f, 1f, alpha)
-			.setUv(tx + tw, ty)
-			;
-
-		MeshData data = buffer.build();
-		if(data != null)
-			BufferUploader.drawWithShader(data);
-
-		RenderSystem.disableBlend();
-		ms.popPose();
+		fadedArrow(ms, centerX, centerY, .8f, .8f, .8f, alpha, 10f, snappedAngle);
 	}
 
 }

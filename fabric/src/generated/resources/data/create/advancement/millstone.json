@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:millstone_builtin"
+      "trigger": "create:millstone_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:arm_many_targets_builtin"
+      "trigger": "create:arm_many_targets_builtin"
     }
   },
   "display": {

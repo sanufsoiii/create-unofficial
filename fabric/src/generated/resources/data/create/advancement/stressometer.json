@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:stressometer_builtin"
+      "trigger": "create:stressometer_builtin"
     }
   },
   "display": {

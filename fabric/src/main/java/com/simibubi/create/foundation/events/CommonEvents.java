@@ -206,10 +206,12 @@ public class CommonEvents {
 	}
 
 	public static void addPackFinders() {
-		ModContainer create = FabricLoader.getInstance().getModContainer(Create.ID)
-				.orElseThrow(() -> new IllegalStateException("Create's ModContainer couldn't be found!"));
-		ResourceLocation packId = Create.asResource("legacy_copper");
-		ResourceManagerHelper.registerBuiltinResourcePack(packId, create, "Create Legacy Copper", ResourcePackActivationType.NORMAL);
+		FabricLoader.getInstance().getModContainer(Create.ID).ifPresent(create -> {
+			if (create.findPath("resourcepacks/legacy_copper").isPresent()) {
+				ResourceLocation packId = Create.asResource("legacy_copper");
+				ResourceManagerHelper.registerBuiltinResourcePack(packId, create, "Create Legacy Copper", ResourcePackActivationType.NORMAL);
+			}
+		});
 	}
 
 	public static void register() {

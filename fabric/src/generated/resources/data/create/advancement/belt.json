@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:belt_builtin"
+      "trigger": "create:belt_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:steam_whistle_builtin"
+      "trigger": "create:steam_whistle_builtin"
     }
   },
   "display": {

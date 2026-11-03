@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:mechanical_press_builtin"
+      "trigger": "create:mechanical_press_builtin"
     }
   },
   "display": {

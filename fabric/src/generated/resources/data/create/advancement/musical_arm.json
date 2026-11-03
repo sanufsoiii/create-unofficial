@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:musical_arm_builtin"
+      "trigger": "create:musical_arm_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:fist_bump_builtin"
+      "trigger": "create:fist_bump_builtin"
     }
   },
   "display": {

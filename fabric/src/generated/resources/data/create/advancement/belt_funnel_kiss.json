@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:belt_funnel_kiss_builtin"
+      "trigger": "create:belt_funnel_kiss_builtin"
     }
   },
   "display": {

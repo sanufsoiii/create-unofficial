@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:copper_casing_builtin"
+      "trigger": "create:copper_casing_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:crafter_lazy_000_builtin"
+      "trigger": "create:crafter_lazy_000_builtin"
     }
   },
   "display": {

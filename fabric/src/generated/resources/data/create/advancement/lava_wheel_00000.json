@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:lava_wheel_00000_builtin"
+      "trigger": "create:lava_wheel_00000_builtin"
     }
   },
   "display": {

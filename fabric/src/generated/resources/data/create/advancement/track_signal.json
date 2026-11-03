@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:track_signal_builtin"
+      "trigger": "create:track_signal_builtin"
     }
   },
   "display": {

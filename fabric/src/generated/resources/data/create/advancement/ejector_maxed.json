@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:ejector_maxed_builtin"
+      "trigger": "create:ejector_maxed_builtin"
     }
   },
   "display": {

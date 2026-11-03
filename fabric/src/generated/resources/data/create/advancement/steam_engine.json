@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:steam_engine_builtin"
+      "trigger": "create:steam_engine_builtin"
     }
   },
   "display": {

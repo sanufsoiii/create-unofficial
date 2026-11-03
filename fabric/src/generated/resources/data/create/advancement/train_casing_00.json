@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:train_casing_00_builtin"
+      "trigger": "create:train_casing_00_builtin"
     }
   },
   "display": {

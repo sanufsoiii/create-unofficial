@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:haunted_bell_builtin"
+      "trigger": "create:haunted_bell_builtin"
     }
   },
   "display": {

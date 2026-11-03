@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:anvil_plough_builtin"
+      "trigger": "create:anvil_plough_builtin"
     }
   },
   "display": {

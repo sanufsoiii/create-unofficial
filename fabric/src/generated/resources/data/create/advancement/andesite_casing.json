@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:andesite_casing_builtin"
+      "trigger": "create:andesite_casing_builtin"
     }
   },
   "display": {

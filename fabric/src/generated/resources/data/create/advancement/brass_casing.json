@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:brass_casing_builtin"
+      "trigger": "create:brass_casing_builtin"
     }
   },
   "display": {

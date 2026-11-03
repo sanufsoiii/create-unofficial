@@ -1,9 +1,12 @@
 package com.simibubi.create.foundation.resources;
 
 import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -11,22 +14,26 @@ import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
 import io.github.fabricators_of_create.porting_lib_ufo.event.common.AddPackFindersCallback;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.FilePackResources;
 import net.minecraft.server.packs.FilePackResources.SharedZipFileAccess;
 import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackSelectionConfig;
+import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackCompatibility;
 import net.minecraft.server.packs.repository.PackSource;
+import net.minecraft.server.packs.resources.IoSupplier;
 import net.minecraft.world.flag.FeatureFlagSet;
 
 /**
  * Discovers and registers local official Create asset archives without bundling ARR files or downloading from network.
  */
-public class CreateAssetDownloader implements PreLaunchEntrypoint {
+public class CreateAssetPackFinder implements PreLaunchEntrypoint {
 	private static final Logger LOGGER = LogUtils.getLogger();
 
 	public static final String PACK_ID = "create:original_assets";
@@ -134,10 +141,36 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 		}
 	}
 
+	private static class FilteredAssetPackResources extends FilePackResources {
+		public FilteredAssetPackResources(PackLocationInfo info, SharedZipFileAccess zip, String prefix) {
+			super(info, zip, prefix);
+		}
+
+		@Override
+		public Set<String> getNamespaces(PackType type) {
+			if (type == PackType.SERVER_DATA) {
+				return Collections.emptySet();
+			}
+			return super.getNamespaces(type);
+		}
+
+		@Override
+		public IoSupplier<InputStream> getResource(PackType type, ResourceLocation location) {
+			if (type == PackType.SERVER_DATA) {
+				return null;
+			}
+			return super.getResource(type, location);
+		}
+	}
+
 	private static void registerPackFinder() {
 		if (packFinderRegistered || cachedAssetsJar == null || !cachedAssetsJar.exists())
 			return;
 		packFinderRegistered = true;
+
+		// Only register pack finder on client side since dedicated server does not need client textures/models
+		if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER)
+			return;
 
 		AddPackFindersCallback.EVENT.register(sources -> {
 			sources.accept(packConsumer -> {
@@ -151,12 +184,12 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 				Pack.ResourcesSupplier resourcesSupplier = new Pack.ResourcesSupplier() {
 					@Override
 					public net.minecraft.server.packs.PackResources openPrimary(PackLocationInfo info) {
-						return new FilePackResources(info, new SharedZipFileAccess(cachedAssetsJar), "");
+						return new FilteredAssetPackResources(info, new SharedZipFileAccess(cachedAssetsJar), "");
 					}
 
 					@Override
 					public net.minecraft.server.packs.PackResources openFull(PackLocationInfo info, Pack.Metadata metadata) {
-						return new FilePackResources(info, new SharedZipFileAccess(cachedAssetsJar), "");
+						return new FilteredAssetPackResources(info, new SharedZipFileAccess(cachedAssetsJar), "");
 					}
 				};
 
@@ -164,7 +197,7 @@ public class CreateAssetDownloader implements PreLaunchEntrypoint {
 						Component.literal("Official assets loaded from " + cachedAssetsJar.getName()),
 						PackCompatibility.COMPATIBLE,
 						FeatureFlagSet.of(),
-						java.util.Collections.emptyList()
+						Collections.emptyList()
 				);
 
 				PackSelectionConfig selectionConfig = new PackSelectionConfig(true, Pack.Position.TOP, true);

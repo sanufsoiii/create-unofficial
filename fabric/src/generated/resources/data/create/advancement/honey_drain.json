@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:honey_drain_builtin"
+      "trigger": "create:honey_drain_builtin"
     }
   },
   "display": {

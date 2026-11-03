@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:hand_crank_000_builtin"
+      "trigger": "create:hand_crank_000_builtin"
     }
   },
   "display": {

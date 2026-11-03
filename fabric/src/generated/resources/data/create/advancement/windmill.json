@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:windmill_builtin"
+      "trigger": "create:windmill_builtin"
     }
   },
   "display": {

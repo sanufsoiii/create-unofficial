@@ -71,7 +71,10 @@ public class MultiRenderTypeModel extends ForwardingBakedModel {
 	}
 
 	protected FabricBakedModel getPart(String name) {
-		return ((Baked) wrapped).getPart(name);
+		if (wrapped instanceof Baked baked) {
+			return baked.getPart(name);
+		}
+		return null;
 	}
 
 	protected static boolean setMaterial(MutableQuadView quad, RenderMaterial material) {
@@ -83,18 +86,24 @@ public class MultiRenderTypeModel extends ForwardingBakedModel {
 	public void emitBlockQuads(BlockAndTintGetter blockView, BlockState state, BlockPos pos,
 			Supplier<RandomSource> randomSupplier, RenderContext context) {
 		parts.forEach((name, material) -> {
-			context.pushTransform(quad -> setMaterial(quad, material));
-			getPart(name).emitBlockQuads(blockView, state, pos, randomSupplier, context);
-			context.popTransform();
+			FabricBakedModel part = getPart(name);
+			if (part != null) {
+				context.pushTransform(quad -> setMaterial(quad, material));
+				part.emitBlockQuads(blockView, state, pos, randomSupplier, context);
+				context.popTransform();
+			}
 		});
 	}
 
 	@Override
 	public void emitItemQuads(ItemStack stack, Supplier<RandomSource> randomSupplier, RenderContext context) {
 		parts.forEach((name, material) -> {
-			context.pushTransform(quad -> setMaterial(quad, material));
-			getPart(name).emitItemQuads(stack, randomSupplier, context);
-			context.popTransform();
+			FabricBakedModel part = getPart(name);
+			if (part != null) {
+				context.pushTransform(quad -> setMaterial(quad, material));
+				part.emitItemQuads(stack, randomSupplier, context);
+				context.popTransform();
+			}
 		});
 	}
 

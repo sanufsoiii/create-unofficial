@@ -12,6 +12,7 @@
     "sources": "https://github.com/TropheusJ/milk-lib"
   },
   "icon": "assets/milk/icon.png",
+  "license": "MIT",
   "mixins": [
     "milk.mixins.json",
     "dripstone_fluid_lib.mixins.json"

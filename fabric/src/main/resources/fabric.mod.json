@@ -10,6 +10,7 @@
     "sanufsoii"
   ],
   "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/create",
     "issues": "https://github.com/sanufsoiii/create-unofficial/issues",
     "sources": "https://github.com/sanufsoiii/create-unofficial"
   },
@@ -34,7 +35,7 @@
     ],
     "preLaunch": [
       "com.llamalad7.mixinextras.MixinExtrasBootstrap::init",
-      "com.simibubi.create.foundation.resources.CreateAssetDownloader::preLaunch"
+      "com.simibubi.create.foundation.resources.CreateAssetPackFinder::preLaunch"
     ],
     "fabric-datagen": [
       "com.simibubi.create.infrastructure.data.CreateDatagen"

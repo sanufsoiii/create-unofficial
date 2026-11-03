@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:fan_processing_builtin"
+      "trigger": "create:fan_processing_builtin"
     }
   },
   "display": {

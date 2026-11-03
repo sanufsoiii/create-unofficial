@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:drain_builtin"
+      "trigger": "create:drain_builtin"
     }
   },
   "display": {

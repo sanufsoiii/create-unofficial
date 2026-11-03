@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:long_train_builtin"
+      "trigger": "create:long_train_builtin"
     }
   },
   "display": {

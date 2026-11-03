@@ -248,7 +248,7 @@ public enum AllGuiTextures implements ScreenElement, TextureSheetSegment {
 	TRADE_OVERLAY("widgets", 128, 98, 96, 46),
 
 	// PlacementIndicator
-	PLACEMENT_INDICATOR_SHEET("create_reforged", "placement_indicator", 0, 0, 16, 256),
+	PLACEMENT_INDICATOR_SHEET("widgets", 0, 0, 16, 16),
 
 	// Train Map
 	TRAINMAP_SPRITES("trainmap_sprite_sheet", 0, 0, 512, 256),

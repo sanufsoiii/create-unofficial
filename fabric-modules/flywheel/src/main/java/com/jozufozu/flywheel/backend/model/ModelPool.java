@@ -212,7 +212,7 @@ public class ModelPool implements ModelAllocator {
 
 		@Override
 		public boolean isDeleted() {
-			return false;
+			return remove;
 		}
 
 		@Override

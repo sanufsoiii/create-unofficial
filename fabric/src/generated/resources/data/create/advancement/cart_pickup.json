@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:cart_pickup_builtin"
+      "trigger": "create:cart_pickup_builtin"
     }
   },
   "display": {

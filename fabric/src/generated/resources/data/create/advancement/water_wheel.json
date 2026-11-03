@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:water_wheel_builtin"
+      "trigger": "create:water_wheel_builtin"
     }
   },
   "display": {

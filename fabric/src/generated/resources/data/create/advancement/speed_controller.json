@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:speed_controller_builtin"
+      "trigger": "create:speed_controller_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:portable_storage_interface_builtin"
+      "trigger": "create:portable_storage_interface_builtin"
     }
   },
   "display": {

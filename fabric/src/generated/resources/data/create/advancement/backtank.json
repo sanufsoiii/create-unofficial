@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:backtank_builtin"
+      "trigger": "create:backtank_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:crusher_maxed_0000_builtin"
+      "trigger": "create:crusher_maxed_0000_builtin"
     }
   },
   "display": {

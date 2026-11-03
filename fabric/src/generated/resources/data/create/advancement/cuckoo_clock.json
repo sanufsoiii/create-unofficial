@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:cuckoo_clock_builtin"
+      "trigger": "create:cuckoo_clock_builtin"
     }
   },
   "display": {

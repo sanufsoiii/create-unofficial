@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:mechanical_crafter_builtin"
+      "trigger": "create:mechanical_crafter_builtin"
     }
   },
   "display": {

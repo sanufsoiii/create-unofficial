@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:contraption_actors_builtin"
+      "trigger": "create:contraption_actors_builtin"
     }
   },
   "display": {

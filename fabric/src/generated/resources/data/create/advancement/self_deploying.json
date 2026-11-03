@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:self_deploying_builtin"
+      "trigger": "create:self_deploying_builtin"
     }
   },
   "display": {

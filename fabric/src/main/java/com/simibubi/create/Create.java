@@ -100,7 +100,7 @@ public class Create implements ModInitializer {
 	@Override
 	public void onInitialize() { // onCtor
 		LOGGER.info(">>> INITIALIZING CREATE MOD ON FABRIC 1.21.1 <<<");
-		com.simibubi.create.foundation.resources.CreateAssetDownloader.init();
+		com.simibubi.create.foundation.resources.CreateAssetPackFinder.init();
 		AllDataComponents.register();
 
 		AllSoundEvents.prepare();

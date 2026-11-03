@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:mechanical_mixer_builtin"
+      "trigger": "create:mechanical_mixer_builtin"
     }
   },
   "display": {

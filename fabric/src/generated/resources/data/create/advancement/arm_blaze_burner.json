@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:arm_blaze_burner_builtin"
+      "trigger": "create:arm_blaze_burner_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:track_crafting_factory_builtin"
+      "trigger": "create:track_crafting_factory_builtin"
     }
   },
   "display": {

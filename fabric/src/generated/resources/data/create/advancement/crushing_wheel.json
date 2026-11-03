@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:crushing_wheel_builtin"
+      "trigger": "create:crushing_wheel_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:spout_builtin"
+      "trigger": "create:spout_builtin"
     }
   },
   "display": {

@@ -292,7 +292,6 @@ public class ObjModel implements IUnbakedGeometry<ObjModel>, UnbakedModel {
 		quadBaker.emit();
 	}
 
-	// Honestly I don't know what the fuck this is doing... or if it will work across different renderer implementations
 	private int encodeQuadColor(Vector4f colorTint) {
 		int r = (int) (colorTint.x() * 255.0F);
 		int g = (int) (colorTint.y() * 255.0F);
@@ -300,9 +299,9 @@ public class ObjModel implements IUnbakedGeometry<ObjModel>, UnbakedModel {
 		int a = (int) (colorTint.w() * 255.0F);
 
 		return ((a & 0xFF) << 24) |
-				((b & 0xFF) << 16) |
+				((r & 0xFF) << 16) |
 				((g & 0xFF) << 8) |
-				(r & 0xFF);
+				(b & 0xFF);
 	}
 
 	@Override

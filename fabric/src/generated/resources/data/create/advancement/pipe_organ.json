@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:pipe_organ_builtin"
+      "trigger": "create:pipe_organ_builtin"
     }
   },
   "display": {

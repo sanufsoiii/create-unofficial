@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:display_board_0_builtin"
+      "trigger": "create:display_board_0_builtin"
     }
   },
   "display": {

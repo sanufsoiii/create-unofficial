@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:linked_controller_builtin"
+      "trigger": "create:linked_controller_builtin"
     }
   },
   "display": {

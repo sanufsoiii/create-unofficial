@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:train_crash_backwards_builtin"
+      "trigger": "create:train_crash_backwards_builtin"
     }
   },
   "display": {

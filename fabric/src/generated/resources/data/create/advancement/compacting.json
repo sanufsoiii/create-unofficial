@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:compacting_builtin"
+      "trigger": "create:compacting_builtin"
     }
   },
   "display": {

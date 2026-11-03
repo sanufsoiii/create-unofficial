@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:water_supply_builtin"
+      "trigger": "create:water_supply_builtin"
     }
   },
   "display": {

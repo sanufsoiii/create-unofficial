@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:mechanical_arm_builtin"
+      "trigger": "create:mechanical_arm_builtin"
     }
   },
   "display": {

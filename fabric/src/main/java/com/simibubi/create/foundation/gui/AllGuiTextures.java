@@ -122,7 +122,7 @@ public enum AllGuiTextures implements ScreenElement {
 	TRAIN_PROMPT("widgets", 0, 230, 256, 16),
 
 	// PlacementIndicator
-	PLACEMENT_INDICATOR_SHEET("create_reforged", "placement_indicator", 0, 0, 16, 256),
+	PLACEMENT_INDICATOR_SHEET("widgets", 0, 0, 16, 16),
 
 	// ComputerCraft
 	COMPUTER("computer", 200, 102);

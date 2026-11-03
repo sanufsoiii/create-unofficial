@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:diving_suit_lava_builtin"
+      "trigger": "create:diving_suit_lava_builtin"
     }
   },
   "display": {

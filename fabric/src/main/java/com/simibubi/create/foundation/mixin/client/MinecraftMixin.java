@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.simibubi.create.foundation.resources.CreateAssetDownloader;
+import com.simibubi.create.foundation.resources.CreateAssetPackFinder;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.main.GameConfig;
@@ -28,9 +28,9 @@ public abstract class MinecraftMixin {
 			)
 	)
 	private void create$autoEnableTexturesPack(GameConfig gameConfig, CallbackInfo ci) {
-		if (this.resourcePackRepository != null && this.resourcePackRepository.isAvailable(CreateAssetDownloader.PACK_ID)) {
-			if (!this.resourcePackRepository.getSelectedIds().contains(CreateAssetDownloader.PACK_ID)) {
-				this.resourcePackRepository.addPack(CreateAssetDownloader.PACK_ID);
+		if (this.resourcePackRepository != null && this.resourcePackRepository.isAvailable(CreateAssetPackFinder.PACK_ID)) {
+			if (!this.resourcePackRepository.getSelectedIds().contains(CreateAssetPackFinder.PACK_ID)) {
+				this.resourcePackRepository.addPack(CreateAssetPackFinder.PACK_ID);
 			}
 		}
 	}

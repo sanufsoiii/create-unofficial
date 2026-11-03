@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:funnel_builtin"
+      "trigger": "create:funnel_builtin"
     }
   },
   "display": {

@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:shifting_gears_builtin"
+      "trigger": "create:shifting_gears_builtin"
     }
   },
   "display": {

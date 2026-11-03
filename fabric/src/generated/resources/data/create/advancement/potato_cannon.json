@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:potato_cannon_builtin"
+      "trigger": "create:potato_cannon_builtin"
     }
   },
   "display": {

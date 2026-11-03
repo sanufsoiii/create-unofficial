@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:extendo_grip_builtin"
+      "trigger": "create:extendo_grip_builtin"
     }
   },
   "display": {

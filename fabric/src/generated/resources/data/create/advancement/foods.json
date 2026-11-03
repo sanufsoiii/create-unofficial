@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:foods_builtin"
+      "trigger": "create:foods_builtin"
     }
   },
   "display": {

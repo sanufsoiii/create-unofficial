@@ -11,7 +11,7 @@
   "contact": {
     "sources": "https://github.com/Fabricators-of-Create/Porting-Lib"
   },
-  "license": "LGPL",
+  "license": "LGPL-3.0-or-later",
   "icon": "assets/porting_lib_ufo/icon.png",
   "environment": "*",
   "depends": {

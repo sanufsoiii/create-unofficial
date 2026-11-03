@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:hose_pulley_lava_builtin"
+      "trigger": "create:hose_pulley_lava_builtin"
     }
   },
   "display": {

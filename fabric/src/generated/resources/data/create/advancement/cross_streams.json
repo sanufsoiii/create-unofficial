@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:cross_streams_builtin"
+      "trigger": "create:cross_streams_builtin"
     }
   },
   "display": {

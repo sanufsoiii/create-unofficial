@@ -79,6 +79,7 @@ processResources {
     exclude("assets/create/ponder/**")
     exclude("assets/create/*.png")
     exclude("data/create/structure/**")
+    exclude("resourcepacks/**")
 }
 
 remapJar {
@@ -92,6 +93,7 @@ remapJar {
     exclude("assets/create/ponder/**")
     exclude("assets/create/*.png")
     exclude("data/create/structure/**")
+    exclude("resourcepacks/**")
     nestedJars.from project(":flywheel").tasks.named("remapJar")
     nestedJars.from project(":milk").tasks.named("remapJar")
     nestedJars.from project(":porting_lib_ufo").tasks.named("remapJar")

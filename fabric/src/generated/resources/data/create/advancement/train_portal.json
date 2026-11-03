@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:train_portal_builtin"
+      "trigger": "create:train_portal_builtin"
     }
   },
   "display": {

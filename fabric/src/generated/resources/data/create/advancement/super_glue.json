@@ -5,7 +5,7 @@
       "conditions": {
         "ddddd": ""
       },
-      "trigger": "minecraft:super_glue_builtin"
+      "trigger": "create:super_glue_builtin"
     }
   },
   "display": {
