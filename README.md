@@ -2,6 +2,11 @@
 
 **An unofficial Fabric port of Create 6.0.10 for Minecraft 1.21.1.**
 
+## Download
+
+- [CurseForge](https://www.curseforge.com/minecraft/mc-mods/create-reforged-unofficial)
+- [Modrinth](https://modrinth.com/mod/cru)
+
 Experience the beauty of kinetic engineering, rotation, and automation on the Fabric mod loader!
 
 ---
