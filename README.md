@@ -11,7 +11,7 @@ Experience the beauty of kinetic engineering, rotation, and automation on the Fa
 
 ---
 
-### 📦 Important: Getting Textures & Models (License Compliance)
+### Important: Getting Textures & Models (License Compliance)
 > **IMPORTANT:** To strictly respect the original **All Rights Reserved (ARR)** license of the Create Team, **no original textures, models, sounds, or language files are bundled inside this mod JAR**.
 > 
 > **How to install assets in 2 easy steps:**
@@ -22,18 +22,18 @@ Experience the beauty of kinetic engineering, rotation, and automation on the Fa
 
 ---
 
-### 🧩 Required Dependencies
+### Required Dependencies
 * **[Fabric Loader](https://fabricmc.net/)** (0.16.0 or higher)
 * **[Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api)**
 * **[Architectury API (Fabric)](https://www.curseforge.com/minecraft/mc-mods/architectury-api)**
 
-#### ⚡ Recommended Performance Mods
+#### Recommended Performance Mods
 * **[Sodium](https://www.curseforge.com/minecraft/mc-mods/sodium)** + **[Indium](https://www.curseforge.com/minecraft/mc-mods/indium)** *(Indium is required if using Sodium with Create!)*
 * **[Iris Shaders](https://www.curseforge.com/minecraft/mc-mods/irisshaders)** *(fully supported via Flywheel integration)*
 
 ---
 
-### ⚠️ Disclaimer & Credits
+### Disclaimer & Credits
 * **All original gameplay mechanics, design, art, sounds, and brand identity belong entirely to [Simibubi](https://github.com/simibubi) and the [Create Team](https://github.com/Creators-of-Create).**
 * This project is an independent community port and is **not** endorsed by, affiliated with, or supported by the official Create team.
 * **DO NOT REPORT BUGS TO THE OFFICIAL CREATE TEAM!** If you encounter any crashes or issues with this port, please report them to our [Unofficial GitHub Issue Tracker](https://github.com/sanufsoiii/create-unofficial/issues).
@@ -41,6 +41,6 @@ Experience the beauty of kinetic engineering, rotation, and automation on the Fa
 
 ---
 
-### 💬 Source Code & Community
+### Source Code & Community
 * **Source Code:** [GitHub Repository](https://github.com/sanufsoiii/create-unofficial)
 * **Issue Tracker:** [Report a Bug](https://github.com/sanufsoiii/create-unofficial/issues)
