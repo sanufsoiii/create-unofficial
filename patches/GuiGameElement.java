@@ -91,6 +91,10 @@ public class GuiGameElement {
       protected void renderModel(class_776 blockRenderer, class_4598 buffer, class_1921 renderType, class_4588 vb, class_4587 ms) {
          int color = class_310.method_1551().method_1505().method_1697(this.blockState, null, null, 0);
          class_1087 model = this.blockModel;
+         if (model == null) {
+            // Some mods/model loaders leave a block without a baked model; draw the missing model instead of crashing.
+            model = class_310.method_1551().method_1554().method_4744();
+         }
          model = DefaultLayerFilteringBakedModel.wrap(model);
          if (color == -1) {
             color = this.color;
